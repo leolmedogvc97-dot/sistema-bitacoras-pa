@@ -439,48 +439,67 @@ elif perfil == "Administrador Nacional (Sede)":
 
     st.markdown("---")
     st.subheader("📋 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
-    st.markdown("Usa los botones para activar, desactivar o eliminar perfiles del sistema:")
+    st.markdown("Listado general de la red con controles de activación, desactivación y eliminación:")
     
     usuarios_actuales_tabla = cargar_usuarios()
+    
+    # Encabezado estilo Excel
+    st.markdown(
+        """
+        <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
+            <span style="flex: 1.5; text-align: center;">ACCIONES</span>
+            <span style="flex: 2;">CORREO</span>
+            <span style="flex: 3;">NOMBRE</span>
+            <span style="flex: 2;">ROL</span>
+            <span style="flex: 1.5;">ESTADO</span>
+            <span style="flex: 1; text-align: right;">ESTATUS</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     
     for email, datos in usuarios_actuales_tabla.items():
         estado_activo = datos.get("activo", True)
         color_fondo = "#d4edda" if estado_activo else "#e2e3e5" # Verde claro si activo, gris si inactivo
         texto_estado = "🟢 Activo" if estado_activo else "🔴 Desactivado"
         
-        st.markdown(
-            f"""
-            <div style="background-color: {color_fondo}; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #ccc;">
-                <b>Correo:</b> {email} | <b>Nombre:</b> {datos.get('nombre')} | <b>Rol:</b> {datos.get('rol')} | <b>Estado:</b> {datos.get('estado')} | <b>Estatus:</b> {texto_estado}
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
+        # Fila en columnas para mantener los botones a la izquierda y el listado unificado estilo Excel
+        col_btns, col_info = st.columns([1.6, 8.4])
         
-        col_btn1, col_btn2, col_btn3, col_space = st.columns([1, 1, 1, 3])
-        with col_btn1:
-            if st.button("👍 Activar", key=f"activar_{email}"):
-                usuarios_actuales_tabla[email]["activo"] = True
-                guardar_usuarios(usuarios_actuales_tabla)
-                st.success(f"Usuario {email} activado.")
-                st.rerun()
-        with col_btn2:
-            if st.button("👎 Desactivar", key=f"desactivar_{email}"):
-                usuarios_actuales_tabla[email]["activo"] = False
-                guardar_usuarios(usuarios_actuales_tabla)
-                st.warning(f"Usuario {email} desactivado.")
-                st.rerun()
-        with col_btn3:
-            if st.button("🗑️ Eliminar", key=f"eliminar_{email}"):
-                if email == st.session_state["current_email"]:
-                    st.error("⚠️ No puedes eliminar tu propia cuenta mientras estás logueado.")
-                else:
-                    del usuarios_actuales_tabla[email]
+        with col_btns:
+            b1, b2, b3 = st.columns(3)
+            with b1:
+                if st.button("👍", key=f"activar_{email}", help="Activar"):
+                    usuarios_actuales_tabla[email]["activo"] = True
                     guardar_usuarios(usuarios_actuales_tabla)
-                    st.success(f"Usuario {email} eliminado por completo.")
                     st.rerun()
+            with b2:
+                if st.button("👎", key=f"desactivar_{email}", help="Desactivar"):
+                    usuarios_actuales_tabla[email]["activo"] = False
+                    guardar_usuarios(usuarios_actuales_tabla)
+                    st.rerun()
+            with b3:
+                if st.button("🗑️", key=f"eliminar_{email}", help="Eliminar perfil"):
+                    if email == st.session_state["current_email"]:
+                        st.error("No puedes eliminar tu propia cuenta.")
+                    else:
+                        del usuarios_actuales_tabla[email]
+                        guardar_usuarios(usuarios_actuales_tabla)
+                        st.rerun()
         
-        st.markdown("")
+        with col_info:
+            st.markdown(
+                f"""
+                <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                    <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><b>{email}</b></span>
+                    <span style="flex: 3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('nombre')}</span>
+                    <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('rol')}</span>
+                    <span style="flex: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('estado')}</span>
+                    <span style="flex: 1; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
 
     st.markdown("---")
     st.subheader("📋 Registros Acumulados en Sesión")
