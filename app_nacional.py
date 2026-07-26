@@ -7,8 +7,10 @@ from io import BytesIO
 
 st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Agraria", layout="wide")
 
-# Archivo persistente para guardar usuarios
+# Archivos persistentes y carpetas de almacenamiento
 USUARIOS_FILE = "usuarios.json"
+FOTOS_DIR = "fotos_perfil"
+os.makedirs(FOTOS_DIR, exist_ok=True)
 
 # Listado oficial de los 32 Estados de la República Mexicana
 ESTADOS_REPUBLICA = [
@@ -34,7 +36,8 @@ def cargar_usuarios():
             "pass": "Leonardo",
             "licencia": "0101P3402484l",
             "rol": "Administrador Nacional",
-            "estado": "Estado de México"
+            "estado": "Estado de México",
+            "foto": ""
         }
     }
 
@@ -97,8 +100,8 @@ if not st.session_state["logged_in"]:
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
     with col_l2:
         st.subheader("Iniciar Sesión")
-        email_input = st.text_input("Correo Electrónico Institucional").strip().lower()
-        pass_input = st.text_input("Contraseña", type="password")
+        email_input = st.text_input("Correo Electrónico Institucional", max_chars=300).strip().lower()
+        pass_input = st.text_input("Contraseña", type="password", max_chars=300)
         
         if st.button("🔑 Ingresar al Sistema", use_container_width=True):
             usuarios_actuales = cargar_usuarios()
@@ -109,6 +112,7 @@ if not st.session_state["logged_in"]:
                 st.session_state["current_licencia"] = usuarios_actuales[email_input]["licencia"]
                 st.session_state["current_rol"] = usuarios_actuales[email_input].get("rol", "Operador de Residencia")
                 st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
+                st.session_state["current_foto"] = usuarios_actuales[email_input].get("foto", "")
                 st.success("¡Acceso concedido! Cargando sistema...")
                 st.rerun()
             else:
@@ -123,19 +127,55 @@ with col_m_head:
     st.markdown("<h4 style='text-align: right; color: gray; margin-top: 15px;'>Procuraduría Agraria</h4>", unsafe_allow_html=True)
 st.markdown("---")
 
+# Panel lateral: Foto de perfil y datos de sesión
 st.sidebar.title("👤 Sesión Activa")
+current_email_key = st.session_state['current_email']
+usuarios_actuales_sidebar = cargar_usuarios()
+foto_actual = usuarios_actuales_sidebar.get(current_email_key, {}).get("foto", "")
+
+if foto_actual and os.path.exists(foto_actual):
+    st.sidebar.image(foto_actual, width=120)
+else:
+    st.sidebar.info("Sin foto de perfil asignada.")
+
 st.sidebar.write(f"**Usuario:** {st.session_state['current_user']}")
 st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
 st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
 st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Operador')}")
 
-perfil = st.sidebar.selectbox("Selecciona tu rol:", ["Operador de Residencia", "Administrador Nacional (Sede)"])
+perfil = st.sidebar.selectbox("Selecciona tu módulo:", ["Operador de Residencia", "Mi Perfil / Foto", "Administrador Nacional (Sede)"])
 
 if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state["logged_in"] = False
     st.rerun()
 
-if perfil == "Operador de Residencia":
+if perfil == "Mi Perfil / Foto":
+    st.subheader("🖼️ Configuración de Perfil y Fotografía")
+    st.markdown("Sube o actualiza tu fotografía de perfil institucional.")
+    
+    with st.form("form_foto_perfil"):
+        archivo_foto = st.file_uploader("Seleccionar imagen de perfil (JPG, PNG)", type=["jpg", "jpeg", "png"])
+        btn_subir_foto = st.form_submit_button("💾 Guardar Fotografía")
+        
+        if btn_subir_foto:
+            if archivo_foto is not None:
+                extension = archivo_foto.name.split(".")[-1]
+                nombre_archivo = f"{current_email_key.replace('@', '_').replace('.', '_')}.{extension}"
+                ruta_destino = os.path.join(FOTOS_DIR, nombre_archivo)
+                
+                with open(ruta_destino, "wb") as f:
+                    f.write(archivo_foto.getbuffer())
+                
+                all_users = cargar_usuarios()
+                if current_email_key in all_users:
+                    all_users[current_email_key]["foto"] = ruta_destino
+                    guardar_usuarios(all_users)
+                    st.session_state["current_foto"] = ruta_destino
+                    st.success("¡Fotografía de perfil actualizada con éxito! Vuelve a cargar o navega por el sistema para verla.")
+            else:
+                st.warning("⚠️ Selecciona un archivo de imagen válido antes de guardar.")
+
+elif perfil == "Operador de Residencia":
     st.subheader("📝 Módulo de Captura por Día - Residencia")
     st.markdown("Ingresa los datos de tu recorrido diario. Las horas deben ser en formato de 24 horas y diferentes entre sí.")
     
@@ -144,13 +184,12 @@ if perfil == "Operador de Residencia":
         with col1:
             fecha = st.date_input("Fecha de registro del uso del vehículo")
             municipio = st.selectbox("Municipio (Edo. Méx.)", MUNICIPIOS_EDOMEX, index=MUNICIPIOS_EDOMEX.index("Toluca") if "Toluca" in MUNICIPIOS_EDOMEX else 0)
-            poblado = st.text_input("Poblado / Comisión", value="")
-            folio_ciia = st.text_input("Folio CIIA", value="")
+            poblado = st.text_input("Poblado / Comisión", value="", max_chars=300)
+            folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
         with col2:
-            h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00")
-            # Kilómetros limpios/reseteados por cada nueva captura
+            h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00", max_chars=300)
             km_inicial = st.number_input("KM Inicial / Salida", min_value=0.0, value=0.0, step=1.0)
-            h_llegada = st.text_input("Hora de Llegada (Formato 24h, ej. 17:00)", value="17:00")
+            h_llegada = st.text_input("Hora de Llegada (Formato 24h, ej. 17:00)", value="17:00", max_chars=300)
             km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=0.0, step=1.0)
         with col3:
             residencia = st.selectbox("Área de Adscripción", [
@@ -162,24 +201,23 @@ if perfil == "Operador de Residencia":
                 "RESIDENCIA TENANCINGO"
             ])
             vehiculo = st.selectbox("Tipo de Vehículo", ["NISSAN VERSA", "PickUp", "Estacas"])
-            placas = st.text_input("Placas", value="MGX-543-A")
-            licencia = st.text_input("No. De Licencia", value=st.session_state["current_licencia"])
+            placas = st.text_input("Placas", value="MGX-543-A", max_chars=300)
+            licencia = st.text_input("No. De Licencia", value=st.session_state["current_licencia"], max_chars=300)
         with col4:
-            usuario = st.text_input("Usuario Responsable", value=st.session_state["current_user"])
+            usuario = st.text_input("Usuario Responsable", value=st.session_state["current_user"], max_chars=300)
             dotacion = st.number_input("Dotación de Gasolina ($)", min_value=0.0, value=200.0, step=1.0)
             
-            # Semáforos visuales de gasolina
             gas_salida_label = st.selectbox("Gasolina de Salida (Nivel)", list(OPCIONES_GASOLINA.keys()))
             gas_llegada_label = st.selectbox("Gasolina de Llegada (Nivel)", list(OPCIONES_GASOLINA.keys()))
         
         st.markdown("---")
         col_o1, col_o2, col_o3 = st.columns(3)
         with col_o1:
-            oficio_num = st.text_input("Oficio Número (Opcional)", value="")
+            oficio_num = st.text_input("Oficio Número (Opcional)", value="", max_chars=300)
         with col_o2:
-            oficio_fecha = st.text_input("Oficio Fecha (Opcional)", value="")
+            oficio_fecha = st.text_input("Oficio Fecha (Opcional)", value="", max_chars=300)
         with col_o3:
-            observaciones = st.text_input("Observaciones / Ruta", value="")
+            observaciones = st.text_input("Observaciones / Ruta", value="", max_chars=300)
         
         guardar_dia = st.form_submit_button("💾 Guardar Día")
         
@@ -287,11 +325,11 @@ elif perfil == "Administrador Nacional (Sede)":
         with st.form("form_nuevo_usuario"):
             col_u1, col_u2 = st.columns(2)
             with col_u1:
-                c_email = st.text_input("Correo Electrónico (Usuario)")
-                c_nombre = st.text_input("Nombre Completo (Mayúsculas)")
-                c_pass = st.text_input("Contraseña Asignada", type="password")
+                c_email = st.text_input("Correo Electrónico (Usuario)", max_chars=300)
+                c_nombre = st.text_input("Nombre Completo (Mayúsculas)", max_chars=300)
+                c_pass = st.text_input("Contraseña Asignada", type="password", max_chars=300)
             with col_u2:
-                c_licencia = st.text_input("Número de Licencia de Conducir")
+                c_licencia = st.text_input("Número de Licencia de Conducir", max_chars=300)
                 c_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA)
                 c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal"])
             
@@ -305,7 +343,8 @@ elif perfil == "Administrador Nacional (Sede)":
                         "pass": c_pass.strip(),
                         "licencia": c_licencia.strip(),
                         "estado": c_estado,
-                        "rol": c_rol
+                        "rol": c_rol,
+                        "foto": ""
                     }
                     guardar_usuarios(usuarios_actuales)
                     st.session_state["usuarios"] = usuarios_actuales
