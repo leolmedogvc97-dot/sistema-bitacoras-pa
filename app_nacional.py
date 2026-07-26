@@ -24,14 +24,7 @@ ESTADOS_REPUBLICA = [
 ]
 
 def cargar_usuarios():
-    if os.path.exists(USUARIOS_FILE):
-        try:
-            with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            pass
-    # Usuarios administradores por defecto (Víctor y Marichuy)
-    return {
+    usuarios_base = {
         "victor.olmedo@pa.gob.mx": {
             "nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ",
             "pass": "Leonardo",
@@ -49,6 +42,22 @@ def cargar_usuarios():
             "foto": ""
         }
     }
+    
+    if os.path.exists(USUARIOS_FILE):
+        try:
+            with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
+                usuarios_guardados = json.load(f)
+                # Garantizar que Víctor y Marichuy siempre mantengan perfil de administrador
+                for email_admin in ["victor.olmedo@pa.gob.mx", "marichuy@pa.gob.mx"]:
+                    if email_admin in usuarios_guardados:
+                        usuarios_guardados[email_admin]["rol"] = "Administrador Nacional"
+                    elif email_admin in usuarios_base:
+                        usuarios_guardados[email_admin] = usuarios_base[email_admin]
+                return usuarios_guardados
+        except:
+            pass
+            
+    return usuarios_base
 
 def guardar_usuarios(usuarios_dict):
     with open(USUARIOS_FILE, "w", encoding="utf-8") as f:
@@ -157,7 +166,7 @@ st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
 st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
 st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Operador')}")
 
-# Control de módulos según el rol del usuario (Administradores ven todo, operadores solo captura y perfil)
+# Control de módulos según el rol del usuario
 rol_actual = st.session_state.get("current_rol", "Operador de Residencia")
 if rol_actual in ["Administrador Nacional", "Administrador Estatal"]:
     modulos_disponibles = ["Operador de Residencia", "Mi Perfil / Foto", "Administrador Nacional (Sede)"]
