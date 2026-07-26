@@ -10,6 +10,7 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 # Archivos persistentes y carpetas de almacenamiento
 USUARIOS_FILE = "usuarios.json"
 FOTOS_DIR = "fotos_perfil"
+LOGO_FILE = "logo_pa.png"
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
 # Listado oficial de los 32 Estados de la República Mexicana
@@ -90,11 +91,12 @@ if "registros_acumulados" not in st.session_state:
 
 # --- PANTALLA DE LOGIN ---
 if not st.session_state["logged_in"]:
-    col_l_title, col_l_head = st.columns([3, 1])
+    col_l_logo, col_l_title = st.columns([0.1, 2.9])
+    with col_l_logo:
+        if os.path.exists(LOGO_FILE):
+            st.image(LOGO_FILE, width=60)
     with col_l_title:
         st.title("Acceso al Sistema Nacional de Bitácoras")
-    with col_l_head:
-        st.markdown("<h4 style='text-align: right; color: gray; margin-top: 20px;'>Procuraduría Agraria</h4>", unsafe_allow_html=True)
     st.markdown("---")
     
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
@@ -120,14 +122,18 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL (UNA VEZ LOGUEADO) ---
-col_m_title, col_m_head = st.columns([3, 1])
+col_m_logo, col_m_title = st.columns([0.1, 2.9])
+with col_m_logo:
+    if os.path.exists(LOGO_FILE):
+        st.image(LOGO_FILE, width=60)
 with col_m_title:
     st.title("Sistema Nacional de Control Vehicular y Bitácoras")
-with col_m_head:
-    st.markdown("<h4 style='text-align: right; color: gray; margin-top: 15px;'>Procuraduría Agraria</h4>", unsafe_allow_html=True)
 st.markdown("---")
 
-# Panel lateral: Foto de perfil y datos de sesión
+# Panel lateral: Logotipo, foto de perfil y datos de sesión
+if os.path.exists(LOGO_FILE):
+    st.sidebar.image(LOGO_FILE, use_container_width=True)
+
 st.sidebar.title("👤 Sesión Activa")
 current_email_key = st.session_state['current_email']
 usuarios_actuales_sidebar = cargar_usuarios()
@@ -143,7 +149,14 @@ st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
 st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
 st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Operador')}")
 
-perfil = st.sidebar.selectbox("Selecciona tu módulo:", ["Operador de Residencia", "Mi Perfil / Foto", "Administrador Nacional (Sede)"])
+# Control de módulos según el rol del usuario (Operadores solo ven captura y perfil)
+rol_actual = st.session_state.get("current_rol", "Operador de Residencia")
+if rol_actual in ["Administrador Nacional", "Administrador Estatal"]:
+    modulos_disponibles = ["Operador de Residencia", "Mi Perfil / Foto", "Administrador Nacional (Sede)"]
+else:
+    modulos_disponibles = ["Operador de Residencia", "Mi Perfil / Foto"]
+
+perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
 
 if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state["logged_in"] = False
@@ -333,8 +346,8 @@ elif perfil == "Administrador Nacional (Sede)":
                 c_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA)
                 c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal"])
             
-            btn_crear = st.form_submit_button("Registrar Usuario")
-            if btn_crear:
+            btn_creار = st.form_submit_button("Registrar Usuario")
+            if btn_creار:
                 if c_email and c_nombre and c_pass:
                     usuarios_actuales = cargar_usuarios()
                     email_limpio = c_email.strip().lower()
