@@ -31,7 +31,17 @@ def cargar_usuarios():
             "licencia": "0101P3402484l",
             "rol": "Administrador Nacional",
             "estado": "Estado de México",
-            "foto": ""
+            "foto": "",
+            "activo": True
+        },
+        "marichuy.duarte@pa.gob.mx": {
+            "nombre": "MARICHUY DUARTE SALAMANCA",
+            "pass": "Marichuy2026",
+            "licencia": "12345678",
+            "rol": "Administrador Nacional",
+            "estado": "Estado de México",
+            "foto": "",
+            "activo": True
         },
         "marichuy@pa.gob.mx": {
             "nombre": "MARICHUY",
@@ -39,7 +49,8 @@ def cargar_usuarios():
             "licencia": "0000000000000",
             "rol": "Administrador Nacional",
             "estado": "Michoacán",
-            "foto": ""
+            "foto": "",
+            "activo": True
         }
     }
     
@@ -47,10 +58,11 @@ def cargar_usuarios():
         try:
             with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
                 usuarios_guardados = json.load(f)
-                # Garantizar que Víctor y Marichuy siempre mantengan perfil de administrador
-                for email_admin in ["victor.olmedo@pa.gob.mx", "marichuy@pa.gob.mx"]:
+                for email_admin in ["victor.olmedo@pa.gob.mx", "marichuy.duarte@pa.gob.mx", "marichuy@pa.gob.mx"]:
                     if email_admin in usuarios_guardados:
                         usuarios_guardados[email_admin]["rol"] = "Administrador Nacional"
+                        if "activo" not in usuarios_guardados[email_admin]:
+                            usuarios_guardados[email_admin]["activo"] = True
                     elif email_admin in usuarios_base:
                         usuarios_guardados[email_admin] = usuarios_base[email_admin]
                 return usuarios_guardados
@@ -125,15 +137,18 @@ if not st.session_state["logged_in"]:
         if st.button("🔑 Ingresar al Sistema", use_container_width=True):
             usuarios_actuales = cargar_usuarios()
             if email_input in usuarios_actuales and usuarios_actuales[email_input]["pass"] == pass_input:
-                st.session_state["logged_in"] = True
-                st.session_state["current_email"] = email_input
-                st.session_state["current_user"] = usuarios_actuales[email_input]["nombre"]
-                st.session_state["current_licencia"] = usuarios_actuales[email_input]["licencia"]
-                st.session_state["current_rol"] = usuarios_actuales[email_input].get("rol", "Operador de Residencia")
-                st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
-                st.session_state["current_foto"] = usuarios_actuales[email_input].get("foto", "")
-                st.success("¡Acceso concedido! Cargando sistema...")
-                st.rerun()
+                if not usuarios_actuales[email_input].get("activo", True):
+                    st.error("⚠️ Tu cuenta se encuentra desactivada. Contacta al Administrador Nacional.")
+                else:
+                    st.session_state["logged_in"] = True
+                    st.session_state["current_email"] = email_input
+                    st.session_state["current_user"] = usuarios_actuales[email_input]["nombre"]
+                    st.session_state["current_licencia"] = usuarios_actuales[email_input]["licencia"]
+                    st.session_state["current_rol"] = usuarios_actuales[email_input].get("rol", "Operador de Residencia")
+                    st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
+                    st.session_state["current_foto"] = usuarios_actuales[email_input].get("foto", "")
+                    st.success("¡Acceso concedido! Cargando sistema...")
+                    st.rerun()
             else:
                 st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
     st.stop()
@@ -375,7 +390,8 @@ elif perfil == "Administrador Nacional (Sede)":
                         "licencia": c_licencia.strip(),
                         "estado": c_estado,
                         "rol": c_rol,
-                        "foto": ""
+                        "foto": "",
+                        "activo": True
                     }
                     guardar_usuarios(usuarios_actuales)
                     st.session_state["usuarios"] = usuarios_actuales
@@ -385,7 +401,7 @@ elif perfil == "Administrador Nacional (Sede)":
                     st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
 
     # --- APARTADO 2: EDITAR INFORMACIÓN DE USUARIOS EXISTENTES ---
-    with st.expander("✏️ Editar información de usuario existente (Operadores o Administradores)", expanded=False):
+    with st.expander("✏️ Editar información de usuario existente", expanded=False):
         usuarios_actuales_edit = cargar_usuarios()
         lista_emails = list(usuarios_actuales_edit.keys())
         if lista_emails:
@@ -422,20 +438,50 @@ elif perfil == "Administrador Nacional (Sede)":
             st.info("No hay usuarios registrados para editar.")
 
     st.markdown("---")
-    st.subheader("📋 Usuarios Registrados en la Red Nacional")
-    usuarios_actuales = cargar_usuarios()
-    df_users = pd.DataFrame([
-        {
-            "Correo": k, 
-            "Nombre": v["nombre"], 
-            "Estado": v.get("estado", "N/A"), 
-            "Rol": v.get("rol", "Operador"), 
-            "Licencia": v["licencia"]
-        } 
-        for k, v in usuarios_actuales.items()
-    ])
-    st.dataframe(df_users, use_container_width=True)
+    st.subheader("📋 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
+    st.markdown("Usa los botones para activar, desactivar o eliminar perfiles del sistema:")
     
+    usuarios_actuales_tabla = cargar_usuarios()
+    
+    for email, datos in usuarios_actuales_tabla.items():
+        estado_activo = datos.get("activo", True)
+        color_fondo = "#d4edda" if estado_activo else "#e2e3e5" # Verde claro si activo, gris si inactivo
+        texto_estado = "🟢 Activo" if estado_activo else "🔴 Desactivado"
+        
+        st.markdown(
+            f"""
+            <div style="background-color: {color_fondo}; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #ccc;">
+                <b>Correo:</b> {email} | <b>Nombre:</b> {datos.get('nombre')} | <b>Rol:</b> {datos.get('rol')} | <b>Estado:</b> {datos.get('estado')} | <b>Estatus:</b> {texto_estado}
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        col_btn1, col_btn2, col_btn3, col_space = st.columns([1, 1, 1, 3])
+        with col_btn1:
+            if st.button("👍 Activar", key=f"activar_{email}"):
+                usuarios_actuales_tabla[email]["activo"] = True
+                guardar_usuarios(usuarios_actuales_tabla)
+                st.success(f"Usuario {email} activado.")
+                st.rerun()
+        with col_btn2:
+            if st.button("👎 Desactivar", key=f"desactivar_{email}"):
+                usuarios_actuales_tabla[email]["activo"] = False
+                guardar_usuarios(usuarios_actuales_tabla)
+                st.warning(f"Usuario {email} desactivado.")
+                st.rerun()
+        with col_btn3:
+            if st.button("🗑️ Eliminar", key=f"eliminar_{email}"):
+                if email == st.session_state["current_email"]:
+                    st.error("⚠️ No puedes eliminar tu propia cuenta mientras estás logueado.")
+                else:
+                    del usuarios_actuales_tabla[email]
+                    guardar_usuarios(usuarios_actuales_tabla)
+                    st.success(f"Usuario {email} eliminado por completo.")
+                    st.rerun()
+        
+        st.markdown("")
+
     st.markdown("---")
     st.subheader("📋 Registros Acumulados en Sesión")
     if len(st.session_state["registros_acumulados"]) > 0:
