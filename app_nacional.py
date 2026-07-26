@@ -30,7 +30,7 @@ def cargar_usuarios():
                 return json.load(f)
         except:
             pass
-    # Usuario administrador por defecto
+    # Usuarios administradores por defecto (Víctor y Marichuy)
     return {
         "victor.olmedo@pa.gob.mx": {
             "nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ",
@@ -38,6 +38,14 @@ def cargar_usuarios():
             "licencia": "0101P3402484l",
             "rol": "Administrador Nacional",
             "estado": "Estado de México",
+            "foto": ""
+        },
+        "marichuy@pa.gob.mx": {
+            "nombre": "MARICHUY",
+            "pass": "Marichuy2026",
+            "licencia": "0000000000000",
+            "rol": "Administrador Nacional",
+            "estado": "Michoacán",
             "foto": ""
         }
     }
@@ -91,7 +99,7 @@ if "registros_acumulados" not in st.session_state:
 
 # --- PANTALLA DE LOGIN ---
 if not st.session_state["logged_in"]:
-    col_l_logo, col_l_title = st.columns([0.1, 2.9])
+    col_l_logo, col_l_title = st.columns([0.15, 2.85])
     with col_l_logo:
         if os.path.exists(LOGO_FILE):
             st.image(LOGO_FILE, width=60)
@@ -122,7 +130,7 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL (UNA VEZ LOGUEADO) ---
-col_m_logo, col_m_title = st.columns([0.1, 2.9])
+col_m_logo, col_m_title = st.columns([0.15, 2.85])
 with col_m_logo:
     if os.path.exists(LOGO_FILE):
         st.image(LOGO_FILE, width=60)
@@ -149,7 +157,7 @@ st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
 st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
 st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Operador')}")
 
-# Control de módulos según el rol del usuario (Operadores solo ven captura y perfil)
+# Control de módulos según el rol del usuario (Administradores ven todo, operadores solo captura y perfil)
 rol_actual = st.session_state.get("current_rol", "Operador de Residencia")
 if rol_actual in ["Administrador Nacional", "Administrador Estatal"]:
     modulos_disponibles = ["Operador de Residencia", "Mi Perfil / Foto", "Administrador Nacional (Sede)"]
@@ -346,8 +354,8 @@ elif perfil == "Administrador Nacional (Sede)":
                 c_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA)
                 c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal"])
             
-            btn_creار = st.form_submit_button("Registrar Usuario")
-            if btn_creار:
+            btn_crear = st.form_submit_button("Registrar Usuario")
+            if btn_crear:
                 if c_email and c_nombre and c_pass:
                     usuarios_actuales = cargar_usuarios()
                     email_limpio = c_email.strip().lower()
