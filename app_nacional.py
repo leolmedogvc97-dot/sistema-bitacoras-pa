@@ -349,9 +349,10 @@ elif perfil == "Operador de Residencia":
                     st.error(f"Error al generar el archivo definitivo: {e}")
 
 elif perfil == "Administrador Nacional (Sede)":
-    st.subheader("📊 Panel de Administración Nacional y Gestión de Usuarios por Estado")
+    st.subheader("📊 Panel de Administración Nacional y Gestión de Usuarios")
     
-    with st.expander("➕ Dar de alta nuevo usuario (Operador o Administrador por Estado)", expanded=True):
+    # --- APARTADO 1: DAR DE ALTA NUEVO USUARIO ---
+    with st.expander("➕ Dar de alta nuevo usuario (Operador o Administrador por Estado)", expanded=False):
         with st.form("form_nuevo_usuario"):
             col_u1, col_u2 = st.columns(2)
             with col_u1:
@@ -361,7 +362,7 @@ elif perfil == "Administrador Nacional (Sede)":
             with col_u2:
                 c_licencia = st.text_input("Número de Licencia de Conducir", max_chars=300)
                 c_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA)
-                c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal"])
+                c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal", "Administrador Nacional"])
             
             btn_crear = st.form_submit_button("Registrar Usuario")
             if btn_crear:
@@ -379,9 +380,47 @@ elif perfil == "Administrador Nacional (Sede)":
                     guardar_usuarios(usuarios_actuales)
                     st.session_state["usuarios"] = usuarios_actuales
                     st.success(f"¡Usuario {c_nombre} ({c_rol}) de {c_estado} registrado exitosamente!")
+                    st.rerun()
                 else:
                     st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
-    
+
+    # --- APARTADO 2: EDITAR INFORMACIÓN DE USUARIOS EXISTENTES ---
+    with st.expander("✏️ Editar información de usuario existente (Operadores o Administradores)", expanded=False):
+        usuarios_actuales_edit = cargar_usuarios()
+        lista_emails = list(usuarios_actuales_edit.keys())
+        if lista_emails:
+            email_a_editar = st.selectbox("Selecciona el correo del usuario a modificar", lista_emails)
+            if email_a_editar:
+                u_data = usuarios_actuales_edit[email_a_editar]
+                with st.form("form_editar_usuario"):
+                    col_e1, col_e2 = st.columns(2)
+                    with col_e1:
+                        e_nombre = st.text_input("Nombre Completo (Mayúsculas)", value=u_data.get("nombre", ""), max_chars=300)
+                        e_pass = st.text_input("Contraseña Asignada", value=u_data.get("pass", ""), type="password", max_chars=300)
+                        e_licencia = st.text_input("Número de Licencia de Conducir", value=u_data.get("licencia", ""), max_chars=300)
+                    with col_e2:
+                        estado_actual = u_data.get("estado", "Estado de México")
+                        idx_estado = ESTADOS_REPUBLICA.index(estado_actual) if estado_actual in ESTADOS_REPUBLICA else 0
+                        e_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA, index=idx_estado)
+                        
+                        roles_disponibles = ["Operador de Residencia", "Administrador Estatal", "Administrador Nacional"]
+                        rol_actual_u = u_data.get("rol", "Operador de Residencia")
+                        idx_rol = roles_disponibles.index(rol_actual_u) if rol_actual_u in roles_disponibles else 0
+                        e_rol = st.selectbox("Rol en el Sistema", roles_disponibles, index=idx_rol)
+                    
+                    btn_actualizar = st.form_submit_button("💾 Guardar Cambios de Usuario")
+                    if btn_actualizar:
+                        usuarios_actuales_edit[email_a_editar]["nombre"] = e_nombre.strip().upper()
+                        usuarios_actuales_edit[email_a_editar]["pass"] = e_pass.strip()
+                        usuarios_actuales_edit[email_a_editar]["licencia"] = e_licencia.strip()
+                        usuarios_actuales_edit[email_a_editar]["estado"] = e_estado
+                        usuarios_actuales_edit[email_a_editar]["rol"] = e_rol
+                        guardar_usuarios(usuarios_actuales_edit)
+                        st.success(f"¡Información de {email_a_editar} actualizada exitosamente!")
+                        st.rerun()
+        else:
+            st.info("No hay usuarios registrados para editar.")
+
     st.markdown("---")
     st.subheader("📋 Usuarios Registrados en la Red Nacional")
     usuarios_actuales = cargar_usuarios()
