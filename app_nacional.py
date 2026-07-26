@@ -4,6 +4,7 @@ import openpyxl
 import json
 import os
 from io import BytesIO
+from datetime import datetime, date
 
 st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Agraria", layout="wide")
 
@@ -11,6 +12,8 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 USUARIOS_FILE = "usuarios.json"
 FOTOS_DIR = "fotos_perfil"
 LOGO_FILE = "logo_pa.png"
+MUN_FILE = "MUNICIPIOS_202606.xlsx"
+LOC_FILE = "LOCALIDADES_202606.xlsx"
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
 # Listado oficial de los 32 Estados de la República Mexicana
@@ -22,6 +25,33 @@ ESTADOS_REPUBLICA = [
     "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", 
     "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
 ]
+
+# Carga de catálogos geográficos nacionales
+@st.cache_data
+def cargar_catalogos_geograficos():
+    muns_df = pd.read_excel(MUN_FILE) if os.path.exists(MUN_FILE) else pd.DataFrame()
+    locs_df = pd.read_excel(LOC_FILE) if os.path.exists(LOC_FILE) else pd.DataFrame()
+    return muns_df, locs_df
+
+muns_global, locs_global = cargar_catalogos_geograficos()
+
+def obtener_municipios_estado(estado_nombre):
+    if muns_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
+        return []
+    efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
+    muns = muns_global[muns_global['EFE_KEY'] == efe_key]['MUNICIPIO'].tolist()
+    return sorted(muns)
+
+def obtener_localidades_municipio(estado_nombre, municipio_nombre):
+    if muns_global.empty or locs_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
+        return []
+    efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
+    mun_row = muns_global[(muns_global['EFE_KEY'] == efe_key) & (muns_global['MUNICIPIO'] == municipio_nombre)]
+    if mun_row.empty:
+        return []
+    cat_key = mun_row['CATALOG_KEY'].values[0]
+    locs = locs_global[(locs_global['EFE_KEY'] == efe_key) & (locs_global['MUN_KEY'] == cat_key)]['LOCALIDAD'].tolist()
+    return sorted(locs)
 
 def cargar_usuarios():
     usuarios_base = {
@@ -63,6 +93,8 @@ def cargar_usuarios():
                         usuarios_guardados[email_admin]["rol"] = "Administrador Nacional"
                         if "activo" not in usuarios_guardados[email_admin]:
                             usuarios_guardados[email_admin]["activo"] = True
+                        if "estado" not in usuarios_guardados[email_admin]:
+                            usuarios_guardados[email_admin]["estado"] = usuarios_base[email_admin]["estado"]
                     elif email_admin in usuarios_base:
                         usuarios_guardados[email_admin] = usuarios_base[email_admin]
                 return usuarios_guardados
@@ -74,32 +106,6 @@ def cargar_usuarios():
 def guardar_usuarios(usuarios_dict):
     with open(USUARIOS_FILE, "w", encoding="utf-8") as f:
         json.dump(usuarios_dict, f, ensure_ascii=False, indent=4)
-
-# Catálogo oficial de los 125 municipios del Estado de México (Sin duplicados)
-MUNICIPIOS_EDOMEX = sorted([
-    "Acambay de Ruíz Castañeda", "Acolman", "Aculco", "Almoloya de Alquisiras", "Almoloya de Juárez", 
-    "Almoloya del Río", "Amanalco", "Amatepec", "Amecameca", "Apaxco", "Atenco", "Atizapán", 
-    "Atizapán de Zaragoza", "Atlautla", "Atlacomulco", "Axapusco", "Ayapango", "Calimaya", 
-    "Capulhuac", "Chalco", "Chapa de Mota", "Chapultepec", "Chiautla", "Chicoloapan", 
-    "Chiconcuac", "Chimalhuacán", "Coacalco de Berriozábal", "Coatepec Harinas", "Cocotitlán", 
-    "Coyotepec", "Cuautitlán", "Cuautitlán Izcalli", "Donato Guerra", "Ecatepec de Morelos", 
-    "Ecatzingo", "El Oro", "Hueypoxtla", "Huixquilucan", "Isidro Fabela", "Ixtapaluca", 
-    "Ixtapan de la Sal", "Ixtapan del Oro", "Ixtlahuaca", "Xalatlaco", "Jaltenco", "Jilotepec", 
-    "Jilotzingo", "Jiquipilco", "Jocotitlán", "Joquicingo", "Juchitepec", "La Paz", "Lerma", 
-    "Luvianos", "Malinalco", "Melchor Ocampo", "Metepec", "Mexicaltzingo", "Morelos", 
-    "Naucalpan de Juárez", "Nezahualcóyotl", "Nextlalpan", "Nicolás Romero", "Nopaltepec", 
-    "Ocoyoacac", "Ocuilan", "Otumba", "Otzoloapan", "Otzolotepec", "Ozumba", "Papalotla", 
-    "Polotitlán", "Rayón", "San Antonio la Isla", "San Felipe del Progreso", "San José del Rincón", 
-    "San Martín de las Pirámides", "San Mateo Atenco", "San Simón de Guerrero", "Santo Tomás", 
-    "Soyaniquilpan de Juárez", "Sultepec", "Tecámac", "Tejupilco", "Temamatla", "Temascalapa", 
-    "Temascalcingo", "Temascaltepec", "Temoaya", "Tenancingo", "Tenango del Aire", 
-    "Tenango del Valle", "Teoloyucan", "Teotihuacán", "Tepetlaoxtoc", "Tepetlixpa", 
-    "Tepotzotlán", "Tequixquiac", "Texcaltitlán", "Texcalyacac", "Texcoco", "Tezoyuca", 
-    "Tianguistenco", "Timilpan", "Tlalmanalco", "Tlalnepantla de Baz", "Tlatlaya", "Toluca", 
-    "Tonanitla", "Tonatico", "Tultepec", "Tultitlán", "Valle de Bravo", "Valle de Chalco Solidaridad", 
-    "Villa de Allende", "Villa del Carbón", "Villa Guerrero", "Villa Victoria", "Xonacatlán", 
-    "Zacazonapan", "Zacualpan", "Zinacantepec", "Zumpahuacán", "Zumpango"
-])
 
 # Semáforos visuales de gasolina
 OPCIONES_GASOLINA = {
@@ -150,7 +156,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL (UNA VEZ LOGUEADO) ---
@@ -178,7 +184,7 @@ else:
 
 st.sidebar.write(f"**Usuario:** {st.session_state['current_user']}")
 st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
-st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
+st.sidebar.write(f"**Estado Adscripción:** {st.session_state.get('current_estado', 'N/A')}")
 st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Operador')}")
 
 # Control de módulos según el rol del usuario
@@ -195,8 +201,14 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
     st.rerun()
 
 if perfil == "Mi Perfil / Foto":
-    st.subheader("🖼️ Configuración de Perfil y Fotografía")
-    st.markdown("Sube o actualiza tu fotografía de perfil institucional.")
+    st.subheader("🖼️ Configuración de Perfil y Fotografía de Adscripción")
+    st.markdown("Actualiza tu fotografía de perfil institucional y verifica tu estado de adscripción.")
+    
+    usuarios_dict_perfil = cargar_usuarios()
+    datos_u_actual = usuarios_dict_perfil.get(current_email_key, {})
+    
+    st.info(f"**Estado de Adscripción Actual:** {datos_u_actual.get('estado', 'Estado de México')}")
+    st.markdown("*(El Estado de Adscripción y perfil general pueden ser actualizados por el Administrador Nacional desde su panel).*")
     
     with st.form("form_foto_perfil"):
         archivo_foto = st.file_uploader("Seleccionar imagen de perfil (JPG, PNG)", type=["jpg", "jpeg", "png"])
@@ -222,14 +234,26 @@ if perfil == "Mi Perfil / Foto":
 
 elif perfil == "Operador de Residencia":
     st.subheader("📝 Módulo de Captura por Día - Residencia")
-    st.markdown("Ingresa los datos de tu recorrido diario. Las horas deben ser en formato de 24 horas y diferentes entre sí.")
+    estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
+    st.markdown(f"Ingresa los datos de tu recorrido diario. Los menús de **Municipios y Localidades** están filtrados automáticamente para **{estado_usuario_actual}**.")
     
+    # Obtener municipios y localidades para el estado de adscripción del usuario
+    lista_municipios = obtener_municipios_estado(estado_usuario_actual)
+    if not lista_municipios:
+        lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"] # Fallback
+        
     with st.form("form_captura_dia"):
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             fecha = st.date_input("Fecha de registro del uso del vehículo")
-            municipio = st.selectbox("Municipio (Edo. Méx.)", MUNICIPIOS_EDOMEX, index=MUNICIPIOS_EDOMEX.index("Toluca") if "Toluca" in MUNICIPIOS_EDOMEX else 0)
-            poblado = st.text_input("Poblado / Comisión", value="", max_chars=300)
+            municipio = st.selectbox(f"Municipio ({estado_usuario_actual})", lista_municipios)
+            
+            # Obtener localidades dinámicamente según el municipio seleccionado
+            lista_localidades = obtener_localidades_municipio(estado_usuario_actual, municipio)
+            if not lista_localidades:
+                lista_localidades = ["Cabecera Municipal", "Comisión Oficial"]
+            poblado = st.selectbox("Poblado / Localidad", lista_localidades)
+            
             folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
         with col2:
             h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00", max_chars=300)
@@ -238,6 +262,7 @@ elif perfil == "Operador de Residencia":
             km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=0.0, step=1.0)
         with col3:
             residencia = st.selectbox("Área de Adscripción", [
+                f"RESIDENCIA {estado_usuario_actual.upper()}", 
                 "RESIDENCIA NAUCALPAN", 
                 "RESIDENCIA TOLUCA", 
                 "RESIDENCIA ATLACOMULCO", 
@@ -295,10 +320,11 @@ elif perfil == "Operador de Residencia":
                     "Áreas de Adscripción": residencia,
                     "Tipo de Vehículo": vehiculo,
                     "Placas": placas,
-                    "No. De Licencia": licencia
+                    "No. De Licencia": licencia,
+                    "ESTADO_ADSCRIPCION": estado_usuario_actual
                 }
                 st.session_state["registros_acumulados"].append(nuevo_reg)
-                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} guardado correctamente!")
+                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente!")
 
     if len(st.session_state["registros_acumulados"]) > 0:
         st.markdown("---")
@@ -366,8 +392,15 @@ elif perfil == "Operador de Residencia":
 elif perfil == "Administrador Nacional (Sede)":
     st.subheader("📊 Panel de Administración Nacional y Gestión de Usuarios")
     
-    # --- APARTADO 1: DAR DE ALTA NUEVO USUARIO ---
-    with st.expander("➕ Dar de alta nuevo usuario (Operador o Administrador por Estado)", expanded=False):
+    # --- PESTAÑAS ADMINISTRATIVAS ---
+    tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria = st.tabs([
+        "➕ Alta de Usuario", 
+        "✏️ Editar Usuario", 
+        "👥 Control y Estatus", 
+        "📈 Resumen Ejecutivo y Auditoría"
+    ])
+    
+    with tab_reg_user:
         with st.form("form_nuevo_usuario"):
             col_u1, col_u2 = st.columns(2)
             with col_u1:
@@ -376,7 +409,7 @@ elif perfil == "Administrador Nacional (Sede)":
                 c_pass = st.text_input("Contraseña Asignada", type="password", max_chars=300)
             with col_u2:
                 c_licencia = st.text_input("Número de Licencia de Conducir", max_chars=300)
-                c_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA)
+                c_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA)
                 c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal", "Administrador Nacional"])
             
             btn_crear = st.form_submit_button("Registrar Usuario")
@@ -395,13 +428,12 @@ elif perfil == "Administrador Nacional (Sede)":
                     }
                     guardar_usuarios(usuarios_actuales)
                     st.session_state["usuarios"] = usuarios_actuales
-                    st.success(f"¡Usuario {c_nombre} ({c_rol}) de {c_estado} registrado exitosamente!")
+                    st.success(f"¡Usuario {c_nombre} ({c_rol}) con adscripción en {c_estado} registrado exitosamente!")
                     st.rerun()
                 else:
                     st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
 
-    # --- APARTADO 2: EDITAR INFORMACIÓN DE USUARIOS EXISTENTES ---
-    with st.expander("✏️ Editar información de usuario existente", expanded=False):
+    with tab_edit_user:
         usuarios_actuales_edit = cargar_usuarios()
         lista_emails = list(usuarios_actuales_edit.keys())
         if lista_emails:
@@ -417,7 +449,7 @@ elif perfil == "Administrador Nacional (Sede)":
                     with col_e2:
                         estado_actual = u_data.get("estado", "Estado de México")
                         idx_estado = ESTADOS_REPUBLICA.index(estado_actual) if estado_actual in ESTADOS_REPUBLICA else 0
-                        e_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA, index=idx_estado)
+                        e_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA, index=idx_estado)
                         
                         roles_disponibles = ["Operador de Residencia", "Administrador Estatal", "Administrador Nacional"]
                         rol_actual_u = u_data.get("rol", "Operador de Residencia")
@@ -437,75 +469,115 @@ elif perfil == "Administrador Nacional (Sede)":
         else:
             st.info("No hay usuarios registrados para editar.")
 
-    st.markdown("---")
-    st.subheader("📋 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
-    st.markdown("Listado general de la red con controles de activación, desactivación y eliminación:")
-    
-    usuarios_actuales_tabla = cargar_usuarios()
-    
-    # Encabezado estilo Excel
-    st.markdown(
-        """
-        <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
-            <span style="flex: 1.5; text-align: center;">ACCIONES</span>
-            <span style="flex: 2;">CORREO</span>
-            <span style="flex: 3;">NOMBRE</span>
-            <span style="flex: 2;">ROL</span>
-            <span style="flex: 1.5;">ESTADO</span>
-            <span style="flex: 1; text-align: right;">ESTATUS</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    for email, datos in usuarios_actuales_tabla.items():
-        estado_activo = datos.get("activo", True)
-        color_fondo = "#d4edda" if estado_activo else "#e2e3e5" # Verde claro si activo, gris si inactivo
-        texto_estado = "🟢 Activo" if estado_activo else "🔴 Desactivado"
+    with tab_ctrl_user:
+        st.subheader("📋 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
+        st.markdown("Listado general de la red con controles de activación, desactivación y eliminación:")
         
-        # Fila en columnas para mantener los botones a la izquierda y el listado unificado estilo Excel
-        col_btns, col_info = st.columns([1.6, 8.4])
+        usuarios_actuales_tabla = cargar_usuarios()
         
-        with col_btns:
-            b1, b2, b3 = st.columns(3)
-            with b1:
-                if st.button("👍", key=f"activar_{email}", help="Activar"):
-                    usuarios_actuales_tabla[email]["activo"] = True
-                    guardar_usuarios(usuarios_actuales_tabla)
-                    st.rerun()
-            with b2:
-                if st.button("👎", key=f"desactivar_{email}", help="Desactivar"):
-                    usuarios_actuales_tabla[email]["activo"] = False
-                    guardar_usuarios(usuarios_actuales_tabla)
-                    st.rerun()
-            with b3:
-                if st.button("🗑️", key=f"eliminar_{email}", help="Eliminar perfil"):
-                    if email == st.session_state["current_email"]:
-                        st.error("No puedes eliminar tu propia cuenta.")
-                    else:
-                        del usuarios_actuales_tabla[email]
+        # Encabezado estilo Excel
+        st.markdown(
+            """
+            <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
+                <span style="flex: 1.5; text-align: center;">ACCIONES</span>
+                <span style="flex: 2;">CORREO</span>
+                <span style="flex: 2.5;">NOMBRE</span>
+                <span style="flex: 2;">ROL</span>
+                <span style="flex: 1.5;">ESTADO ADS.</span>
+                <span style="flex: 1; text-align: right;">ESTATUS</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        for email, datos in usuarios_actuales_tabla.items():
+            estado_activo = datos.get("activo", True)
+            color_fondo = "#d4edda" if estado_activo else "#e2e3e5" # Verde claro si activo, gris si inactivo
+            texto_estado = "🟢 Activo" if estado_activo else "🔴 Desactivado"
+            
+            col_btns, col_info = st.columns([1.6, 8.4])
+            
+            with col_btns:
+                b1, b2, b3 = st.columns(3)
+                with b1:
+                    if st.button("👍", key=f"activar_{email}", help="Activar"):
+                        usuarios_actuales_tabla[email]["activo"] = True
                         guardar_usuarios(usuarios_actuales_tabla)
                         st.rerun()
-        
-        with col_info:
-            st.markdown(
-                f"""
-                <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
-                    <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><b>{email}</b></span>
-                    <span style="flex: 3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('nombre')}</span>
-                    <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('rol')}</span>
-                    <span style="flex: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('estado')}</span>
-                    <span style="flex: 1; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
+                with b2:
+                    if st.button("👎", key=f"desactivar_{email}", help="Desactivar"):
+                        usuarios_actuales_tabla[email]["activo"] = False
+                        guardar_usuarios(usuarios_actuales_tabla)
+                        st.rerun()
+                with b3:
+                    if st.button("🗑️", key=f"eliminar_{email}", help="Eliminar perfil"):
+                        if email == st.session_state["current_email"]:
+                            st.error("No puedes eliminar tu propia cuenta.")
+                        else:
+                            del usuarios_actuales_tabla[email]
+                            guardar_usuarios(usuarios_actuales_tabla)
+                            st.rerun()
+            
+            with col_info:
+                st.markdown(
+                    f"""
+                    <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><b>{email}</b></span>
+                        <span style="flex: 2.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('nombre')}</span>
+                        <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('rol')}</span>
+                        <span style="flex: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('estado')}</span>
+                        <span style="flex: 1; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
 
-    st.markdown("---")
-    st.subheader("📋 Registros Acumulados en Sesión")
-    if len(st.session_state["registros_acumulados"]) > 0:
-        df_sede = pd.DataFrame(st.session_state["registros_acumulados"])
-        st.dataframe(df_sede, use_container_width=True)
-        st.metric("Total de Días Registrados", len(df_sede))
-    else:
-        st.info("Aún no hay días guardados en la sesión actual.")
+    with tab_resumen_auditoria:
+        st.subheader("📈 Panel de Resumen Ejecutivo y Auditoría (Control Vehicular)")
+        st.markdown("Consulta global del uso general de vehículos por rango de fechas, kilómetros recorridos, consumo de combustible y trazabilidad geográfica.")
+        
+        # Simulación de registros globales o acumulados en sesión
+        if len(st.session_state["registros_acumulados"]) > 0:
+            df_global = pd.DataFrame(st.session_state["registros_acumulados"])
+            df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y').dt.date
+            
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                f_inicio = st.date_input("Fecha Inicial", value=df_global['FECHA_DT'].min())
+            with col_f2:
+                f_fin = st.date_input("Fecha Final", value=df_global['FECHA_DT'].max())
+                
+            # Filtrar por rango de fechas
+            df_filtrado = df_global[(df_global['FECHA_DT'] >= f_inicio) & (df_global['FECHA_DT'] <= f_fin)]
+            
+            if not df_filtrado.empty:
+                st.markdown("---")
+                # Métricas principales
+                total_km = df_filtrado['RECORRIDO'].sum()
+                total_gas = df_filtrado['GASTO COMBUSTI'].sum()
+                total_viajes = len(df_filtrado)
+                
+                m1, m2, m3 = st.columns(3)
+                m1.metric("KM Totales Recorridos", f"{total_km:,.1f} km")
+                m2.metric("Gasto Total de Combustible", f"${total_gas:,.2f} MXN")
+                m3.metric("Comisiones Registradas", f"{total_viajes}")
+                
+                st.markdown("---")
+                st.subheader("🗺️ Trazabilidad Geográfica y Municipios Visitados")
+                
+                # Agrupación y listado cronológico de municipios visitados
+                df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'ESTADO_ADSCRIPCION']).agg({
+                    'RECORRIDO': 'sum',
+                    'GASTO COMBUSTI': 'sum'
+                }).reset_index().sort_values(by='FECHA COMPLETA')
+                
+                st.dataframe(df_resumen_mun, use_container_width=True)
+                
+                # Resumen único de municipios visitados en el periodo
+                municipios_visitados = df_filtrado['MUNICIPIO'].unique().tolist()
+                st.markdown(f"**Municipios únicos visitados en el periodo ({len(municipios_visitados)}):** " + ", ".join(municipios_visitados))
+                
+            else:
+                st.warning("⚠️ No se encontraron registros en el rango de fechas seleccionado.")
+        else:
+            st.info("Aún no hay registros de recorridos acumulados en la sesión actual para generar el reporte de auditoría. Realiza capturas en el módulo de operador.")
