@@ -68,7 +68,7 @@ MUNICIPIOS_EDOMEX = sorted([
     "Zacazonapan", "Zacualpan", "Zinacantepec", "Zumpahuacán", "Zumpango"
 ])
 
-# Diccionario de semáforos de gasolina (Visual y valor limpio)
+# Semáforos visuales de gasolina
 OPCIONES_GASOLINA = {
     "🔴 1/4 de Tanque": "1/4",
     "🟡 1/2 Tanque": "1/2",
@@ -148,7 +148,7 @@ if perfil == "Operador de Residencia":
             folio_ciia = st.text_input("Folio CIIA", value="")
         with col2:
             h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00")
-            # Kilómetros inicial y final limpios/reseteados para cada captura
+            # Kilómetros limpios/reseteados por cada nueva captura
             km_inicial = st.number_input("KM Inicial / Salida", min_value=0.0, value=0.0, step=1.0)
             h_llegada = st.text_input("Hora de Llegada (Formato 24h, ej. 17:00)", value="17:00")
             km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=0.0, step=1.0)
