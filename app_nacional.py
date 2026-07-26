@@ -1,9 +1,34 @@
 import streamlit as st
 import pandas as pd
 import openpyxl
+import json
+import os
 from io import BytesIO
 
 st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Agraria", layout="wide")
+
+# Archivo persistente para guardar usuarios
+USUARIOS_FILE = "usuarios.json"
+
+def cargar_usuarios():
+    if os.path.exists(USUARIOS_FILE):
+        try:
+            with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    # Usuario por defecto si no existe el archivo
+    return {
+        "victor.olmedo@pa.gob.mx": {
+            "nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ",
+            "pass": "Leonardo",
+            "licencia": "0101P3402484l"
+        }
+    }
+
+def guardar_usuarios(usuarios_dict):
+    with open(USUARIOS_FILE, "w", encoding="utf-8") as f:
+        json.dump(usuarios_dict, f, ensure_ascii=False, indent=4)
 
 # Catálogo oficial de los 125 municipios del Estado de México (Sin duplicados)
 MUNICIPIOS_EDOMEX = sorted([
@@ -35,13 +60,7 @@ MUNICIPIOS_EDOMEX = sorted([
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "usuarios" not in st.session_state:
-    st.session_state["usuarios"] = {
-        "victor.olmedo@pa.gob.mx": {
-            "nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ",
-            "pass": "Leonardo",
-            "licencia": "0101P3402484l"
-        }
-    }
+    st.session_state["usuarios"] = cargar_usuarios()
 if "registros_acumulados" not in st.session_state:
     st.session_state["registros_acumulados"] = []
 
@@ -54,15 +73,16 @@ if not st.session_state["logged_in"]:
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
     with col_l2:
         st.subheader("Iniciar Sesión")
-        email_input = st.text_input("Correo Electrónico Institucional")
+        email_input = st.text_input("Correo Electrónico Institucional").strip().lower()
         pass_input = st.text_input("Contraseña", type="password")
         
         if st.button("🔑 Ingresar al Sistema", use_container_width=True):
-            if email_input in st.session_state["usuarios"] and st.session_state["usuarios"][email_input]["pass"] == pass_input:
+            usuarios_actuales = cargar_usuarios()
+            if email_input in usuarios_actuales and usuarios_actuales[email_input]["pass"] == pass_input:
                 st.session_state["logged_in"] = True
                 st.session_state["current_email"] = email_input
-                st.session_state["current_user"] = st.session_state["usuarios"][email_input]["nombre"]
-                st.session_state["current_licencia"] = st.session_state["usuarios"][email_input]["licencia"]
+                st.session_state["current_user"] = usuarios_actuales[email_input]["nombre"]
+                st.session_state["current_licencia"] = usuarios_actuales[email_input]["licencia"]
                 st.success("¡Acceso concedido! Cargando sistema...")
                 st.rerun()
             else:
@@ -91,7 +111,6 @@ if perfil == "Operador de Residencia":
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             fecha = st.date_input("Fecha Completa")
-            # Selector inteligente de municipios (con autocompletado nativo al escribir)
             municipio = st.selectbox("Municipio (Edo. Méx.)", MUNICIPIOS_EDOMEX, index=MUNICIPIOS_EDOMEX.index("Toluca") if "Toluca" in MUNICIPIOS_EDOMEX else 0)
             poblado = st.text_input("Poblado / Comisión", value="")
             folio_ciia = st.text_input("Folio CIIA", value="")
@@ -130,7 +149,6 @@ if perfil == "Operador de Residencia":
         guardar_dia = st.form_submit_button("💾 Guardar Día")
         
         if guardar_dia:
-            # Validación: La hora de salida y llegada no deben ser iguales
             if h_salida.strip() == h_llegada.strip():
                 st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
             else:
@@ -228,7 +246,6 @@ if perfil == "Operador de Residencia":
 elif perfil == "Administrador Nacional (Sede)":
     st.subheader("📊 Panel de Administración Nacional y Gestión de Usuarios")
     
-    # Sección para dar de alta nuevos usuarios
     with st.expander("➕ Dar de alta nuevo usuario al sistema", expanded=True):
         with st.form("form_nuevo_usuario"):
             c_email = st.text_input("Correo Electrónico (Usuario)")
@@ -239,20 +256,25 @@ elif perfil == "Administrador Nacional (Sede)":
             btn_crear = st.form_submit_button("Registrar Usuario")
             if btn_crear:
                 if c_email and c_nombre and c_pass:
-                    st.session_state["usuarios"][c_email.strip().lower()] = {
+                    usuarios_actuales = cargar_usuarios()
+                    email_limpio = c_email.strip().lower()
+                    usuarios_actuales[email_limpio] = {
                         "nombre": c_nombre.strip().upper(),
                         "pass": c_pass.strip(),
                         "licencia": c_licencia.strip()
                     }
-                    st.success(f"¡Usuario {c_nombre} registrado exitosamente!")
+                    guardar_usuarios(usuarios_actuales)
+                    st.session_state["usuarios"] = usuarios_actuales
+                    st.success(f"¡Usuario {c_nombre} registrado exitosamente y guardado en el sistema!")
                 else:
                     st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
     
     st.markdown("---")
     st.subheader("📋 Usuarios Registrados en el Sistema")
+    usuarios_actuales = cargar_usuarios()
     df_users = pd.DataFrame([
         {"Correo": k, "Nombre": v["nombre"], "Licencia": v["licencia"]} 
-        for k, v in st.session_state["usuarios"].items()
+        for k, v in usuarios_actuales.items()
     ])
     st.dataframe(df_users, use_container_width=True)
     
