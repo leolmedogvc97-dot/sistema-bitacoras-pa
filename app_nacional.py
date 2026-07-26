@@ -10,6 +10,16 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 # Archivo persistente para guardar usuarios
 USUARIOS_FILE = "usuarios.json"
 
+# Listado oficial de los 32 Estados de la República Mexicana
+ESTADOS_REPUBLICA = [
+    "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", 
+    "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima", 
+    "Durango", "Estado de México", "Guanajuato", "Guerrero", "Hidalgo", 
+    "Jalisco", "Michoacán", "Morelos", "Nayarit", "Nuevo León", "Oaxaca", 
+    "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", 
+    "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
+]
+
 def cargar_usuarios():
     if os.path.exists(USUARIOS_FILE):
         try:
@@ -17,12 +27,14 @@ def cargar_usuarios():
                 return json.load(f)
         except:
             pass
-    # Usuario por defecto si no existe el archivo
+    # Usuario administrador por defecto
     return {
         "victor.olmedo@pa.gob.mx": {
             "nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ",
             "pass": "Leonardo",
-            "licencia": "0101P3402484l"
+            "licencia": "0101P3402484l",
+            "rol": "Administrador Nacional",
+            "estado": "Estado de México"
         }
     }
 
@@ -56,6 +68,15 @@ MUNICIPIOS_EDOMEX = sorted([
     "Zacazonapan", "Zacualpan", "Zinacantepec", "Zumpahuacán", "Zumpango"
 ])
 
+# Diccionario de semáforos de gasolina (Visual y valor limpio)
+OPCIONES_GASOLINA = {
+    "🔴 1/4 de Tanque": "1/4",
+    "🟡 1/2 Tanque": "1/2",
+    "🟢 3/4 de Tanque": "3/4",
+    "🟢 Tanque Lleno (1/1)": "1/1",
+    "🔴 Reserva / Vacío (V)": "V"
+}
+
 # Inicialización de estados en sesión
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
@@ -66,8 +87,11 @@ if "registros_acumulados" not in st.session_state:
 
 # --- PANTALLA DE LOGIN ---
 if not st.session_state["logged_in"]:
-    st.title("🔐 Acceso al Sistema Nacional de Bitácoras")
-    st.markdown("Procuraduría Agraria - Módulo de Autenticación")
+    col_l_title, col_l_head = st.columns([3, 1])
+    with col_l_title:
+        st.title("Acceso al Sistema Nacional de Bitácoras")
+    with col_l_head:
+        st.markdown("<h4 style='text-align: right; color: gray; margin-top: 20px;'>Procuraduría Agraria</h4>", unsafe_allow_html=True)
     st.markdown("---")
     
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
@@ -83,6 +107,8 @@ if not st.session_state["logged_in"]:
                 st.session_state["current_email"] = email_input
                 st.session_state["current_user"] = usuarios_actuales[email_input]["nombre"]
                 st.session_state["current_licencia"] = usuarios_actuales[email_input]["licencia"]
+                st.session_state["current_rol"] = usuarios_actuales[email_input].get("rol", "Operador de Residencia")
+                st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
                 st.success("¡Acceso concedido! Cargando sistema...")
                 st.rerun()
             else:
@@ -90,12 +116,18 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL (UNA VEZ LOGUEADO) ---
-st.title("🌐 Sistema Nacional de Control Vehicular y Bitácoras")
+col_m_title, col_m_head = st.columns([3, 1])
+with col_m_title:
+    st.title("Sistema Nacional de Control Vehicular y Bitácoras")
+with col_m_head:
+    st.markdown("<h4 style='text-align: right; color: gray; margin-top: 15px;'>Procuraduría Agraria</h4>", unsafe_allow_html=True)
 st.markdown("---")
 
 st.sidebar.title("👤 Sesión Activa")
 st.sidebar.write(f"**Usuario:** {st.session_state['current_user']}")
 st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
+st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
+st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Operador')}")
 
 perfil = st.sidebar.selectbox("Selecciona tu rol:", ["Operador de Residencia", "Administrador Nacional (Sede)"])
 
@@ -110,15 +142,16 @@ if perfil == "Operador de Residencia":
     with st.form("form_captura_dia"):
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            fecha = st.date_input("Fecha Completa")
+            fecha = st.date_input("Fecha de registro del uso del vehículo")
             municipio = st.selectbox("Municipio (Edo. Méx.)", MUNICIPIOS_EDOMEX, index=MUNICIPIOS_EDOMEX.index("Toluca") if "Toluca" in MUNICIPIOS_EDOMEX else 0)
             poblado = st.text_input("Poblado / Comisión", value="")
             folio_ciia = st.text_input("Folio CIIA", value="")
         with col2:
             h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00")
-            km_inicial = st.number_input("KM Inicial / Salida", min_value=0.0, value=23379.0, step=1.0)
+            # Kilómetros inicial y final limpios/reseteados para cada captura
+            km_inicial = st.number_input("KM Inicial / Salida", min_value=0.0, value=0.0, step=1.0)
             h_llegada = st.text_input("Hora de Llegada (Formato 24h, ej. 17:00)", value="17:00")
-            km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=23479.0, step=1.0)
+            km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=0.0, step=1.0)
         with col3:
             residencia = st.selectbox("Área de Adscripción", [
                 "RESIDENCIA NAUCALPAN", 
@@ -134,8 +167,10 @@ if perfil == "Operador de Residencia":
         with col4:
             usuario = st.text_input("Usuario Responsable", value=st.session_state["current_user"])
             dotacion = st.number_input("Dotación de Gasolina ($)", min_value=0.0, value=200.0, step=1.0)
-            gas_salida = st.selectbox("Gasolina Salida", ["1/4", "1/2", "3/4", "1/1", "V"])
-            gas_llegada = st.selectbox("Gasolina Llegada", ["1/4", "1/2", "3/4", "1/1", "V"])
+            
+            # Semáforos visuales de gasolina
+            gas_salida_label = st.selectbox("Gasolina de Salida (Nivel)", list(OPCIONES_GASOLINA.keys()))
+            gas_llegada_label = st.selectbox("Gasolina de Llegada (Nivel)", list(OPCIONES_GASOLINA.keys()))
         
         st.markdown("---")
         col_o1, col_o2, col_o3 = st.columns(3)
@@ -151,6 +186,8 @@ if perfil == "Operador de Residencia":
         if guardar_dia:
             if h_salida.strip() == h_llegada.strip():
                 st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
+            elif km_final <= km_inicial and km_final != 0.0:
+                st.warning("⚠️ Aviso: El KM Final es menor o igual al KM Inicial. Verifica tus datos.")
             else:
                 recorrido = km_final - km_inicial
                 nuevo_reg = {
@@ -165,8 +202,8 @@ if perfil == "Operador de Residencia":
                     "HORA DE LLEGADA": h_llegada,
                     "KM FINAL / Km de Llegada": km_final,
                     "GASTO COMBUSTI": dotacion,
-                    "Gasolina de Salida": gas_salida,
-                    "Gasolina de Llegada": gas_llegada,
+                    "Gasolina de Salida": OPCIONES_GASOLINA[gas_salida_label],
+                    "Gasolina de Llegada": OPCIONES_GASOLINA[gas_llegada_label],
                     "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)": dotacion,
                     "Oficio Numero": oficio_num if oficio_num else None,
                     "Oficio Fecha": oficio_fecha if oficio_fecha else None,
@@ -244,14 +281,19 @@ if perfil == "Operador de Residencia":
                     st.error(f"Error al generar el archivo definitivo: {e}")
 
 elif perfil == "Administrador Nacional (Sede)":
-    st.subheader("📊 Panel de Administración Nacional y Gestión de Usuarios")
+    st.subheader("📊 Panel de Administración Nacional y Gestión de Usuarios por Estado")
     
-    with st.expander("➕ Dar de alta nuevo usuario al sistema", expanded=True):
+    with st.expander("➕ Dar de alta nuevo usuario (Operador o Administrador por Estado)", expanded=True):
         with st.form("form_nuevo_usuario"):
-            c_email = st.text_input("Correo Electrónico (Usuario)")
-            c_nombre = st.text_input("Nombre Completo (Mayúsculas)")
-            c_pass = st.text_input("Contraseña Asignada", type="password")
-            c_licencia = st.text_input("Número de Licencia de Conducir")
+            col_u1, col_u2 = st.columns(2)
+            with col_u1:
+                c_email = st.text_input("Correo Electrónico (Usuario)")
+                c_nombre = st.text_input("Nombre Completo (Mayúsculas)")
+                c_pass = st.text_input("Contraseña Asignada", type="password")
+            with col_u2:
+                c_licencia = st.text_input("Número de Licencia de Conducir")
+                c_estado = st.selectbox("Estado de la República", ESTADOS_REPUBLICA)
+                c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal"])
             
             btn_crear = st.form_submit_button("Registrar Usuario")
             if btn_crear:
@@ -261,19 +303,27 @@ elif perfil == "Administrador Nacional (Sede)":
                     usuarios_actuales[email_limpio] = {
                         "nombre": c_nombre.strip().upper(),
                         "pass": c_pass.strip(),
-                        "licencia": c_licencia.strip()
+                        "licencia": c_licencia.strip(),
+                        "estado": c_estado,
+                        "rol": c_rol
                     }
                     guardar_usuarios(usuarios_actuales)
                     st.session_state["usuarios"] = usuarios_actuales
-                    st.success(f"¡Usuario {c_nombre} registrado exitosamente y guardado en el sistema!")
+                    st.success(f"¡Usuario {c_nombre} ({c_rol}) de {c_estado} registrado exitosamente!")
                 else:
                     st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
     
     st.markdown("---")
-    st.subheader("📋 Usuarios Registrados en el Sistema")
+    st.subheader("📋 Usuarios Registrados en la Red Nacional")
     usuarios_actuales = cargar_usuarios()
     df_users = pd.DataFrame([
-        {"Correo": k, "Nombre": v["nombre"], "Licencia": v["licencia"]} 
+        {
+            "Correo": k, 
+            "Nombre": v["nombre"], 
+            "Estado": v.get("estado", "N/A"), 
+            "Rol": v.get("rol", "Operador"), 
+            "Licencia": v["licencia"]
+        } 
         for k, v in usuarios_actuales.items()
     ])
     st.dataframe(df_users, use_container_width=True)
