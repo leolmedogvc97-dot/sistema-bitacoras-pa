@@ -323,6 +323,16 @@ elif perfil == "Solicitud de Recurso de Gasolina":
     st.subheader("⛽ Solicitud de Recurso de Gasolina para Comisión Oficial")
     st.markdown("Apartado institucional para la gestión, solicitud y aprobación de asignación presupuestal de combustible.")
     
+    # Mejora 5: Notificaciones visuales en tiempo real de solicitudes del usuario
+    todas_sols_notif = cargar_solicitudes()
+    sols_mias = [s for s in todas_sols_notif if s.get("CORREO") == current_email_key]
+    for s in sols_mias:
+        est = s.get("ESTATUS", "")
+        if est == "APROBADO":
+            st.success(f"🎉 ¡Notificación! Tu solicitud para el destino **{s.get('DESTINO')}** ha sido **APROBADA**.")
+        elif est == "RECHAZADO":
+            st.error(f"⚠️ Aviso: Tu solicitud para el destino **{s.get('DESTINO')}** fue **RECHAZADA**.")
+
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
     solicitante_actual = st.session_state.get("current_user", "")
@@ -832,8 +842,20 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     m2.metric("Gasto Total de Combustible", f"${total_gas:,.2f} MXN")
                     m3.metric("Comisiones Registradas", f"{total_viajes}")
                     
+                    # Mejora 2: Alertas de mantenimiento preventivo por kilometraje
                     st.markdown("---")
-                    st.subheader("📊 Gráficos Analíticos de Kilometraje y Gasto")
+                    st.subheader("🔧 Alertas de Mantenimiento Preventivo (Flotilla)")
+                    df_mantenimiento = df_filtrado.groupby("Placas")["RECORRIDO"].sum().reset_index()
+                    for _, row in df_mantenimiento.iterrows():
+                        km_total_veh = row["RECORRIDO"]
+                        placa_v = row["Placas"]
+                        if km_total_veh >= 5000:
+                            st.error(f"🚨 **ALERTA DE MANTENIMIENTO**: El vehículo con placas **{placa_v}** ha acumulado **{km_total_veh:,.1f} km**. Requiere servicio preventivo urgente (cambio de aceite/filtros).")
+                        else:
+                            st.info(f"✅ El vehículo con placas **{placa_v}** registra **{km_total_veh:,.1f} km** (En rango operativo normal).")
+                    
+                    st.markdown("---")
+                    st.subheader("📊 Gráficos Analíticos de Kilometraje, Gasto y Tendencia")
                     
                     col_g1, col_g2 = st.columns(2)
                     with col_g1:
@@ -844,6 +866,11 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         st.write("**Gasto de Combustible por Jefatura**")
                         df_jef_gas = df_filtrado.groupby("JEFATURA")["GASTO COMBUSTI"].sum()
                         st.bar_chart(df_jef_gas)
+                    
+                    # Mejora 3: Gráficos de tendencia temporal
+                    st.write("**Evolución Temporal de Kilómetros Recorridos**")
+                    df_temporal = df_filtrado.groupby("FECHA COMPLETA")["RECORRIDO"].sum()
+                    st.line_chart(df_temporal)
                     
                     st.markdown("---")
                     st.subheader("🗺️ Trazabilidad Geográfica y Municipios Visitados")
@@ -857,6 +884,18 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     
                     municipios_visitados = df_filtrado['MUNICIPIO'].unique().tolist()
                     st.markdown(f"**Municipios únicos visitados en el filtro ({len(municipios_visitados)}):** " + ", ".join(municipios_visitados))
+                    
+                    # Mejora 4: Exportación de reportes filtrados a Excel
+                    st.markdown("---")
+                    output_filtrado = BytesIO()
+                    df_resumen_mun.to_excel(output_filtrado, index=False, sheet_name="REPORTE_FILTRADO")
+                    output_filtrado.seek(0)
+                    st.download_button(
+                        label="⬇️ Descargar Reporte Filtrado en Excel",
+                        data=output_filtrado,
+                        file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
                 else:
                     st.warning("⚠️ No se encontraron registros con los filtros seleccionados.")
             else:
