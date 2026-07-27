@@ -13,6 +13,7 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 USUARIOS_FILE = "usuarios.json"
 REGISTROS_FILE = "registros.json"
 SOLICITUDES_FILE = "solicitudes_gasolina.json"
+INCIDENCIAS_FILE = "incidencias_mecanicas.json"
 AUDIT_FILE = "audit_log.json"
 FOTOS_DIR = "fotos_perfil"
 LOGO_FILE = "logo_pa.png"
@@ -20,7 +21,7 @@ MUN_FILE = "MUNICIPIOS_202606.xlsx"
 LOC_FILE = "LOCALIDADES_202606.xlsx"
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
-# Coordenadas de referencia aproximadas para municipios principales (Estado de México y Michoacán)
+# Coordenadas de referencia aproximadas para municipios principales
 CODS_MUNICIPIOS = {
     "Toluca": {"lat": 19.2826, "lon": -99.6556},
     "Naucalpan de Juárez": {"lat": 19.4781, "lon": -99.2363},
@@ -57,6 +58,7 @@ JEFATURAS_RESIDENCIA = [
 ROLES_SISTEMA = [
     "Organizador Agrario (Operador)", 
     "Analista de Información", 
+    "Administrador de Vehículos (Estatal)",
     "Jefe de Residencia", 
     "Administrador Estatal", 
     "Administrador Nacional"
@@ -164,6 +166,19 @@ def cargar_solicitudes():
 def guardar_solicitudes(solicitudes_list):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as f:
         json.dump(solicitudes_list, f, ensure_ascii=False, indent=4)
+
+def cargar_incidencias():
+    if os.path.exists(INCIDENCIAS_FILE):
+        try:
+            with open(INCIDENCIAS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return []
+
+def guardar_incidencias(incidencias_list):
+    with open(INCIDENCIAS_FILE, "w", encoding="utf-8") as f:
+        json.dump(incidencias_list, f, ensure_ascii=False, indent=4)
 
 def registrar_auditoria(accion, detalle):
     log_entry = {
@@ -278,11 +293,11 @@ st.sidebar.write(f"**Jefe Resp.:** {st.session_state.get('current_jefe_residenci
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
 
 if rol_actual == "Administrador Nacional":
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Panel de Administración y Auditoría"]
-elif rol_actual in ["Administrador Estatal", "Jefe de Residencia", "Analista de Información"]:
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Panel de Supervisión (Estatal/Residencia)"]
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Panel de Administración y Auditoría"]
+elif rol_actual in ["Administrador Estatal", "Administrador de Vehículos (Estatal)", "Jefe de Residencia", "Analista de Información"]:
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Panel de Supervisión (Estatal/Residencia)"]
 else:
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina"]
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta"]
 
 perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
 
@@ -421,7 +436,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
         
         if rol_actual == "Analista de Información":
             df_sols_filtrado = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
-        elif rol_actual == "Jefe de Residencia":
+        elif rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
             df_sols_filtrado = df_sols[df_sols['JEFATURA'] == jefatura_actual]
         elif rol_actual in ["Administrador Estatal", "Administrador Nacional"]:
             df_sols_filtrado = df_sols
@@ -430,7 +445,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             
         st.dataframe(df_sols_filtrado, use_container_width=True)
         
-        if rol_actual in ["Jefe de Residencia", "Administrador Estatal", "Administrador Nacional"]:
+        if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)", "Administrador Estatal", "Administrador Nacional"]:
             st.markdown("---")
             st.subheader("⚙️ Panel de Aprobación de Solicitudes")
             for idx, sol in enumerate(solicitudes_historial):
@@ -451,6 +466,89 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                             registrar_auditoria("RECHAZAR SOLICITUD", f"Rechazo de recurso para {sol['FUNCIONARIO']}")
                             st.rerun()
 
+elif perfil == "Reporte de Incidencias en Ruta":
+    st.subheader("🚨 Reporte y Gestión de Incidencias y Fallas Mecánicas")
+    st.markdown("Módulo para registrar y dar seguimiento a averías, fallas mecánicas o imprevistos durante las comisiones oficiales.")
+    
+    estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
+    jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
+    usuario_actual_nombre = st.session_state.get("current_user", "")
+    
+    with st.form("form_incidencia"):
+        col_i1, col_i2 = st.columns(2)
+        with col_i1:
+            fecha_inc = st.date_input("Fecha de la Incidencia", value=date.today())
+            placas_inc = st.text_input("Placas del Vehículo Afectado", value="MGX-543-A", max_chars=300)
+            tipo_falla = st.selectbox("Tipo de Incidencia / Falla", [
+                "🔴 Falla Mecánica Mayor (Motor/Transmisión)",
+                "🟡 Falla Eléctrica / Batería",
+                "🟠 Pinchadura de Neumático / Llanta",
+                "🔵 Calentamiento / Sistema de Enfriamiento",
+                "⚪ Otro imprevisto en ruta"
+            ])
+        with col_i2:
+            municipio_inc = st.text_input("Municipio / Lugar de la Avería", value="", max_chars=300)
+            gravedad_inc = st.selectbox("Nivel de Urgencia", ["Baja", "Media", "Alta (Requiere Grúa/Auxilio Inmediato)"])
+            
+        descripcion_inc = st.text_area("Descripción detallada de la incidencia mecánica o imprevisto")
+        
+        btn_enviar_inc = st.form_submit_button("🚨 Enviar Reporte de Incidencia")
+        if btn_enviar_inc:
+            if not municipio_inc.strip() or not descripcion_inc.strip():
+                st.error("⚠️ Debes completar el municipio y la descripción de la falla.")
+            else:
+                nueva_inc = {
+                    "FECHA": fecha_inc.strftime("%d/%m/%Y"),
+                    "CONDUCTOR": usuario_actual_nombre,
+                    "CORREO": current_email_key,
+                    "JEFATURA": jefatura_actual,
+                    "ESTADO": estado_usuario_actual,
+                    "PLACAS": placas_inc.upper(),
+                    "TIPO": tipo_falla,
+                    "MUNICIPIO": municipio_inc.upper(),
+                    "URGENCIA": gravedad_inc,
+                    "DESCRIPCION": descripcion_inc,
+                    "ESTATUS": "PENDIENTE DE ATENCIÓN"
+                }
+                lista_incs = cargar_incidencias()
+                lista_incs.append(nueva_inc)
+                guardar_incidencias(lista_incs)
+                registrar_auditoria("REPORTE INCIDENCIA", f"Falla reportada en vehículo {placas_inc} ({tipo_falla})")
+                st.success("✅ Incidencia reportada exitosamente. Se ha notificado al Administrador de Vehículos y Jefatura.")
+
+    # Historial y gestión de incidencias
+    todas_incs = cargar_incidencias()
+    if todas_incs:
+        st.markdown("---")
+        st.subheader("📋 Historial de Incidencias en Ruta")
+        df_incs = pd.DataFrame(todas_incs)
+        
+        if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
+            df_incs_filtrado = df_incs[df_incs['ESTADO'] == estado_usuario_actual]
+        elif rol_actual == "Administrador Estatal":
+            df_incs_filtrado = df_incs[df_incs['ESTADO'] == estado_usuario_actual]
+        elif rol_actual == "Administrador Nacional":
+            df_incs_filtrado = df_incs
+        else:
+            df_incs_filtrado = df_incs[df_incs['CORREO'] == current_email_key]
+            
+        st.dataframe(df_incs_filtrado, use_container_width=True)
+        
+        if rol_actual in ["Administrador de Vehículos (Estatal)", "Administrador Estatal", "Administrador Nacional", "Jefe de Residencia"]:
+            st.markdown("---")
+            st.subheader("⚙️ Panel de Gestión de Mantenimiento Correctivo")
+            for idx, inc in enumerate(todas_incs):
+                if inc.get("ESTATUS") == "PENDIENTE DE ATENCIÓN":
+                    col_inf_inc, col_btn_res = st.columns([5, 2])
+                    with col_inf_inc:
+                        st.warning(f"🚨 **Placas:** {inc['PLACAS']} | **Tipo:** {inc['TIPO']} | **Estado/Lugar:** {inc['ESTADO']} - {inc['MUNICIPIO']} | **Urgencia:** {inc['URGENCIA']}\n\n*{inc['DESCRIPCION']}*")
+                    with col_btn_res:
+                        if st.button("🛠️ Marcar Atendido / Resolver", key=f"resolver_inc_{idx}"):
+                            todas_incs[idx]["ESTATUS"] = "RESUELTO / MANTENIMIENTO AUTORIZADO"
+                            guardar_incidencias(todas_incs)
+                            registrar_auditoria("RESOLVER INCIDENCIA", f"Incidencia resuelta para vehículo {inc['PLACAS']}")
+                            st.rerun()
+
 elif perfil == "Módulo de Captura (Recorrido)":
     st.subheader("📝 Módulo de Captura por Día - Organizador / Operador")
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
@@ -459,7 +557,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -806,7 +904,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             
             df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y', errors='coerce').dt.date
             
-            if rol_actual == "Jefe de Residencia":
+            if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
                 jefatura_sesion = st.session_state.get("current_jefatura", "")
                 df_global = df_global[df_global['JEFATURA'] == jefatura_sesion]
                 st.info(f"Mostrando registros bajo la Jefatura: **{jefatura_sesion}**")
@@ -878,12 +976,10 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     df_temporal = df_filtrado.groupby("FECHA COMPLETA")["RECORRIDO"].sum()
                     st.line_chart(df_temporal)
                     
-                    # --- MAPA INTERACTIVO DE TRAYECTORIAS Y RECORRIDOS ---
                     st.markdown("---")
                     st.subheader("🗺️ Mapa Interactivo de Movimiento y Rutas (Recorridos)")
                     st.markdown("Visualización cartográfica de los destinos visitados y líneas de conexión cronológica entre comisiones.")
                     
-                    # Preparar datos de coordenadas
                     mapa_rows = []
                     for _, r in df_filtrado.iterrows():
                         mun = r["MUNICIPIO"]
@@ -900,8 +996,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     
                     if mapa_rows:
                         df_mapa = pd.DataFrame(mapa_rows)
-                        
-                        # Crear líneas de conexión cronológica (arcos de ruta)
                         arcos_rows = []
                         if len(df_mapa) > 1:
                             for i in range(len(df_mapa) - 1):
@@ -913,7 +1007,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                                 })
                         df_arcos = pd.DataFrame(arcos_rows) if arcos_rows else pd.DataFrame()
                         
-                        # Configurar capas de PyDeck
                         capa_puntos = pdk.Layer(
                             "ScatterplotLayer",
                             data=df_mapa,
