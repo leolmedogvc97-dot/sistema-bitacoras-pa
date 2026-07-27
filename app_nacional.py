@@ -118,7 +118,6 @@ ROLES_SISTEMA = [
     "Administrador Nacional"
 ]
 
-# Compendio ampliado de frases motivacionales e inspiradoras del sector agrario y el servicio público
 FRASES_AGRARIAS = [
     "“La tierra no pertenece al hombre; el hombre pertenece a la tierra.” — Jefe Seattle",
     "“El agricultor es la única persona en el mundo que gasta dinero en esperar y arriesgarse a cosechar.” — E.W. Howe",
@@ -310,7 +309,6 @@ if "current_jefatura" not in st.session_state:
 if "current_jefe_residencia" not in st.session_state:
     st.session_state["current_jefe_residencia"] = ""
 
-# Frase motivacional del día seleccionada aleatoriamente al iniciar sesión
 if "frase_dia" not in st.session_state:
     st.session_state["frase_dia"] = random.choice(FRASES_AGRARIAS)
 
@@ -344,7 +342,7 @@ if not st.session_state["logged_in"]:
                     st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
                     st.session_state["current_jefatura"] = usuarios_actuales[email_input].get("jefatura", "RESIDENCIA NAUCALPAN")
                     st.session_state["current_jefe_residencia"] = usuarios_actuales[email_input].get("jefe_residencia", "N/A")
-                    st.session_state["frase_dia"] = random.choice(FRASES_AGRARIAS) # Nueva frase al entrar
+                    st.session_state["frase_dia"] = random.choice(FRASES_AGRARIAS)
                     registrar_auditoria("INICIO DE SESION", f"Acceso exitoso de {email_input}")
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
@@ -360,7 +358,6 @@ with col_m_logo:
 with col_m_title:
     st.title("Sistema Nacional de Control Vehicular y Bitácoras")
 
-# Despliegue de la frase motivacional agraria del día
 st.markdown(f'<div class="frase-agraria">🌾 <b>Reflexión Agraria del Día:</b> {st.session_state["frase_dia"]}</div>', unsafe_allow_html=True)
 st.markdown("---")
 
@@ -723,7 +720,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 placas_upper = placas.strip().upper()
                 registros_actuales = cargar_registros_acumulados()
                 
-                # Validación cruzada y bloqueo de duplicados exactos / traslapes de kilometraje
                 conflicto_duplicado = False
                 mensaje_error = ""
                 for r in registros_actuales:
@@ -992,13 +988,13 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             with col_acc_lbl:
                 st.write(f"**{email}** ({datos.get('nombre')})")
             with col_b1:
-                if st.button("👍 Activar", key=f"activar_{email}"):
+                if st.button("🟢 Encender", key=f"activar_{email}"):
                     usuarios_actuales_tabla[email]["activo"] = True
                     guardar_usuarios(usuarios_actuales_tabla)
                     registrar_auditoria("ACTIVAR USUARIO", f"Activación de cuenta para {email}")
                     st.rerun()
             with col_b2:
-                if st.button("👎 Desac.", key=f"desactivar_{email}"):
+                if st.button("🔴 Apagar", key=f"desactivar_{email}"):
                     usuarios_actuales_tabla[email]["activo"] = False
                     guardar_usuarios(usuarios_actuales_tabla)
                     registrar_auditoria("DESACTIVAR USUARIO", f"Desactivación de cuenta para {email}")
