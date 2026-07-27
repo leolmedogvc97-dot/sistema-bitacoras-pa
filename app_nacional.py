@@ -158,7 +158,6 @@ def obtener_municipios_estado(estado_nombre):
     if muns_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
         return []
     efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
-    # Buscar por columna de estado o clave según estructura del catálogo
     if 'EFE_KEY' in muns_global.columns:
         muns = muns_global[muns_global['EFE_KEY'] == efe_key]['MUNICIPIO'].dropna().tolist()
     elif 'ENTIDAD' in muns_global.columns:
@@ -172,7 +171,6 @@ def obtener_localidades_municipio(estado_nombre, municipio_nombre):
         return ["Cabecera Municipal"]
     efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
     
-    # Filtrar localidades de forma segura
     df_locs = locs_global.copy()
     if 'EFE_KEY' in df_locs.columns and 'MUNICIPIO' in df_locs.columns:
         locs = df_locs[(df_locs['EFE_KEY'] == efe_key) & (df_locs['MUNICIPIO'].str.upper() == municipio_nombre.upper())]['LOCALIDAD'].dropna().tolist()
@@ -360,7 +358,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -693,7 +691,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
             h_llegada = st.text_input("Hora de Llegada (Formato 24h, ej. 17:00)", value="17:00", max_chars=300)
             km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=km_sugerido, step=1.0)
         with col3:
-            # Eliminar duplicados en Área de Adscripción usando set
             lista_adscripciones_unicas = sorted(list(set([
                 jefatura_actual, 
                 "RESIDENCIA NAUCALPAN", 
@@ -886,7 +883,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             with col_u1:
                 c_email = st.text_input("Correo Electrónico (Usuario)", max_chars=300)
                 c_nombre = st.text_input("Nombre Completo (Mayúsculas)", max_chars=300)
-                c_pass = st.text_input("Contraseña Asignada", type="password", max_chars=300) # Oculto con ojo
+                c_pass = st.text_input("Contraseña Asignada", type="password", max_chars=300)
                 c_licencia = st.text_input("Número de Licencia de Conducir", max_chars=300)
             with col_u2:
                 c_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA)
@@ -928,7 +925,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     col_e1, col_e2 = st.columns(2)
                     with col_e1:
                         e_nombre = st.text_input("Nombre Completo (Mayúsculas)", value=u_data.get("nombre", ""), max_chars=300)
-                        e_pass = st.text_input("Contraseña Asignada", value=u_data.get("pass", ""), type="password", max_chars=300) # Oculto con ojo
+                        e_pass = st.text_input("Contraseña Asignada", value=u_data.get("pass", ""), type="password", max_chars=300)
                         e_licencia = st.text_input("Número de Licencia de Conducir", value=u_data.get("licencia", ""), max_chars=300)
                     with col_e2:
                         estado_actual = u_data.get("estado", "Estado de México")
