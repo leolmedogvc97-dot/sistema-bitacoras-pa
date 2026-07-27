@@ -148,13 +148,13 @@ def guardar_registros_acumulados(registros_list):
     with open(REGISTROS_FILE, "w", encoding="utf-8") as f:
         json.dump(registros_list, f, ensure_ascii=False, indent=4)
 
-# Semáforos visuales de gasolina
+# Niveles de combustible sin iconos
 OPCIONES_GASOLINA = {
-    "🔴 1/4 de Tanque": "1/4",
-    "🟡 1/2 Tanque": "1/2",
-    "🟢 3/4 de Tanque": "3/4",
-    "🟢 Tanque Lleno (1/1)": "1/1",
-    "🔴 Reserva / Vacío (V)": "V"
+    "1/4 de Tanque": "1/4",
+    "1/2 Tanque": "1/2",
+    "3/4 de Tanque": "3/4",
+    "Tanque Lleno (1/1)": "1/1",
+    "Reserva / Vacío (V)": "V"
 }
 
 # Inicialización segura de la sesión
@@ -191,11 +191,11 @@ if not st.session_state["logged_in"]:
         email_input = st.text_input("Correo Electrónico Institucional", max_chars=300).strip().lower()
         pass_input = st.text_input("Contraseña", type="password", max_chars=300)
         
-        if st.button("🔑 Ingresar al Sistema", use_container_width=True):
+        if st.button("Ingresar al Sistema", use_container_width=True):
             usuarios_actuales = cargar_usuarios()
             if email_input in usuarios_actuales and usuarios_actuales[email_input]["pass"] == pass_input:
                 if not usuarios_actuales[email_input].get("activo", True):
-                    st.error("⚠️ Tu cuenta se encuentra desactivada. Contacta al Administrador Nacional.")
+                    st.error("Aviso: Tu cuenta se encuentra desactivada. Contacta al Administrador Nacional.")
                 else:
                     st.session_state["logged_in"] = True
                     st.session_state["current_email"] = email_input
@@ -205,10 +205,10 @@ if not st.session_state["logged_in"]:
                     st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
                     st.session_state["current_jefatura"] = usuarios_actuales[email_input].get("jefatura", "RESIDENCIA NAUCALPAN")
                     st.session_state["current_jefe_residencia"] = usuarios_actuales[email_input].get("jefe_residencia", "N/A")
-                    st.success("¡Acceso concedido! Cargando sistema...")
+                    st.success("Acceso concedido. Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
+                st.error("Aviso: Usuario o contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -223,7 +223,7 @@ st.markdown("---")
 if os.path.exists(LOGO_FILE):
     st.sidebar.image(LOGO_FILE, use_container_width=True)
 
-st.sidebar.title("👤 Sesión Activa")
+st.sidebar.title("Sesión Activa")
 current_email_key = st.session_state['current_email']
 usuarios_actuales_sidebar = cargar_usuarios()
 foto_actual = usuarios_actuales_sidebar.get(current_email_key, {}).get("foto", "")
@@ -250,13 +250,13 @@ else:
 
 perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
 
-if st.sidebar.button("🚪 Cerrar Sesión"):
+if st.sidebar.button("Cerrar Sesión"):
     st.session_state["logged_in"] = False
     st.session_state["current_email"] = ""
     st.rerun()
 
 if perfil == "Mi Perfil / Foto":
-    st.subheader("🖼️ Configuración de Perfil y Adscripción Institucional")
+    st.subheader("Configuración de Perfil y Adscripción Institucional")
     st.markdown("Actualiza tu fotografía de perfil y verifica tu pertenencia territorial, jefatura y jefe de residencia correspondiente.")
     
     usuarios_dict_perfil = cargar_usuarios()
@@ -271,7 +271,7 @@ if perfil == "Mi Perfil / Foto":
     
     with st.form("form_foto_perfil"):
         archivo_foto = st.file_uploader("Seleccionar imagen de perfil (JPG, PNG)", type=["jpg", "jpeg", "png"])
-        btn_subir_foto = st.form_submit_button("💾 Guardar Fotografía")
+        btn_subir_foto = st.form_submit_button("Guardar Fotografía")
         
         if btn_subir_foto:
             if archivo_foto is not None:
@@ -286,12 +286,12 @@ if perfil == "Mi Perfil / Foto":
                 if current_email_key in all_users:
                     all_users[current_email_key]["foto"] = ruta_destino
                     guardar_usuarios(all_users)
-                    st.success("¡Fotografía de perfil actualizada con éxito!")
+                    st.success("Fotografía de perfil actualizada con éxito.")
             else:
-                st.warning("⚠️ Selecciona un archivo de imagen válido antes de guardar.")
+                st.warning("Aviso: Selecciona un archivo de imagen válido antes de guardar.")
 
 elif perfil == "Módulo de Captura (Recorrido)":
-    st.subheader("📝 Módulo de Captura por Día - Organizador / Operador")
+    st.subheader("Módulo de Captura por Día - Organizador / Operador")
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
     jefe_actual = st.session_state.get("current_jefe_residencia", "N/A")
@@ -308,7 +308,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
             fecha = st.date_input("Fecha de registro del uso del vehículo")
             municipio = st.selectbox(f"Municipio ({estado_usuario_actual})", lista_municipios)
             
-            # Carga dinámica estricta de localidades del municipio seleccionado
             lista_localidades = obtener_localidades_municipio(estado_usuario_actual, municipio)
             if not lista_localidades:
                 lista_localidades = ["Sin localidades registradas en catálogo"]
@@ -349,13 +348,13 @@ elif perfil == "Módulo de Captura (Recorrido)":
         with col_o3:
             observaciones = st.text_input("Observaciones / Ruta", value="", max_chars=300)
         
-        guardar_dia = st.form_submit_button("💾 Guardar Día")
+        guardar_dia = st.form_submit_button("Guardar Día")
         
         if guardar_dia:
             if h_salida.strip() == h_llegada.strip():
-                st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
+                st.error("Aviso: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
             elif km_final <= km_inicial and km_final != 0.0:
-                st.warning("⚠️ Aviso: El KM Final es menor o igual al KM Inicial. Verifica tus datos.")
+                st.warning("Aviso: El KM Final es menor o igual al KM Inicial. Verifica tus datos.")
             else:
                 recorrido = km_final - km_inicial
                 nuevo_reg = {
@@ -391,23 +390,23 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 registros_actuales.append(nuevo_reg)
                 guardar_registros_acumulados(registros_actuales)
                 
-                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente!")
+                st.success(f"Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente.")
 
     registros_totales = cargar_registros_acumulados()
     if len(registros_totales) > 0:
         st.markdown("---")
-        st.subheader("📋 Días Guardados (Historial Acumulado Permanente)")
+        st.subheader("Días Guardados (Historial Acumulado Permanente)")
         df_acumulado = pd.DataFrame(registros_totales)
         st.dataframe(df_acumulado, use_container_width=True)
         
         col_acc1, col_acc2 = st.columns(2)
         with col_acc1:
-            if st.button("🗑️ Limpiar historial completo"):
+            if st.button("Limpiar historial completo"):
                 guardar_registros_acumulados([])
                 st.rerun()
         
         with col_acc2:
-            if st.button("🚀 Guardar y Generar 3 Bitácoras Definitivas"):
+            if st.button("Guardar y Generar 3 Bitácoras Definitivas"):
                 try:
                     wb = openpyxl.load_workbook("Prueba unificación.xlsx")
                     ws = wb["BASE_DE_DATOS"]
@@ -447,9 +446,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     wb.save(output)
                     output.seek(0)
                     
-                    st.success("¡Archivo generado con éxito y listo para descarga!")
+                    st.success("Archivo generado con éxito y listo para descarga.")
                     st.download_button(
-                        label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
+                        label="Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
                         data=output,
                         file_name="BITACORAS_OFICIALES_DEFINITIVAS.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -458,19 +457,19 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     st.error(f"Error al generar el archivo definitivo: {e}")
 
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
-    st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
+    st.subheader("Panel de Gestión, Supervisión y Auditoría")
     
     if rol_actual == "Administrador Nacional":
         tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria = st.tabs([
-            "➕ Alta de Usuario", 
-            "✏️ Editar Usuario", 
-            "👥 Control y Estatus", 
-            "📈 Resumen Ejecutivo y Auditoría"
+            "Alta de Usuario", 
+            "Editar Usuario", 
+            "Control y Estatus", 
+            "Resumen Ejecutivo y Auditoría"
         ])
     else:
         tab_resumen_auditoria = st.container()
         st.markdown("---")
-        st.subheader("📋 Supervisión de Organizadores Agrarios Adscritos")
+        st.subheader("Supervisión de Organizadores Agrarios Adscritos")
         
     def render_alta_usuario():
         with st.form("form_nuevo_usuario"):
@@ -503,10 +502,10 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         "activo": True
                     }
                     guardar_usuarios(usuarios_actuales)
-                    st.success(f"¡Usuario {c_nombre} ({c_rol}) registrado exitosamente!")
+                    st.success(f"Usuario {c_nombre} ({c_rol}) registrado exitosamente.")
                     st.rerun()
                 else:
-                    st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
+                    st.error("Aviso: Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
 
     def render_editar_usuario():
         usuarios_actuales_edit = cargar_usuarios()
@@ -535,7 +534,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         idx_rol = ROLES_SISTEMA.index(u_data.get("rol", "Organizador Agrario (Operador)")) if u_data.get("rol") in ROLES_SISTEMA else 0
                         e_rol = st.selectbox("Rol en el Sistema", ROLES_SISTEMA, index=idx_rol)
                     
-                    btn_actualizar = st.form_submit_button("💾 Guardar Cambios")
+                    btn_actualizar = st.form_submit_button("Guardar Cambios")
                     if btn_actualizar:
                         usuarios_actuales_edit[email_a_editar]["nombre"] = e_nombre.strip().upper()
                         usuarios_actuales_edit[email_a_editar]["pass"] = e_pass.strip()
@@ -545,13 +544,13 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         usuarios_actuales_edit[email_a_editar]["jefe_residencia"] = e_jefe_res.strip().upper()
                         usuarios_actuales_edit[email_a_editar]["rol"] = e_rol
                         guardar_usuarios(usuarios_actuales_edit)
-                        st.success(f"¡Información de {email_a_editar} actualizada exitosamente!")
+                        st.success(f"Información de {email_a_editar} actualizada exitosamente.")
                         st.rerun()
         else:
             st.info("No hay usuarios registrados para editar.")
 
     def render_control_estatus():
-        st.subheader("👥 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
+        st.subheader("Control, Estatus y Eliminación de Usuarios en la Red Nacional")
         usuarios_actuales_tabla = cargar_usuarios()
         
         st.markdown(
@@ -572,24 +571,24 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         for email, datos in usuarios_actuales_tabla.items():
             estado_activo = datos.get("activo", True)
             color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
-            texto_estado = "🟢 Activo" if estado_activo else "🔴 Desac."
+            texto_estado = "Activo" if estado_activo else "Desactivado"
             
             col_btns, col_info = st.columns([1.5, 8.5])
             
             with col_btns:
                 b1, b2, b3 = st.columns(3)
                 with b1:
-                    if st.button("👍", key=f"activar_{email}", help="Activar"):
+                    if st.button("Act.", key=f"activar_{email}", help="Activar"):
                         usuarios_actuales_tabla[email]["activo"] = True
                         guardar_usuarios(usuarios_actuales_tabla)
                         st.rerun()
                 with b2:
-                    if st.button("👎", key=f"desactivar_{email}", help="Desactivar"):
+                    if st.button("Desc.", key=f"desactivar_{email}", help="Desactivar"):
                         usuarios_actuales_tabla[email]["activo"] = False
                         guardar_usuarios(usuarios_actuales_tabla)
                         st.rerun()
                 with b3:
-                    if st.button("🗑️", key=f"eliminar_{email}", help="Eliminar perfil"):
+                    if st.button("Elim.", key=f"eliminar_{email}", help="Eliminar perfil"):
                         if email == st.session_state["current_email"]:
                             st.error("No puedes eliminar tu propia cuenta.")
                         else:
@@ -613,7 +612,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 )
 
     def render_resumen_auditoria():
-        st.subheader("📈 Resumen Ejecutivo y Auditoría (Control Vehicular)")
+        st.subheader("Resumen Ejecutivo y Auditoría (Control Vehicular)")
         st.markdown("Consulta y segmentación del uso general de vehículos por rango de fechas, usuario organizador, estado y jefatura de residencia.")
         
         registros_persisted = cargar_registros_acumulados()
@@ -671,7 +670,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     m3.metric("Comisiones Registradas", f"{total_viajes}")
                     
                     st.markdown("---")
-                    st.subheader("🗺️ Trazabilidad Geográfica y Municipios Visitados")
+                    st.subheader("Trazabilidad Geográfica y Municipios Visitados")
                     
                     df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'JEFATURA', 'ESTADO_ADSCRIPCION']).agg({
                         'RECORRIDO': 'sum',
@@ -683,9 +682,9 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     municipios_visitados = df_filtrado['MUNICIPIO'].unique().tolist()
                     st.markdown(f"**Municipios únicos visitados en el filtro ({len(municipios_visitados)}):** " + ", ".join(municipios_visitados))
                 else:
-                    st.warning("⚠️ No se encontraron registros con los filtros seleccionados.")
+                    st.warning("Aviso: No se encontraron registros con los filtros seleccionados.")
             else:
-                st.warning("⚠️ No hay registros disponibles para tu nivel de adscripción.")
+                st.warning("Aviso: No hay registros disponibles para tu nivel de adscripción.")
         else:
             st.info("Aún no hay registros de recorridos acumulados en el sistema.")
 
