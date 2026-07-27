@@ -9,6 +9,48 @@ from datetime import datetime, date
 
 st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Agraria", layout="wide")
 
+# Inyección de estilos CSS personalizados (Colores Institucionales / Guinda Morena)
+st.markdown("""
+    <style>
+    /* Estilos globales y elementos principales */
+    h1, h2, h3 {
+        color: #6B1D2F !important;
+    }
+    
+    /* Botones principales de la aplicación */
+    .stButton>button {
+        background-color: #6B1D2F !important;
+        color: white !important;
+        border-radius: 6px !important;
+        border: none !important;
+        font-weight: bold;
+    }
+    
+    .stButton>button:hover {
+        background-color: #8A253D !important;
+        color: white !important;
+    }
+    
+    /* Botones de envío en formularios */
+    [data-testid="stFormSubmitButton"]>button {
+        background-color: #6B1D2F !important;
+        color: white !important;
+        border-radius: 6px !important;
+        font-weight: bold;
+    }
+    
+    [data-testid="stFormSubmitButton"]>button:hover {
+        background-color: #8A253D !important;
+    }
+    
+    /* Barra lateral */
+    section[data-testid="stSidebar"] {
+        background-color: #faf6f7;
+        border-right: 1px solid #e0d0d3;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Archivos persistentes y carpetas de almacenamiento
 USUARIOS_FILE = "usuarios.json"
 REGISTROS_FILE = "registros.json"
@@ -130,7 +172,6 @@ def cargar_usuarios():
         try:
             with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
                 usuarios_guardados = json.load(f)
-                # Forzar siempre rol Administrador Nacional para tu cuenta principal
                 if "victor.olmedo@pa.gob.mx" in usuarios_guardados:
                     usuarios_guardados["victor.olmedo@pa.gob.mx"]["rol"] = "Administrador Nacional"
                     usuarios_guardados["victor.olmedo@pa.gob.mx"]["activo"] = True
@@ -262,7 +303,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -277,30 +318,14 @@ st.markdown("---")
 if os.path.exists(LOGO_FILE):
     st.sidebar.image(LOGO_FILE, use_container_width=True)
 
-st.sidebar.title("👤 Sesión Activa")
 current_email_key = st.session_state['current_email']
 usuarios_actuales_sidebar = cargar_usuarios()
-
-# Forzar actualización en sesión si es Víctor para evitar desincronización
 if current_email_key == "victor.olmedo@pa.gob.mx":
     st.session_state["current_rol"] = "Administrador Nacional"
 
-foto_actual = usuarios_actuales_sidebar.get(current_email_key, {}).get("foto", "")
-
-if foto_actual and os.path.exists(foto_actual):
-    st.sidebar.image(foto_actual, width=120)
-else:
-    st.sidebar.info("Sin foto de perfil asignada.")
-
-st.sidebar.write(f"**Usuario:** {st.session_state['current_user']}")
-st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
-st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Organizador')}")
-st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
-st.sidebar.write(f"**Jefatura:** {st.session_state.get('current_jefatura', 'N/A')}")
-st.sidebar.write(f"**Jefe Resp.:** {st.session_state.get('current_jefe_residencia', 'N/A')}")
-
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
 
+st.sidebar.title("📌 Menú de Navegación")
 if rol_actual == "Administrador Nacional":
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Panel de Administración y Auditoría"]
 elif rol_actual in ["Administrador Estatal", "Administrador de Vehículos (Estatal)", "Jefe de Residencia", "Analista de Información"]:
@@ -308,8 +333,24 @@ elif rol_actual in ["Administrador Estatal", "Administrador de Vehículos (Estat
 else:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta"]
 
-perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
+perfil = st.sidebar.radio("Selecciona tu módulo:", modulos_disponibles)
 
+st.sidebar.markdown("---")
+with st.sidebar.expander("👤 Sesión Activa (Ver Datos)", expanded=False):
+    foto_actual = usuarios_actuales_sidebar.get(current_email_key, {}).get("foto", "")
+    if foto_actual and os.path.exists(foto_actual):
+        st.image(foto_actual, width=100)
+    else:
+        st.info("Sin foto de perfil.")
+
+    st.write(f"**Usuario:** {st.session_state['current_user']}")
+    st.write(f"**Correo:** {st.session_state['current_email']}")
+    st.write(f"**Rol:** {st.session_state.get('current_rol', 'Organizador')}")
+    st.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
+    st.write(f"**Jefatura:** {st.session_state.get('current_jefatura', 'N/A')}")
+    st.write(f"**Jefe Resp.:** {st.session_state.get('current_jefe_residencia', 'N/A')}")
+
+st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Cerrar Sesión"):
     registrar_auditoria("CIERRE DE SESION", f"Cierre de sesión de {current_email_key}")
     st.session_state["logged_in"] = False
@@ -525,7 +566,6 @@ elif perfil == "Reporte de Incidencias en Ruta":
                 registrar_auditoria("REPORTE INCIDENCIA", f"Falla reportada en vehículo {placas_inc} ({tipo_falla})")
                 st.success("✅ Incidencia reportada exitosamente. Se ha notificado al Administrador de Vehículos y Jefatura.")
 
-    # Historial y gestión de incidencias
     todas_incs = cargar_incidencias()
     if todas_incs:
         st.markdown("---")
@@ -858,7 +898,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             
         st.markdown(
             f"""
-            <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
+            <div style="background-color: #6B1D2F; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
                 <span style="flex: 2.0; text-align: left;">CORREO</span>
                 <span style="flex: 2.5; text-align: left;">NOMBRE</span>
                 <span style="flex: 2.0; text-align: left;">ROL</span>
@@ -1020,7 +1060,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                             "ScatterplotLayer",
                             data=df_mapa,
                             get_position='[lon, lat]',
-                            get_color='[0, 128, 255, 160]',
+                            get_color='[107, 29, 47, 180]',
                             get_radius=3000,
                             pickable=True,
                             auto_highlight=True
@@ -1033,8 +1073,8 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                                 data=df_arcos,
                                 get_source_position='[start_lon, start_lat]',
                                 get_target_position='[end_lon, end_lat]',
-                                get_source_color='[255, 0, 0]',
-                                get_target_color='[0, 255, 0]',
+                                get_source_color='[107, 29, 47]',
+                                get_target_color='[138, 37, 61]',
                                 get_width=3
                             )
                         
@@ -1057,7 +1097,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                             initial_view_state=view_state,
                             tooltip={
                                 "html": "<b>Municipio:</b> {MUNICIPIO}<br/><b>Poblado:</b> {POBLADO}<br/><b>Fecha:</b> {FECHA}<br/><b>Responsable:</b> {USUARIO}",
-                                "style": {"backgroundColor": "steelblue", "color": "white"}
+                                "style": {"backgroundColor": "#6B1D2F", "color": "white"}
                             }
                         )
                         st.pydeck_chart(r_deck)
