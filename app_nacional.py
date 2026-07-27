@@ -649,65 +649,63 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         st.subheader("👥 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
         usuarios_actuales_tabla = cargar_usuarios()
         
-        # Cabecera unificada con exactamente los mismos porcentajes de ancho (flex) que las filas de datos
-        st.markdown(
+        # Tabla unificada en HTML puro para que cabecera y filas compartan la misma estructura exacta de columnas
+        filas_html = ""
+        for email, datos in usuarios_actuales_tabla.items():
+            estado_activo = datos.get("activo", True)
+            color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
+            texto_estado = "🟢 Activo" if estado_activo else "🔴 Desac."
+            
+            filas_html += f"""
+            <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                <span style="flex: 2.0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;"><b>{email}</b></span>
+                <span style="flex: 2.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('nombre')}</span>
+                <span style="flex: 2.0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('rol')}</span>
+                <span style="flex: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('estado')}</span>
+                <span style="flex: 1.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('jefatura')}</span>
+                <span style="flex: 0.9; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
+            </div>
             """
+            
+        st.markdown(
+            f"""
             <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
-                <span style="flex: 2.2; text-align: left;">ACCIONES</span>
-                <span style="flex: 2.5; text-align: left;">CORREO</span>
+                <span style="flex: 2.0; text-align: left;">CORREO</span>
                 <span style="flex: 2.5; text-align: left;">NOMBRE</span>
                 <span style="flex: 2.0; text-align: left;">ROL</span>
                 <span style="flex: 1.3; text-align: left;">ESTADO</span>
                 <span style="flex: 1.8; text-align: left;">JEFATURA</span>
                 <span style="flex: 0.9; text-align: right;">ESTATUS</span>
             </div>
+            {filas_html}
             """,
             unsafe_allow_html=True
         )
         
+        st.markdown("---")
+        st.subheader("⚙️ Botones de Acción por Usuario")
         for email, datos in usuarios_actuales_tabla.items():
-            estado_activo = datos.get("activo", True)
-            color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
-            texto_estado = "🟢 Activo" if estado_activo else "🔴 Desac."
-            
-            # Contenedor principal de la fila dividido en Acciones (2.2) y Datos (7.8) con idéntico flex
-            col_btns, col_info = st.columns([2.2, 7.8])
-            
-            with col_btns:
-                b1, b2, b3 = st.columns(3)
-                with b1:
-                    if st.button("👍", key=f"activar_{email}", help="Activar"):
-                        usuarios_actuales_tabla[email]["activo"] = True
+            col_acc_lbl, col_b1, col_b2, col_b3 = st.columns([3, 1, 1, 1])
+            with col_acc_lbl:
+                st.write(f"**{email}** ({datos.get('nombre')})")
+            with col_b1:
+                if st.button("👍 Activar", key=f"activar_{email}"):
+                    usuarios_actuales_tabla[email]["activo"] = True
+                    guardar_usuarios(usuarios_actuales_tabla)
+                    st.rerun()
+            with col_b2:
+                if st.button("👎 Desac.", key=f"desactivar_{email}"):
+                    usuarios_actuales_tabla[email]["activo"] = False
+                    guardar_usuarios(usuarios_actuales_tabla)
+                    st.rerun()
+            with col_b3:
+                if st.button("🗑️ Eliminar", key=f"eliminar_{email}"):
+                    if email == st.session_state["current_email"]:
+                        st.error("No puedes eliminar tu propia cuenta.")
+                    else:
+                        del usuarios_actuales_tabla[email]
                         guardar_usuarios(usuarios_actuales_tabla)
                         st.rerun()
-                with b2:
-                    if st.button("👎", key=f"desactivar_{email}", help="Desactivar"):
-                        usuarios_actuales_tabla[email]["activo"] = False
-                        guardar_usuarios(usuarios_actuales_tabla)
-                        st.rerun()
-                with b3:
-                    if st.button("🗑️", key=f"eliminar_{email}", help="Eliminar perfil"):
-                        if email == st.session_state["current_email"]:
-                            st.error("No puedes eliminar tu propia cuenta.")
-                        else:
-                            del usuarios_actuales_tabla[email]
-                            guardar_usuarios(usuarios_actuales_tabla)
-                            st.rerun()
-            
-            with col_info:
-                st.markdown(
-                    f"""
-                    <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                        <span style="flex: 2.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;"><b>{email}</b></span>
-                        <span style="flex: 2.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('nombre')}</span>
-                        <span style="flex: 2.0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('rol')}</span>
-                        <span style="flex: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('estado')}</span>
-                        <span style="flex: 1.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('jefatura')}</span>
-                        <span style="flex: 0.9; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
 
     def render_resumen_auditoria():
         st.subheader("📈 Resumen Ejecutivo y Auditoría (Control Vehicular)")
