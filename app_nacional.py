@@ -10,6 +10,7 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 
 # Archivos persistentes y carpetas de almacenamiento
 USUARIOS_FILE = "usuarios.json"
+REGISTROS_FILE = "registros.json"
 FOTOS_DIR = "fotos_perfil"
 LOGO_FILE = "logo_pa.png"
 MUN_FILE = "MUNICIPIOS_202606.xlsx"
@@ -134,6 +135,20 @@ def guardar_usuarios(usuarios_dict):
     with open(USUARIOS_FILE, "w", encoding="utf-8") as f:
         json.dump(usuarios_dict, f, ensure_ascii=False, indent=4)
 
+# Funciones de persistencia para los registros acumulados
+def cargar_registros_acumulados():
+    if os.path.exists(REGISTROS_FILE):
+        try:
+            with open(REGISTROS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return []
+
+def guardar_registros_acumulados(registros_list):
+    with open(REGISTROS_FILE, "w", encoding="utf-8") as f:
+        json.dump(registros_list, f, ensure_ascii=False, indent=4)
+
 # Semáforos visuales de gasolina
 OPCIONES_GASOLINA = {
     "🔴 1/4 de Tanque": "1/4",
@@ -148,8 +163,6 @@ if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "usuarios" not in st.session_state:
     st.session_state["usuarios"] = cargar_usuarios()
-if "registros_acumulados" not in st.session_state:
-    st.session_state["registros_acumulados"] = []
 
 # --- PANTALLA DE LOGIN ---
 if not st.session_state["logged_in"]:
@@ -246,7 +259,6 @@ if perfil == "Mi Perfil / Foto":
     * **Jefe de Residencia Asignado:** {datos_u_actual.get('jefe_residencia', 'N/A')}
     * **Rol en la Red:** {datos_u_actual.get('rol', 'N/A')}
     """)
-    st.markdown("*(Los datos estructurales y de adscripción son administrados por el nivel directivo).*")
     
     with st.form("form_foto_perfil"):
         archivo_foto = st.file_uploader("Seleccionar imagen de perfil (JPG, PNG)", type=["jpg", "jpeg", "png"])
@@ -365,19 +377,25 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     "JEFE_RESIDENCIA": jefe_actual,
                     "CORREO_ORGANIZADOR": current_email_key
                 }
-                st.session_state["registros_acumulados"].append(nuevo_reg)
-                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente!")
+                
+                # Cargar registros existentes del archivo persistente, agregar el nuevo y guardar
+                registros_actuales = cargar_registros_acumulados()
+                registros_actuales.append(nuevo_reg)
+                guardar_registros_acumulados(registros_actuales)
+                
+                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente de forma permanente!")
 
-    if len(st.session_state["registros_acumulados"]) > 0:
+    registros_totales = cargar_registros_acumulados()
+    if len(registros_totales) > 0:
         st.markdown("---")
-        st.subheader("📋 Días Guardados (Acumulado)")
-        df_acumulado = pd.DataFrame(st.session_state["registros_acumulados"])
+        st.subheader("📋 Días Guardados (Historial Acumulado Permanente)")
+        df_acumulado = pd.DataFrame(registros_totales)
         st.dataframe(df_acumulado, use_container_width=True)
         
         col_acc1, col_acc2 = st.columns(2)
         with col_acc1:
-            if st.button("🗑️ Limpiar lista y empezar de nuevo"):
-                st.session_state["registros_acumulados"] = []
+            if st.button("🗑️ Limpiar historial completo"):
+                guardar_registros_acumulados([])
                 st.rerun()
         
         with col_acc2:
@@ -389,7 +407,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     if ws.max_row >= 2:
                         ws.delete_rows(2, ws.max_row)
                     
-                    for i, reg in enumerate(st.session_state["registros_acumulados"]):
+                    for i, reg in enumerate(registros_totales):
                         row_idx = 2 + i
                         fila_datos = [
                             reg["FECHA COMPLETA"],
@@ -591,10 +609,10 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         st.subheader("📈 Resumen Ejecutivo y Auditoría (Control Vehicular)")
         st.markdown("Consulta y segmentación del uso general de vehículos por rango de fechas, usuario organizador, estado y jefatura de residencia.")
         
-        if len(st.session_state["registros_acumulados"]) > 0:
-            df_global = pd.DataFrame(st.session_state["registros_acumulados"])
+        registros_persisted = cargar_registros_acumulados()
+        if len(registros_persisted) > 0:
+            df_global = pd.DataFrame(registros_persisted)
             
-            # --- Corrección de robustez: Asegurar columnas por defecto ---
             for col in ['JEFATURA', 'ESTADO_ADSCRIPCION', 'JEFE_RESIDENCIA', 'Áreas de Adscripción', 'Usuario Responsable']:
                 if col not in df_global.columns:
                     df_global[col] = 'N/A'
@@ -662,7 +680,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             else:
                 st.warning("⚠️ No hay registros disponibles para tu nivel de adscripción.")
         else:
-            st.info("Aún no hay registros de recorridos acumulados en la sesión actual.")
+            st.info("Aún no hay registros de recorridos acumulados en el sistema.")
 
     if rol_actual == "Administrador Nacional":
         with tab_reg_user:
