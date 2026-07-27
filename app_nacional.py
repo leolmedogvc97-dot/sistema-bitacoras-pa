@@ -130,8 +130,12 @@ def cargar_usuarios():
         try:
             with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
                 usuarios_guardados = json.load(f)
-                if not usuarios_guardados:
-                    return usuarios_base
+                # Forzar siempre rol Administrador Nacional para tu cuenta principal
+                if "victor.olmedo@pa.gob.mx" in usuarios_guardados:
+                    usuarios_guardados["victor.olmedo@pa.gob.mx"]["rol"] = "Administrador Nacional"
+                    usuarios_guardados["victor.olmedo@pa.gob.mx"]["activo"] = True
+                else:
+                    usuarios_guardados["victor.olmedo@pa.gob.mx"] = usuarios_base["victor.olmedo@pa.gob.mx"]
                 return usuarios_guardados
         except:
             pass
@@ -258,7 +262,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -276,6 +280,11 @@ if os.path.exists(LOGO_FILE):
 st.sidebar.title("👤 Sesión Activa")
 current_email_key = st.session_state['current_email']
 usuarios_actuales_sidebar = cargar_usuarios()
+
+# Forzar actualización en sesión si es Víctor para evitar desincronización
+if current_email_key == "victor.olmedo@pa.gob.mx":
+    st.session_state["current_rol"] = "Administrador Nacional"
+
 foto_actual = usuarios_actuales_sidebar.get(current_email_key, {}).get("foto", "")
 
 if foto_actual and os.path.exists(foto_actual):
