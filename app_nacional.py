@@ -26,6 +26,23 @@ ESTADOS_REPUBLICA = [
     "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
 ]
 
+# Jefaturas de Residencia institucionales por defecto
+JEFATURAS_RESIDENCIA = [
+    "RESIDENCIA NAUCALPAN",
+    "RESIDENCIA TOLUCA",
+    "RESIDENCIA ATLACOMULCO",
+    "RESIDENCIA TEXCOCO",
+    "RESIDENCIA VALLE DE BRAVO",
+    "RESIDENCIA TENANCINGO"
+]
+
+ROLES_SISTEMA = [
+    "Organizador Agrario (Operador)", 
+    "Jefe de Residencia", 
+    "Administrador Estatal", 
+    "Administrador Nacional"
+]
+
 # Carga de catálogos geográficos nacionales
 @st.cache_data
 def cargar_catalogos_geograficos():
@@ -61,6 +78,8 @@ def cargar_usuarios():
             "licencia": "0101P3402484l",
             "rol": "Administrador Nacional",
             "estado": "Estado de México",
+            "jefatura": "RESIDENCIA NAUCALPAN",
+            "jefe_residencia": "N/A",
             "foto": "",
             "activo": True
         },
@@ -70,6 +89,8 @@ def cargar_usuarios():
             "licencia": "12345678",
             "rol": "Administrador Nacional",
             "estado": "Estado de México",
+            "jefatura": "RESIDENCIA TOLUCA",
+            "jefe_residencia": "N/A",
             "foto": "",
             "activo": True
         },
@@ -79,6 +100,8 @@ def cargar_usuarios():
             "licencia": "0000000000000",
             "rol": "Administrador Nacional",
             "estado": "Michoacán",
+            "jefatura": "RESIDENCIA MORELIA",
+            "jefe_residencia": "N/A",
             "foto": "",
             "activo": True
         }
@@ -95,6 +118,10 @@ def cargar_usuarios():
                             usuarios_guardados[email_admin]["activo"] = True
                         if "estado" not in usuarios_guardados[email_admin]:
                             usuarios_guardados[email_admin]["estado"] = usuarios_base[email_admin]["estado"]
+                        if "jefatura" not in usuarios_guardados[email_admin]:
+                            usuarios_guardados[email_admin]["jefatura"] = "RESIDENCIA NAUCALPAN"
+                        if "jefe_residencia" not in usuarios_guardados[email_admin]:
+                            usuarios_guardados[email_admin]["jefe_residencia"] = "N/A"
                     elif email_admin in usuarios_base:
                         usuarios_guardados[email_admin] = usuarios_base[email_admin]
                 return usuarios_guardados
@@ -150,13 +177,15 @@ if not st.session_state["logged_in"]:
                     st.session_state["current_email"] = email_input
                     st.session_state["current_user"] = usuarios_actuales[email_input]["nombre"]
                     st.session_state["current_licencia"] = usuarios_actuales[email_input]["licencia"]
-                    st.session_state["current_rol"] = usuarios_actuales[email_input].get("rol", "Operador de Residencia")
+                    st.session_state["current_rol"] = usuarios_actuales[email_input].get("rol", "Organizador Agrario (Operador)")
                     st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
+                    st.session_state["current_jefatura"] = usuarios_actuales[email_input].get("jefatura", "RESIDENCIA NAUCALPAN")
+                    st.session_state["current_jefe_residencia"] = usuarios_actuales[email_input].get("jefe_residencia", "N/A")
                     st.session_state["current_foto"] = usuarios_actuales[email_input].get("foto", "")
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL (UNA VEZ LOGUEADO) ---
@@ -184,15 +213,19 @@ else:
 
 st.sidebar.write(f"**Usuario:** {st.session_state['current_user']}")
 st.sidebar.write(f"**Correo:** {st.session_state['current_email']}")
-st.sidebar.write(f"**Estado Adscripción:** {st.session_state.get('current_estado', 'N/A')}")
-st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Operador')}")
+st.sidebar.write(f"**Rol:** {st.session_state.get('current_rol', 'Organizador')}")
+st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
+st.sidebar.write(f"**Jefatura:** {st.session_state.get('current_jefatura', 'N/A')}")
+st.sidebar.write(f"**Jefe Resp.:** {st.session_state.get('current_jefe_residencia', 'N/A')}")
 
 # Control de módulos según el rol del usuario
-rol_actual = st.session_state.get("current_rol", "Operador de Residencia")
-if rol_actual in ["Administrador Nacional", "Administrador Estatal"]:
-    modulos_disponibles = ["Operador de Residencia", "Mi Perfil / Foto", "Administrador Nacional (Sede)"]
-else:
-    modulos_disponibles = ["Operador de Residencia", "Mi Perfil / Foto"]
+rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
+if rol_actual == "Administrador Nacional":
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Panel de Administración y Auditoría"]
+elif rol_actual in ["Administrador Estatal", "Jefe de Residencia"]:
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Panel de Supervisión (Estatal/Residencia)"]
+else: # Organizador Agrario
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto"]
 
 perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
 
@@ -201,14 +234,19 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
     st.rerun()
 
 if perfil == "Mi Perfil / Foto":
-    st.subheader("🖼️ Configuración de Perfil y Fotografía de Adscripción")
-    st.markdown("Actualiza tu fotografía de perfil institucional y verifica tu estado de adscripción.")
+    st.subheader("🖼️ Configuración de Perfil y Adscripción Institucional")
+    st.markdown("Actualiza tu fotografía de perfil y verifica tu pertenencia territorial, jefatura y jefe de residencia correspondiente.")
     
     usuarios_dict_perfil = cargar_usuarios()
     datos_u_actual = usuarios_dict_perfil.get(current_email_key, {})
     
-    st.info(f"**Estado de Adscripción Actual:** {datos_u_actual.get('estado', 'Estado de México')}")
-    st.markdown("*(El Estado de Adscripción y perfil general pueden ser actualizados por el Administrador Nacional desde su panel).*")
+    st.info(f"""
+    * **Estado de Adscripción:** {datos_u_actual.get('estado', 'N/A')}
+    * **Jefatura de Residencia:** {datos_u_actual.get('jefatura', 'N/A')}
+    * **Jefe de Residencia Asignado:** {datos_u_actual.get('jefe_residencia', 'N/A')}
+    * **Rol en la Red:** {datos_u_actual.get('rol', 'N/A')}
+    """)
+    st.markdown("*(Los datos estructurales y de adscripción son administrados por el nivel directivo).*")
     
     with st.form("form_foto_perfil"):
         archivo_foto = st.file_uploader("Seleccionar imagen de perfil (JPG, PNG)", type=["jpg", "jpeg", "png"])
@@ -228,19 +266,21 @@ if perfil == "Mi Perfil / Foto":
                     all_users[current_email_key]["foto"] = ruta_destino
                     guardar_usuarios(all_users)
                     st.session_state["current_foto"] = ruta_destino
-                    st.success("¡Fotografía de perfil actualizada con éxito! Vuelve a cargar o navega por el sistema para verla.")
+                    st.success("¡Fotografía de perfil actualizada con éxito!")
             else:
                 st.warning("⚠️ Selecciona un archivo de imagen válido antes de guardar.")
 
-elif perfil == "Operador de Residencia":
-    st.subheader("📝 Módulo de Captura por Día - Residencia")
+elif perfil == "Módulo de Captura (Recorrido)":
+    st.subheader("📝 Módulo de Captura por Día - Organizador / Operador")
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
-    st.markdown(f"Ingresa los datos de tu recorrido diario. Los menús de **Municipios y Localidades** están filtrados automáticamente para **{estado_usuario_actual}**.")
+    jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
+    jefe_actual = st.session_state.get("current_jefe_residencia", "N/A")
     
-    # Obtener municipios y localidades para el estado de adscripción del usuario
+    st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
+    
     lista_municipios = obtener_municipios_estado(estado_usuario_actual)
     if not lista_municipios:
-        lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"] # Fallback
+        lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"]
         
     with st.form("form_captura_dia"):
         col1, col2, col3, col4 = st.columns(4)
@@ -248,7 +288,6 @@ elif perfil == "Operador de Residencia":
             fecha = st.date_input("Fecha de registro del uso del vehículo")
             municipio = st.selectbox(f"Municipio ({estado_usuario_actual})", lista_municipios)
             
-            # Obtener localidades dinámicamente según el municipio seleccionado
             lista_localidades = obtener_localidades_municipio(estado_usuario_actual, municipio)
             if not lista_localidades:
                 lista_localidades = ["Cabecera Municipal", "Comisión Oficial"]
@@ -262,7 +301,7 @@ elif perfil == "Operador de Residencia":
             km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=0.0, step=1.0)
         with col3:
             residencia = st.selectbox("Área de Adscripción", [
-                f"RESIDENCIA {estado_usuario_actual.upper()}", 
+                jefatura_actual, 
                 "RESIDENCIA NAUCALPAN", 
                 "RESIDENCIA TOLUCA", 
                 "RESIDENCIA ATLACOMULCO", 
@@ -321,7 +360,10 @@ elif perfil == "Operador de Residencia":
                     "Tipo de Vehículo": vehiculo,
                     "Placas": placas,
                     "No. De Licencia": licencia,
-                    "ESTADO_ADSCRIPCION": estado_usuario_actual
+                    "ESTADO_ADSCRIPCION": estado_usuario_actual,
+                    "JEFATURA": jefatura_actual,
+                    "JEFE_RESIDENCIA": jefe_actual,
+                    "CORREO_ORGANIZADOR": current_email_key
                 }
                 st.session_state["registros_acumulados"].append(nuevo_reg)
                 st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente!")
@@ -389,30 +431,37 @@ elif perfil == "Operador de Residencia":
                 except Exception as e:
                     st.error(f"Error al generar el archivo definitivo: {e}")
 
-elif perfil == "Administrador Nacional (Sede)":
-    st.subheader("📊 Panel de Administración Nacional y Gestión de Usuarios")
+elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
+    st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
     
-    # --- PESTAÑAS ADMINISTRATIVAS ---
-    tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria = st.tabs([
-        "➕ Alta de Usuario", 
-        "✏️ Editar Usuario", 
-        "👥 Control y Estatus", 
-        "📈 Resumen Ejecutivo y Auditoría"
-    ])
-    
-    with tab_reg_user:
+    if rol_actual == "Administrador Nacional":
+        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria = st.tabs([
+            "➕ Alta de Usuario", 
+            "✏️ Editar Usuario", 
+            "👥 Control y Estatus", 
+            "📈 Resumen Ejecutivo y Auditoría"
+        ])
+    else:
+        # Vistas restringidas para Administradores Estatales y Jefes de Residencia
+        tab_resumen_auditoria = st.container()
+        st.markdown("---")
+        st.subheader("📋 Supervisión de Organizadores Agrarios Adscritos")
+        
+    def render_alta_usuario():
         with st.form("form_nuevo_usuario"):
             col_u1, col_u2 = st.columns(2)
             with col_u1:
                 c_email = st.text_input("Correo Electrónico (Usuario)", max_chars=300)
                 c_nombre = st.text_input("Nombre Completo (Mayúsculas)", max_chars=300)
                 c_pass = st.text_input("Contraseña Asignada", type="password", max_chars=300)
-            with col_u2:
                 c_licencia = st.text_input("Número de Licencia de Conducir", max_chars=300)
+            with col_u2:
                 c_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA)
-                c_rol = st.selectbox("Rol en el Sistema", ["Operador de Residencia", "Administrador Estatal", "Administrador Nacional"])
+                c_jefatura = st.selectbox("Jefatura de Residencia", JEFATURAS_RESIDENCIA)
+                c_jefe_res = st.text_input("Nombre del Jefe de Residencia Asignado", value="ING. GABRIEL ESTRADA", max_chars=300)
+                c_rol = st.selectbox("Rol en el Sistema", ROLES_SISTEMA)
             
-            btn_crear = st.form_submit_button("Registrar Usuario")
+            btn_crear = st.form_submit_button("Registrar Usuario en la Red")
             if btn_crear:
                 if c_email and c_nombre and c_pass:
                     usuarios_actuales = cargar_usuarios()
@@ -422,18 +471,20 @@ elif perfil == "Administrador Nacional (Sede)":
                         "pass": c_pass.strip(),
                         "licencia": c_licencia.strip(),
                         "estado": c_estado,
+                        "jefatura": c_jefatura,
+                        "jefe_residencia": c_jefe_res.strip().upper(),
                         "rol": c_rol,
                         "foto": "",
                         "activo": True
                     }
                     guardar_usuarios(usuarios_actuales)
                     st.session_state["usuarios"] = usuarios_actuales
-                    st.success(f"¡Usuario {c_nombre} ({c_rol}) con adscripción en {c_estado} registrado exitosamente!")
+                    st.success(f"¡Usuario {c_nombre} ({c_rol}) registrado exitosamente bajo la jefatura de {c_jefatura}!")
                     st.rerun()
                 else:
                     st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
 
-    with tab_edit_user:
+    def render_editar_usuario():
         usuarios_actuales_edit = cargar_usuarios()
         lista_emails = list(usuarios_actuales_edit.keys())
         if lista_emails:
@@ -451,17 +502,23 @@ elif perfil == "Administrador Nacional (Sede)":
                         idx_estado = ESTADOS_REPUBLICA.index(estado_actual) if estado_actual in ESTADOS_REPUBLICA else 0
                         e_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA, index=idx_estado)
                         
-                        roles_disponibles = ["Operador de Residencia", "Administrador Estatal", "Administrador Nacional"]
-                        rol_actual_u = u_data.get("rol", "Operador de Residencia")
-                        idx_rol = roles_disponibles.index(rol_actual_u) if rol_actual_u in roles_disponibles else 0
-                        e_rol = st.selectbox("Rol en el Sistema", roles_disponibles, index=idx_rol)
+                        jef_actual = u_data.get("jefatura", "RESIDENCIA NAUCALPAN")
+                        idx_jef = JEFATURAS_RESIDENCIA.index(jef_actual) if jef_actual in JEFATURAS_RESIDENCIA else 0
+                        e_jefatura = st.selectbox("Jefatura de Residencia", JEFATURAS_RESIDENCIA, index=idx_jef)
+                        
+                        e_jefe_res = st.text_input("Jefe de Residencia Asignado", value=u_data.get("jefe_residencia", ""), max_chars=300)
+                        
+                        idx_rol = ROLES_SISTEMA.index(u_data.get("rol", "Organizador Agrario (Operador)")) if u_data.get("rol") in ROLES_SISTEMA else 0
+                        e_rol = st.selectbox("Rol en el Sistema", ROLES_SISTEMA, index=idx_rol)
                     
-                    btn_actualizar = st.form_submit_button("💾 Guardar Cambios de Usuario")
+                    btn_actualizar = st.form_submit_button("💾 Guardar Cambios")
                     if btn_actualizar:
                         usuarios_actuales_edit[email_a_editar]["nombre"] = e_nombre.strip().upper()
                         usuarios_actuales_edit[email_a_editar]["pass"] = e_pass.strip()
                         usuarios_actuales_edit[email_a_editar]["licencia"] = e_licencia.strip()
                         usuarios_actuales_edit[email_a_editar]["estado"] = e_estado
+                        usuarios_actuales_edit[email_a_editar]["jefatura"] = e_jefatura
+                        usuarios_actuales_edit[email_a_editar]["jefe_residencia"] = e_jefe_res.strip().upper()
                         usuarios_actuales_edit[email_a_editar]["rol"] = e_rol
                         guardar_usuarios(usuarios_actuales_edit)
                         st.success(f"¡Información de {email_a_editar} actualizada exitosamente!")
@@ -469,22 +526,20 @@ elif perfil == "Administrador Nacional (Sede)":
         else:
             st.info("No hay usuarios registrados para editar.")
 
-    with tab_ctrl_user:
-        st.subheader("📋 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
-        st.markdown("Listado general de la red con controles de activación, desactivación y eliminación:")
-        
+    def render_control_estatus():
+        st.subheader("👥 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
         usuarios_actuales_tabla = cargar_usuarios()
         
-        # Encabezado estilo Excel
         st.markdown(
             """
             <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
-                <span style="flex: 1.5; text-align: center;">ACCIONES</span>
+                <span style="flex: 1; text-align: center;">ACCIONES</span>
                 <span style="flex: 2;">CORREO</span>
-                <span style="flex: 2.5;">NOMBRE</span>
+                <span style="flex: 2;">NOMBRE</span>
                 <span style="flex: 2;">ROL</span>
-                <span style="flex: 1.5;">ESTADO ADS.</span>
-                <span style="flex: 1; text-align: right;">ESTATUS</span>
+                <span style="flex: 1.2;">ESTADO</span>
+                <span style="flex: 1.5;">JEFATURA</span>
+                <span style="flex: 0.8; text-align: right;">ESTATUS</span>
             </div>
             """,
             unsafe_allow_html=True
@@ -492,10 +547,10 @@ elif perfil == "Administrador Nacional (Sede)":
         
         for email, datos in usuarios_actuales_tabla.items():
             estado_activo = datos.get("activo", True)
-            color_fondo = "#d4edda" if estado_activo else "#e2e3e5" # Verde claro si activo, gris si inactivo
-            texto_estado = "🟢 Activo" if estado_activo else "🔴 Desactivado"
+            color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
+            texto_estado = "🟢 Activo" if estado_activo else "🔴 Desac."
             
-            col_btns, col_info = st.columns([1.6, 8.4])
+            col_btns, col_info = st.columns([1.5, 8.5])
             
             with col_btns:
                 b1, b2, b3 = st.columns(3)
@@ -521,63 +576,98 @@ elif perfil == "Administrador Nacional (Sede)":
             with col_info:
                 st.markdown(
                     f"""
-                    <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                    <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
                         <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><b>{email}</b></span>
-                        <span style="flex: 2.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('nombre')}</span>
+                        <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('nombre')}</span>
                         <span style="flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('rol')}</span>
-                        <span style="flex: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('estado')}</span>
-                        <span style="flex: 1; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
+                        <span style="flex: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('estado')}</span>
+                        <span style="flex: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{datos.get('jefatura')}</span>
+                        <span style="flex: 0.8; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
                     </div>
                     """, 
                     unsafe_allow_html=True
                 )
 
-    with tab_resumen_auditoria:
-        st.subheader("📈 Panel de Resumen Ejecutivo y Auditoría (Control Vehicular)")
-        st.markdown("Consulta global del uso general de vehículos por rango de fechas, kilómetros recorridos, consumo de combustible y trazabilidad geográfica.")
+    def render_resumen_auditoria():
+        st.subheader("📈 Resumen Ejecutivo y Auditoría (Control Vehicular)")
+        st.markdown("Consulta y segmentación del uso general de vehículos por rango de fechas, usuario organizador, estado y jefatura de residencia.")
         
-        # Simulación de registros globales o acumulados en sesión
         if len(st.session_state["registros_acumulados"]) > 0:
             df_global = pd.DataFrame(st.session_state["registros_acumulados"])
             df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y').dt.date
             
-            col_f1, col_f2 = st.columns(2)
-            with col_f1:
-                f_inicio = st.date_input("Fecha Inicial", value=df_global['FECHA_DT'].min())
-            with col_f2:
-                f_fin = st.date_input("Fecha Final", value=df_global['FECHA_DT'].max())
-                
-            # Filtrar por rango de fechas
-            df_filtrado = df_global[(df_global['FECHA_DT'] >= f_inicio) & (df_global['FECHA_DT'] <= f_fin)]
+            # Restricciones según rol: Jefes de Residencia o Admins Estatales ven su ámbito
+            if rol_actual == "Jefe de Residencia":
+                jefatura_sesion = st.session_state.get("current_jefatura", "")
+                df_global = df_global[df_global['JEFATURA'] == jefatura_sesion]
+                st.info(f"Mostrando registros bajo la Jefatura: **{jefatura_sesion}**")
+            elif rol_actual == "Administrador Estatal":
+                estado_sesion = st.session_state.get("current_estado", "")
+                df_global = df_global[df_global['ESTADO_ADSCRIPCION'] == estado_sesion]
+                st.info(f"Mostrando registros del Estado: **{estado_sesion}**")
             
-            if not df_filtrado.empty:
-                st.markdown("---")
-                # Métricas principales
-                total_km = df_filtrado['RECORRIDO'].sum()
-                total_gas = df_filtrado['GASTO COMBUSTI'].sum()
-                total_viajes = len(df_filtrado)
+            col_f1, col_f2, col_f3, col_f4, col_f5 = st.columns(5)
+            with col_f1:
+                f_inicio = st.date_input("Fecha Inicial", value=df_global['FECHA_DT'].min() if not df_global.empty else date.today())
+            with col_f2:
+                f_fin = st.date_input("Fecha Final", value=df_global['FECHA_DT'].max() if not df_global.empty else date.today())
+            with col_f3:
+                orgs_disp = ["Todos los organizadores"] + sorted(df_global['Usuario Responsable'].dropna().unique().tolist()) if not df_global.empty else ["Todos"]
+                filtro_usuario = st.selectbox("Organizador Agrario", orgs_disp)
+            with col_f4:
+                est_disp = ["Todos los estados"] + sorted(df_global['ESTADO_ADSCRIPCION'].dropna().unique().tolist()) if not df_global.empty else ["Todos"]
+                filtro_estado = st.selectbox("Estado", est_disp)
+            with col_f5:
+                jef_disp = ["Todas las jefaturas"] + sorted(df_global['JEFATURA'].dropna().unique().tolist()) if not df_global.empty else ["Todas"]
+                filtro_jefatura = st.selectbox("Jefatura de Residencia", jef_disp)
                 
-                m1, m2, m3 = st.columns(3)
-                m1.metric("KM Totales Recorridos", f"{total_km:,.1f} km")
-                m2.metric("Gasto Total de Combustible", f"${total_gas:,.2f} MXN")
-                m3.metric("Comisiones Registradas", f"{total_viajes}")
+            if not df_global.empty:
+                df_filtrado = df_global[(df_global['FECHA_DT'] >= f_inicio) & (df_global['FECHA_DT'] <= f_fin)]
+                if filtro_usuario != "Todos los organizadores":
+                    df_filtrado = df_filtrado[df_filtrado['Usuario Responsable'] == filtro_usuario]
+                if filtro_estado != "Todos los estados":
+                    df_filtrado = df_filtrado[df_filtrado['ESTADO_ADSCRIPCION'] == filtro_estado]
+                if filtro_jefatura != "Todas las jefaturas":
+                    df_filtrado = df_filtrado[df_filtrado['JEFATURA'] == filtro_jefatura]
                 
-                st.markdown("---")
-                st.subheader("🗺️ Trazabilidad Geográfica y Municipios Visitados")
-                
-                # Agrupación y listado cronológico de municipios visitados
-                df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'ESTADO_ADSCRIPCION']).agg({
-                    'RECORRIDO': 'sum',
-                    'GASTO COMBUSTI': 'sum'
-                }).reset_index().sort_values(by='FECHA COMPLETA')
-                
-                st.dataframe(df_resumen_mun, use_container_width=True)
-                
-                # Resumen único de municipios visitados en el periodo
-                municipios_visitados = df_filtrado['MUNICIPIO'].unique().tolist()
-                st.markdown(f"**Municipios únicos visitados en el periodo ({len(municipios_visitados)}):** " + ", ".join(municipios_visitados))
-                
+                if not df_filtrado.empty:
+                    st.markdown("---")
+                    total_km = df_filtrado['RECORRIDO'].sum()
+                    total_gas = df_filtrado['GASTO COMBUSTI'].sum()
+                    total_viajes = len(df_filtrado)
+                    
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("KM Totales Recorridos", f"{total_km:,.1f} km")
+                    m2.metric("Gasto Total de Combustible", f"${total_gas:,.2f} MXN")
+                    m3.metric("Comisiones Registradas", f"{total_viajes}")
+                    
+                    st.markdown("---")
+                    st.subheader("🗺️ Trazabilidad Geográfica y Municipios Visitados")
+                    
+                    df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'JEFATURA', 'ESTADO_ADSCRIPCION']).agg({
+                        'RECORRIDO': 'sum',
+                        'GASTO COMBUSTI': 'sum'
+                    }).reset_index().sort_values(by='FECHA COMPLETA')
+                    
+                    st.dataframe(df_resumen_mun, use_container_width=True)
+                    
+                    municipios_visitados = df_filtrado['MUNICIPIO'].unique().tolist()
+                    st.markdown(f"**Municipios únicos visitados en el filtro ({len(municipios_visitados)}):** " + ", ".join(municipios_visitados))
+                else:
+                    st.warning("⚠️ No se encontraron registros con los filtros seleccionados.")
             else:
-                st.warning("⚠️ No se encontraron registros en el rango de fechas seleccionado.")
+                st.warning("⚠️ No hay registros disponibles para tu nivel de adscripción.")
         else:
-            st.info("Aún no hay registros de recorridos acumulados en la sesión actual para generar el reporte de auditoría. Realiza capturas en el módulo de operador.")
+            st.info("Aún no hay registros de recorridos acumulados en la sesión actual.")
+
+    if rol_actual == "Administrador Nacional":
+        with tab_reg_user:
+            render_alta_usuario()
+        with tab_edit_user:
+            render_editar_usuario()
+        with tab_ctrl_user:
+            render_control_estatus()
+        with tab_resumen_auditoria:
+            render_resumen_auditoria()
+    else:
+        render_resumen_auditoria()
