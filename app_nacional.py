@@ -12,6 +12,7 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 USUARIOS_FILE = "usuarios.json"
 REGISTROS_FILE = "registros.json"
 SOLICITUDES_FILE = "solicitudes_gasolina.json"
+AUDIT_FILE = "audit_log.json"
 FOTOS_DIR = "fotos_perfil"
 LOGO_FILE = "logo_pa.png"
 MUN_FILE = "MUNICIPIOS_202606.xlsx"
@@ -152,6 +153,25 @@ def guardar_solicitudes(solicitudes_list):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as f:
         json.dump(solicitudes_list, f, ensure_ascii=False, indent=4)
 
+def registrar_auditoria(accion, detalle):
+    log_entry = {
+        "FECHA_HORA": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "USUARIO": st.session_state.get("current_email", "Sistema"),
+        "ROL": st.session_state.get("current_rol", "N/A"),
+        "ACCION": accion,
+        "DETALLE": detalle
+    }
+    logs = []
+    if os.path.exists(AUDIT_FILE):
+        try:
+            with open(AUDIT_FILE, "r", encoding="utf-8") as f:
+                logs = json.load(f)
+        except:
+            pass
+    logs.append(log_entry)
+    with open(AUDIT_FILE, "w", encoding="utf-8") as f:
+        json.dump(logs, f, ensure_ascii=False, indent=4)
+
 # Niveles de combustible con iconos originales
 OPCIONES_GASOLINA = {
     "🔴 1/4 de Tanque": "1/4",
@@ -209,6 +229,7 @@ if not st.session_state["logged_in"]:
                     st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
                     st.session_state["current_jefatura"] = usuarios_actuales[email_input].get("jefatura", "RESIDENCIA NAUCALPAN")
                     st.session_state["current_jefe_residencia"] = usuarios_actuales[email_input].get("jefe_residencia", "N/A")
+                    registrar_auditoria("INICIO DE SESION", f"Acceso exitoso de {email_input}")
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
@@ -257,6 +278,7 @@ else:
 perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
 
 if st.sidebar.button("🚪 Cerrar Sesión"):
+    registrar_auditoria("CIERRE DE SESION", f"Cierre de sesión de {current_email_key}")
     st.session_state["logged_in"] = False
     st.session_state["current_email"] = ""
     st.rerun()
@@ -292,13 +314,14 @@ if perfil == "Mi Perfil / Foto":
                 if current_email_key in all_users:
                     all_users[current_email_key]["foto"] = ruta_destino
                     guardar_usuarios(all_users)
+                    registrar_auditoria("ACTUALIZACION FOTO", f"Actualización de foto para {current_email_key}")
                     st.success("¡Fotografía de perfil actualizada con éxito!")
             else:
                 st.warning("⚠️ Selecciona un archivo de imagen válido antes de guardar.")
 
 elif perfil == "Solicitud de Recurso de Gasolina":
     st.subheader("⛽ Solicitud de Recurso de Gasolina para Comisión Oficial")
-    st.markdown("Apartado institucional para la gestión y solicitud de asignación presupuestal de combustible por estado y jefatura.")
+    st.markdown("Apartado institucional para la gestión, solicitud y aprobación de asignación presupuestal de combustible.")
     
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
@@ -308,83 +331,109 @@ elif perfil == "Solicitud de Recurso de Gasolina":
     if not lista_municipios:
         lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"]
         
-    with st.form("form_solicitud_gasolina"):
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            fecha_solicitud = st.date_input("Fecha de Solicitud", value=date.today())
-            analista_solicitante = st.text_input("Analista de Información / Solicitante", value=solicitante_actual, max_chars=300)
-            residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
-            funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
-        with col_s2:
-            municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
-            
-            lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
-            if not lista_loc_com:
-                lista_loc_com = ["Cabecera Municipal"]
-            localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
-            
-            vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
-            placas_vehiculo = st.text_input("Placas del Vehículo", value="MGX-543-A", max_chars=300)
-            
-        st.markdown("---")
-        col_s3, col_s4, col_s5 = st.columns(3)
-        with col_s3:
-            f_inicio_com = st.date_input("Fecha Inicio de Comisión", value=date.today())
-        with col_s4:
-            f_fin_com = st.date_input("Fecha Término de Comisión", value=date.today())
-        with col_s5:
-            monto_solicitado = st.number_input("Monto Solicitado para Combustible ($ MXN)", min_value=0.0, value=1500.0, step=50.0)
-            
-        col_s6, col_s7 = st.columns(2)
-        with col_s6:
-            oficio_asociado = st.text_input("Número de Oficio de Comisión", value="", max_chars=300)
-        with col_s7:
-            motivo_comision = st.text_input("Motivo / Descripción de la Comisión Oficial", value="", max_chars=300)
-            
-        btn_enviar_solicitud = st.form_submit_button("📥 Enviar Solicitud de Recurso Estatal")
-        
-        if btn_enviar_solicitud:
-            if not funcionario_comisionado.strip() or not motivo_comision.strip():
-                st.error("⚠️ Debes completar el nombre del funcionario comisionado y el motivo.")
-            else:
-                nueva_solicitud = {
-                    "FECHA SOLICITUD": fecha_solicitud.strftime("%d/%m/%Y"),
-                    "SOLICITANTE": analista_solicitante,
-                    "ROL SOLICITANTE": rol_actual,
-                    "JEFATURA": residencia_adscripcion,
-                    "ESTADO": estado_usuario_actual,
-                    "FUNCIONARIO": funcionario_comisionado.upper(),
-                    "DESTINO": f"{localidad_destino}, {municipio_destino}",
-                    "VEHICULO": vehiculo_asignado,
-                    "PLACAS": placas_vehiculo,
-                    "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
-                    "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
-                    "MONTO SOLICITADO": monto_solicitado,
-                    "OFICIO": oficio_asociado if oficio_asociado else "N/A",
-                    "MOTIVO": motivo_comision,
-                    "ESTATUS": "PENDIENTE DE APROBACIÓN ESTATAL",
-                    "CORREO": current_email_key
-                }
+    if rol_actual == "Analista de Información":
+        with st.form("form_solicitud_gasolina"):
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                fecha_solicitud = st.date_input("Fecha de Solicitud", value=date.today())
+                analista_solicitante = st.text_input("Analista de Información / Solicitante", value=solicitante_actual, max_chars=300)
+                residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
+                funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
+            with col_s2:
+                municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
                 
-                lista_sols = cargar_solicitudes()
-                lista_sols.append(nueva_solicitud)
-                guardar_solicitudes(lista_sols)
-                st.success("✅ Solicitud de recurso de gasolina enviada y registrada correctamente para el estado.")
+                lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
+                if not lista_loc_com:
+                    lista_loc_com = ["Cabecera Municipal"]
+                localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
+                
+                vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
+                placas_vehiculo = st.text_input("Placas del Vehículo", value="MGX-543-A", max_chars=300)
+                
+            st.markdown("---")
+            col_s3, col_s4, col_s5 = st.columns(3)
+            with col_s3:
+                f_inicio_com = st.date_input("Fecha Inicio de Comisión", value=date.today())
+            with col_s4:
+                f_fin_com = st.date_input("Fecha Término de Comisión", value=date.today())
+            with col_s5:
+                monto_solicitado = st.number_input("Monto Solicitado para Combustible ($ MXN)", min_value=0.0, value=1500.0, step=50.0)
+                
+            col_s6, col_s7 = st.columns(2)
+            with col_s6:
+                oficio_asociado = st.text_input("Número de Oficio de Comisión", value="", max_chars=300)
+            with col_s7:
+                motivo_comision = st.text_input("Motivo / Descripción de la Comisión Oficial", value="", max_chars=300)
+                
+            btn_enviar_solicitud = st.form_submit_button("📥 Enviar Solicitud de Recurso Estatal")
+            
+            if btn_enviar_solicitud:
+                if not funcionario_comisionado.strip() or not motivo_comision.strip():
+                    st.error("⚠️ Debes completar el nombre del funcionario comisionado y el motivo.")
+                else:
+                    nueva_solicitud = {
+                        "FECHA SOLICITUD": fecha_solicitud.strftime("%d/%m/%Y"),
+                        "SOLICITANTE": analista_solicitante,
+                        "ROL SOLICITANTE": rol_actual,
+                        "JEFATURA": residencia_adscripcion,
+                        "ESTADO": estado_usuario_actual,
+                        "FUNCIONARIO": funcionario_comisionado.upper(),
+                        "DESTINO": f"{localidad_destino}, {municipio_destino}",
+                        "VEHICULO": vehiculo_asignado,
+                        "PLACAS": placas_vehiculo,
+                        "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
+                        "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
+                        "MONTO SOLICITADO": monto_solicitado,
+                        "OFICIO": oficio_asociado if oficio_asociado else "N/A",
+                        "MOTIVO": motivo_comision,
+                        "ESTATUS": "PENDIENTE DE APROBACIÓN ESTATAL",
+                        "CORREO": current_email_key
+                    }
+                    
+                    lista_sols = cargar_solicitudes()
+                    lista_sols.append(nueva_solicitud)
+                    guardar_solicitudes(lista_sols)
+                    registrar_auditoria("SOLICITUD GASOLINA", f"Solicitud de ${monto_solicitado} para {funcionario_comisionado} en {estado_usuario_actual}")
+                    st.success("✅ Solicitud de recurso de gasolina enviada y registrada correctamente para el estado.")
 
     solicitudes_historial = cargar_solicitudes()
     if len(solicitudes_historial) > 0:
         st.markdown("---")
-        st.subheader("📋 Historial de Solicitudes de Recurso de Gasolina (Estatal)")
+        st.subheader("📋 Historial y Gestión de Solicitudes de Gasolina")
         df_sols = pd.DataFrame(solicitudes_historial)
         
         if rol_actual == "Analista de Información":
-            df_sols = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
+            df_sols_filtrado = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
         elif rol_actual == "Jefe de Residencia":
-            df_sols = df_sols[df_sols['JEFATURA'] == jefatura_actual]
-        elif rol_actual == "Administrador Estatal":
-            df_sols = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
+            df_sols_filtrado = df_sols[df_sols['JEFATURA'] == jefatura_actual]
+        elif rol_actual in ["Administrador Estatal", "Administrador Nacional"]:
+            df_sols_filtrado = df_sols
+        else:
+            df_sols_filtrado = df_sols[df_sols['CORREO'] == current_email_key]
             
-        st.dataframe(df_sols, use_container_width=True)
+        st.dataframe(df_sols_filtrado, use_container_width=True)
+        
+        # Mejora 1: Aprobación interactiva para Jefes de Residencia y Administradores
+        if rol_actual in ["Jefe de Residencia", "Administrador Estatal", "Administrador Nacional"]:
+            st.markdown("---")
+            st.subheader("⚙️ Panel de Aprobación de Solicitudes")
+            for idx, sol in enumerate(solicitudes_historial):
+                if sol.get("ESTATUS") == "PENDIENTE DE APROBACIÓN ESTATAL":
+                    col_info_s, col_btn_ap, col_btn_re = st.columns([5, 1, 1])
+                    with col_info_s:
+                        st.write(f"**{sol['FUNCIONARIO']}** | Destino: {sol['DESTINO']} | Monto: ${sol['MONTO SOLICITADO']:,.2f} MXN ({sol['JEFATURA']})")
+                    with col_btn_ap:
+                        if st.button("✅ Aprobar", key=f"aprobar_{idx}"):
+                            solicitudes_historial[idx]["ESTATUS"] = "APROBADO"
+                            guardar_solicitudes(solicitudes_historial)
+                            registrar_auditoria("APROBAR SOLICITUD", f"Aprobación de recurso para {sol['FUNCIONARIO']}")
+                            st.rerun()
+                    with col_btn_re:
+                        if st.button("❌ Rechazar", key=f"rechazar_{idx}"):
+                            solicitudes_historial[idx]["ESTATUS"] = "RECHAZADO"
+                            guardar_solicitudes(solicitudes_historial)
+                            registrar_auditoria("RECHAZAR SOLICITUD", f"Rechazo de recurso para {sol['FUNCIONARIO']}")
+                            st.rerun()
 
 elif perfil == "Módulo de Captura (Recorrido)":
     st.subheader("📝 Módulo de Captura por Día - Organizador / Operador")
@@ -394,6 +443,13 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
+    # Mejora 4: Validación inteligente automática del kilometraje inicial
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    km_sugerido = 0.0
+    if registros_previos_user:
+        ultimo_reg = registros_previos_user[-1]
+        km_sugerido = float(ultimo_reg.get("KM FINAL / Km de Llegada", 0.0))
+
     lista_municipios = obtener_municipios_estado(estado_usuario_actual)
     if not lista_municipios:
         lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"]
@@ -412,9 +468,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
             folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
         with col2:
             h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00", max_chars=300)
-            km_inicial = st.number_input("KM Inicial / Salida", min_value=0.0, value=0.0, step=1.0)
+            km_inicial = st.number_input("KM Inicial / Salida", min_value=0.0, value=km_sugerido, step=1.0)
             h_llegada = st.text_input("Hora de Llegada (Formato 24h, ej. 17:00)", value="17:00", max_chars=300)
-            km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=0.0, step=1.0)
+            km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=km_sugerido, step=1.0)
         with col3:
             residencia = st.selectbox("Área de Adscripción", [
                 jefatura_actual, 
@@ -449,8 +505,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
         if guardar_dia:
             if h_salida.strip() == h_llegada.strip():
                 st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
-            elif km_final <= km_inicial and km_final != 0.0:
-                st.warning("⚠️ Aviso: El KM Final es menor o igual al KM Inicial. Verifica tus datos.")
+            elif km_final < km_inicial:
+                st.warning("⚠️ Aviso: El KM Final no puede ser menor al KM Inicial.")
             else:
                 recorrido = km_final - km_inicial
                 nuevo_reg = {
@@ -485,20 +541,29 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 registros_actuales = cargar_registros_acumulados()
                 registros_actuales.append(nuevo_reg)
                 guardar_registros_acumulados(registros_actuales)
-                
+                registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {municipio} ({poblado})")
                 st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente!")
 
     registros_totales = cargar_registros_acumulados()
     if len(registros_totales) > 0:
         st.markdown("---")
         st.subheader("📋 Días Guardados (Historial Acumulado Permanente)")
+        
+        # Mejora 6: Búsqueda y filtros rápidos en el historial acumulado
+        busqueda_texto = st.text_input("🔍 Buscar en historial (Folio CIIA, Oficio, Poblado o Municipio):").strip().lower()
         df_acumulado = pd.DataFrame(registros_totales)
+        
+        if busqueda_texto:
+            mask = df_acumulado.apply(lambda row: row.astype(str).str.lower().str.contains(busqueda_texto).any(), axis=1)
+            df_acumulado = df_acumulado[mask]
+            
         st.dataframe(df_acumulado, use_container_width=True)
         
         col_acc1, col_acc2 = st.columns(2)
         with col_acc1:
             if st.button("🗑️ Limpiar historial completo"):
                 guardar_registros_acumulados([])
+                registrar_auditoria("LIMPIAR HISTORIAL", "Se eliminó todo el historial acumulado de recorridos")
                 st.rerun()
         
         with col_acc2:
@@ -542,6 +607,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     wb.save(output)
                     output.seek(0)
                     
+                    registrar_auditoria("GENERAR BITACORAS", "Generación y descarga de archivo unificado de 3 bitácoras")
                     st.success("¡Archivo generado con éxito y listo para descarga!")
                     st.download_button(
                         label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
@@ -556,11 +622,12 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
     
     if rol_actual == "Administrador Nacional":
-        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria = st.tabs([
+        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit = st.tabs([
             "➕ Alta de Usuario", 
             "✏️ Editar Usuario", 
             "👥 Control y Estatus", 
-            "📈 Resumen Ejecutivo y Auditoría"
+            "📈 Resumen Ejecutivo y Auditoría",
+            "🛡️ Bitácora de Auditoría"
         ])
     else:
         tab_resumen_auditoria = st.container()
@@ -598,6 +665,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         "activo": True
                     }
                     guardar_usuarios(usuarios_actuales)
+                    registrar_auditoria("ALTA USUARIO", f"Creación de usuario {email_limpio} con rol {c_rol}")
                     st.success(f"¡Usuario {c_nombre} ({c_rol}) registrado exitosamente para {c_estado}!")
                     st.rerun()
                 else:
@@ -640,6 +708,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         usuarios_actuales_edit[email_a_editar]["jefe_residencia"] = e_jefe_res.strip().upper()
                         usuarios_actuales_edit[email_a_editar]["rol"] = e_rol
                         guardar_usuarios(usuarios_actuales_edit)
+                        registrar_auditoria("EDITAR USUARIO", f"Actualización de datos para {email_a_editar}")
                         st.success(f"¡Información de {email_a_editar} actualizada exitosamente!")
                         st.rerun()
         else:
@@ -649,7 +718,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         st.subheader("👥 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
         usuarios_actuales_tabla = cargar_usuarios()
         
-        # Tabla unificada en HTML puro para que cabecera y filas compartan la misma estructura exacta de columnas
         filas_html = ""
         for email, datos in usuarios_actuales_tabla.items():
             estado_activo = datos.get("activo", True)
@@ -692,11 +760,13 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 if st.button("👍 Activar", key=f"activar_{email}"):
                     usuarios_actuales_tabla[email]["activo"] = True
                     guardar_usuarios(usuarios_actuales_tabla)
+                    registrar_auditoria("ACTIVAR USUARIO", f"Activación de cuenta para {email}")
                     st.rerun()
             with col_b2:
                 if st.button("👎 Desac.", key=f"desactivar_{email}"):
                     usuarios_actuales_tabla[email]["activo"] = False
                     guardar_usuarios(usuarios_actuales_tabla)
+                    registrar_auditoria("DESACTIVAR USUARIO", f"Desactivación de cuenta para {email}")
                     st.rerun()
             with col_b3:
                 if st.button("🗑️ Eliminar", key=f"eliminar_{email}"):
@@ -705,6 +775,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     else:
                         del usuarios_actuales_tabla[email]
                         guardar_usuarios(usuarios_actuales_tabla)
+                        registrar_auditoria("ELIMINAR USUARIO", f"Eliminación permanente de cuenta para {email}")
                         st.rerun()
 
     def render_resumen_auditoria():
@@ -766,6 +837,19 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     m3.metric("Comisiones Registradas", f"{total_viajes}")
                     
                     st.markdown("---")
+                    st.subheader("📊 Gráficos Analíticos de Kilometraje y Gasto")
+                    
+                    col_g1, col_g2 = st.columns(2)
+                    with col_g1:
+                        st.write("**Kilómetros por Municipio**")
+                        df_mun_km = df_filtrado.groupby("MUNICIPIO")["RECORRIDO"].sum()
+                        st.bar_chart(df_mun_km)
+                    with col_g2:
+                        st.write("**Gasto de Combustible por Jefatura**")
+                        df_jef_gas = df_filtrado.groupby("JEFATURA")["GASTO COMBUSTI"].sum()
+                        st.bar_chart(df_jef_gas)
+                    
+                    st.markdown("---")
                     st.subheader("🗺️ Trazabilidad Geográfica y Municipios Visitados")
                     
                     df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'JEFATURA', 'ESTADO_ADSCRIPCION']).agg({
@@ -784,6 +868,23 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         else:
             st.info("Aún no hay registros de recorridos acumulados en el sistema.")
 
+    def render_bitacora_audit():
+        st.subheader("🛡️ Bitácora de Auditoría del Sistema")
+        st.markdown("Registro cronológico de acciones administrativas y de seguridad realizadas en la red nacional.")
+        if os.path.exists(AUDIT_FILE):
+            try:
+                with open(AUDIT_FILE, "r", encoding="utf-8") as f:
+                    logs_data = json.load(f)
+                if logs_data:
+                    df_audit = pd.DataFrame(logs_data)
+                    st.dataframe(df_audit, use_container_width=True)
+                else:
+                    st.info("No hay registros de auditoría almacenados.")
+            except:
+                st.info("No se pudo leer el archivo de auditoría.")
+        else:
+            st.info("Aún no se han generado eventos de auditoría.")
+
     if rol_actual == "Administrador Nacional":
         with tab_reg_user:
             render_alta_usuario()
@@ -793,5 +894,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             render_control_estatus()
         with tab_resumen_auditoria:
             render_resumen_auditoria()
+        with tab_bitacora_audit:
+            render_bitacora_audit()
     else:
         render_resumen_auditoria()
