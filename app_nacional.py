@@ -233,7 +233,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -273,7 +273,7 @@ if rol_actual == "Administrador Nacional":
 elif rol_actual in ["Administrador Estatal", "Jefe de Residencia", "Analista de Información"]:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Panel de Supervisión (Estatal/Residencia)"]
 else:
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto"]
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina"]
 
 perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
 
@@ -331,70 +331,69 @@ elif perfil == "Solicitud de Recurso de Gasolina":
     if not lista_municipios:
         lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"]
         
-    if rol_actual == "Analista de Información":
-        with st.form("form_solicitud_gasolina"):
-            col_s1, col_s2 = st.columns(2)
-            with col_s1:
-                fecha_solicitud = st.date_input("Fecha de Solicitud", value=date.today())
-                analista_solicitante = st.text_input("Analista de Información / Solicitante", value=solicitante_actual, max_chars=300)
-                residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
-                funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
-            with col_s2:
-                municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
-                
-                lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
-                if not lista_loc_com:
-                    lista_loc_com = ["Cabecera Municipal"]
-                localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
-                
-                vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
-                placas_vehiculo = st.text_input("Placas del Vehículo", value="MGX-543-A", max_chars=300)
-                
-            st.markdown("---")
-            col_s3, col_s4, col_s5 = st.columns(3)
-            with col_s3:
-                f_inicio_com = st.date_input("Fecha Inicio de Comisión", value=date.today())
-            with col_s4:
-                f_fin_com = st.date_input("Fecha Término de Comisión", value=date.today())
-            with col_s5:
-                monto_solicitado = st.number_input("Monto Solicitado para Combustible ($ MXN)", min_value=0.0, value=1500.0, step=50.0)
-                
-            col_s6, col_s7 = st.columns(2)
-            with col_s6:
-                oficio_asociado = st.text_input("Número de Oficio de Comisión", value="", max_chars=300)
-            with col_s7:
-                motivo_comision = st.text_input("Motivo / Descripción de la Comisión Oficial", value="", max_chars=300)
-                
-            btn_enviar_solicitud = st.form_submit_button("📥 Enviar Solicitud de Recurso Estatal")
+    with st.form("form_solicitud_gasolina"):
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            fecha_solicitud = st.date_input("Fecha de Solicitud", value=date.today())
+            analista_solicitante = st.text_input("Analista de Información / Solicitante", value=solicitante_actual, max_chars=300)
+            residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
+            funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
+        with col_s2:
+            municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
             
-            if btn_enviar_solicitud:
-                if not funcionario_comisionado.strip() or not motivo_comision.strip():
-                    st.error("⚠️ Debes completar el nombre del funcionario comisionado y el motivo.")
-                else:
-                    nueva_solicitud = {
-                        "FECHA SOLICITUD": fecha_solicitud.strftime("%d/%m/%Y"),
-                        "SOLICITANTE": analista_solicitante,
-                        "ROL SOLICITANTE": rol_actual,
-                        "JEFATURA": residencia_adscripcion,
-                        "ESTADO": estado_usuario_actual,
-                        "FUNCIONARIO": funcionario_comisionado.upper(),
-                        "DESTINO": f"{localidad_destino}, {municipio_destino}",
-                        "VEHICULO": vehiculo_asignado,
-                        "PLACAS": placas_vehiculo,
-                        "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
-                        "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
-                        "MONTO SOLICITADO": monto_solicitado,
-                        "OFICIO": oficio_asociado if oficio_asociado else "N/A",
-                        "MOTIVO": motivo_comision,
-                        "ESTATUS": "PENDIENTE DE APROBACIÓN ESTATAL",
-                        "CORREO": current_email_key
-                    }
-                    
-                    lista_sols = cargar_solicitudes()
-                    lista_sols.append(nueva_solicitud)
-                    guardar_solicitudes(lista_sols)
-                    registrar_auditoria("SOLICITUD GASOLINA", f"Solicitud de ${monto_solicitado} para {funcionario_comisionado} en {estado_usuario_actual}")
-                    st.success("✅ Solicitud de recurso de gasolina enviada y registrada correctamente para el estado.")
+            lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
+            if not lista_loc_com:
+                lista_loc_com = ["Cabecera Municipal"]
+            localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
+            
+            vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
+            placas_vehiculo = st.text_input("Placas del Vehículo", value="MGX-543-A", max_chars=300)
+            
+        st.markdown("---")
+        col_s3, col_s4, col_s5 = st.columns(3)
+        with col_s3:
+            f_inicio_com = st.date_input("Fecha Inicio de Comisión", value=date.today())
+        with col_s4:
+            f_fin_com = st.date_input("Fecha Término de Comisión", value=date.today())
+        with col_s5:
+            monto_solicitado = st.number_input("Monto Solicitado para Combustible ($ MXN)", min_value=0.0, value=1500.0, step=50.0)
+            
+        col_s6, col_s7 = st.columns(2)
+        with col_s6:
+            oficio_asociado = st.text_input("Número de Oficio de Comisión", value="", max_chars=300)
+        with col_s7:
+            motivo_comision = st.text_input("Motivo / Descripción de la Comisión Oficial", value="", max_chars=300)
+            
+        btn_enviar_solicitud = st.form_submit_button("📥 Enviar Solicitud de Recurso Estatal")
+        
+        if btn_enviar_solicitud:
+            if not funcionario_comisionado.strip() or not motivo_comision.strip():
+                st.error("⚠️ Debes completar el nombre del funcionario comisionado y el motivo.")
+            else:
+                nueva_solicitud = {
+                    "FECHA SOLICITUD": fecha_solicitud.strftime("%d/%m/%Y"),
+                    "SOLICITANTE": analista_solicitante,
+                    "ROL SOLICITANTE": rol_actual,
+                    "JEFATURA": residencia_adscripcion,
+                    "ESTADO": estado_usuario_actual,
+                    "FUNCIONARIO": funcionario_comisionado.upper(),
+                    "DESTINO": f"{localidad_destino}, {municipio_destino}",
+                    "VEHICULO": vehiculo_asignado,
+                    "PLACAS": placas_vehiculo,
+                    "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
+                    "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
+                    "MONTO SOLICITADO": monto_solicitado,
+                    "OFICIO": oficio_asociado if oficio_asociado else "N/A",
+                    "MOTIVO": motivo_comision,
+                    "ESTATUS": "PENDIENTE DE APROBACIÓN ESTATAL",
+                    "CORREO": current_email_key
+                }
+                
+                lista_sols = cargar_solicitudes()
+                lista_sols.append(nueva_solicitud)
+                guardar_solicitudes(lista_sols)
+                registrar_auditoria("SOLICITUD GASOLINA", f"Solicitud de ${monto_solicitado} para {funcionario_comisionado} en {estado_usuario_actual}")
+                st.success("✅ Solicitud de recurso de gasolina enviada y registrada correctamente para el estado.")
 
     solicitudes_historial = cargar_solicitudes()
     if len(solicitudes_historial) > 0:
@@ -413,7 +412,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             
         st.dataframe(df_sols_filtrado, use_container_width=True)
         
-        # Mejora 1: Aprobación interactiva para Jefes de Residencia y Administradores
         if rol_actual in ["Jefe de Residencia", "Administrador Estatal", "Administrador Nacional"]:
             st.markdown("---")
             st.subheader("⚙️ Panel de Aprobación de Solicitudes")
@@ -443,8 +441,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    # Mejora 4: Validación inteligente automática del kilometraje inicial
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -549,7 +546,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
         st.markdown("---")
         st.subheader("📋 Días Guardados (Historial Acumulado Permanente)")
         
-        # Mejora 6: Búsqueda y filtros rápidos en el historial acumulado
         busqueda_texto = st.text_input("🔍 Buscar en historial (Folio CIIA, Oficio, Poblado o Municipio):").strip().lower()
         df_acumulado = pd.DataFrame(registros_totales)
         
