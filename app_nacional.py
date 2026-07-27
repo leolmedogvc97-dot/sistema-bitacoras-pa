@@ -11,6 +11,7 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 # Archivos persistentes y carpetas de almacenamiento
 USUARIOS_FILE = "usuarios.json"
 REGISTROS_FILE = "registros.json"
+SOLICITUDES_FILE = "solicitudes_gasolina.json"
 FOTOS_DIR = "fotos_perfil"
 LOGO_FILE = "logo_pa.png"
 MUN_FILE = "MUNICIPIOS_202606.xlsx"
@@ -39,6 +40,7 @@ JEFATURAS_RESIDENCIA = [
 
 ROLES_SISTEMA = [
     "Organizador Agrario (Operador)", 
+    "Analista de Información", 
     "Jefe de Residencia", 
     "Administrador Estatal", 
     "Administrador Nacional"
@@ -148,6 +150,19 @@ def guardar_registros_acumulados(registros_list):
     with open(REGISTROS_FILE, "w", encoding="utf-8") as f:
         json.dump(registros_list, f, ensure_ascii=False, indent=4)
 
+def cargar_solicitudes():
+    if os.path.exists(SOLICITUDES_FILE):
+        try:
+            with open(SOLICITUDES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return []
+
+def guardar_solicitudes(solicitudes_list):
+    with open(SOLICITUDES_FILE, "w", encoding="utf-8") as f:
+        json.dump(solicitudes_list, f, ensure_ascii=False, indent=4)
+
 # Niveles de combustible sin iconos
 OPCIONES_GASOLINA = {
     "1/4 de Tanque": "1/4",
@@ -241,10 +256,12 @@ st.sidebar.write(f"**Jefatura:** {st.session_state.get('current_jefatura', 'N/A'
 st.sidebar.write(f"**Jefe Resp.:** {st.session_state.get('current_jefe_residencia', 'N/A')}")
 
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
+
+# Definición de módulos según rol
 if rol_actual == "Administrador Nacional":
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Panel de Administración y Auditoría"]
-elif rol_actual in ["Administrador Estatal", "Jefe de Residencia"]:
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Panel de Supervisión (Estatal/Residencia)"]
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Panel de Administración y Auditoría"]
+elif rol_actual in ["Administrador Estatal", "Jefe de Residencia", "Analista de Información"]:
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Panel de Supervisión (Estatal/Residencia)"]
 else:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto"]
 
@@ -289,6 +306,97 @@ if perfil == "Mi Perfil / Foto":
                     st.success("Fotografía de perfil actualizada con éxito.")
             else:
                 st.warning("Aviso: Selecciona un archivo de imagen válido antes de guardar.")
+
+elif perfil == "Solicitud de Recurso de Gasolina":
+    st.subheader("Solicitud de Recurso de Gasolina para Comisión Oficial")
+    st.markdown("Apartado institucional para la gestión y solicitud de asignación presupuestal de combustible por estado y jefatura.")
+    
+    estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
+    jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
+    solicitante_actual = st.session_state.get("current_user", "")
+    
+    lista_municipios = obtener_municipios_estado(estado_usuario_actual)
+    if not lista_municipios:
+        lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"]
+        
+    with st.form("form_solicitud_gasolina"):
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            fecha_solicitud = st.date_input("Fecha de Solicitud", value=date.today())
+            analista_solicitante = st.text_input("Analista de Información / Solicitante", value=solicitante_actual, max_chars=300)
+            residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
+            funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
+        with col_s2:
+            municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
+            
+            lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
+            if not lista_loc_com:
+                lista_loc_com = ["Cabecera Municipal"]
+            localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
+            
+            vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
+            placas_vehiculo = st.text_input("Placas del Vehículo", value="MGX-543-A", max_chars=300)
+            
+        st.markdown("---")
+        col_s3, col_s4, col_s5 = st.columns(3)
+        with col_s3:
+            f_inicio_com = st.date_input("Fecha Inicio de Comisión", value=date.today())
+        with col_s4:
+            f_fin_com = st.date_input("Fecha Término de Comisión", value=date.today())
+        with col_s5:
+            monto_solicitado = st.number_input("Monto Solicitado para Combustible ($ MXN)", min_value=0.0, value=1500.0, step=50.0)
+            
+        col_s6, col_s7 = st.columns(2)
+        with col_s6:
+            oficio_asociado = st.text_input("Número de Oficio de Comisión", value="", max_chars=300)
+        with col_s7:
+            motivo_comision = st.text_input("Motivo / Descripción de la Comisión Oficial", value="", max_chars=300)
+            
+        btn_enviar_solicitud = st.form_submit_button("Enviar Solicitud de Recurso Estatal")
+        
+        if btn_enviar_solicitud:
+            if not funcionario_comisionado.strip() or not motivo_comision.strip():
+                st.error("Aviso: Debes completar el nombre del funcionario comisionado y el motivo.")
+            else:
+                nueva_solicitud = {
+                    "FECHA SOLICITUD": fecha_solicitud.strftime("%d/%m/%Y"),
+                    "SOLICITANTE": analista_solicitante,
+                    "ROL SOLICITANTE": rol_actual,
+                    "JEFATURA": residencia_adscripcion,
+                    "ESTADO": estado_usuario_actual,
+                    "FUNCIONARIO": funcionario_comisionado.upper(),
+                    "DESTINO": f"{localidad_destino}, {municipio_destino}",
+                    "VEHICULO": vehiculo_asignado,
+                    "PLACAS": placas_vehiculo,
+                    "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
+                    "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
+                    "MONTO SOLICITADO": monto_solicitado,
+                    "OFICIO": oficio_asociado if oficio_asociado else "N/A",
+                    "MOTIVO": motivo_comision,
+                    "ESTATUS": "PENDIENTE DE APROBACIÓN ESTATAL",
+                    "CORREO": current_email_key
+                }
+                
+                lista_sols = cargar_solicitudes()
+                lista_sols.append(nueva_solicitud)
+                guardar_solicitudes(lista_sols)
+                st.success("Solicitud de recurso de gasolina enviada y registrada correctamente para el estado.")
+
+    # Historial de solicitudes del estado o jefatura
+    solicitudes_historial = cargar_solicitudes()
+    if len(solicitudes_historial) > 0:
+        st.markdown("---")
+        st.subheader("Historial de Solicitudes de Recurso de Gasolina (Estatal)")
+        df_sols = pd.DataFrame(solicitudes_historial)
+        
+        if rol_actual == "Analista de Información":
+            df_sols = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
+        elif rol_actual == "Jefe de Residencia":
+            df_sols = df_sols[df_sols['JEFATURA'] == jefatura_actual]
+        elif rol_actual == "Administrador Estatal":
+            df_sols = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
+            
+        st.dataframe(df_sols, use_container_width=True)
 
 elif perfil == "Módulo de Captura (Recorrido)":
     st.subheader("Módulo de Captura por Día - Organizador / Operador")
@@ -469,7 +577,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
     else:
         tab_resumen_auditoria = st.container()
         st.markdown("---")
-        st.subheader("Supervisión de Organizadores Agrarios Adscritos")
+        st.subheader("Supervisión de Registros del Estado / Residencia")
         
     def render_alta_usuario():
         with st.form("form_nuevo_usuario"):
@@ -502,7 +610,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         "activo": True
                     }
                     guardar_usuarios(usuarios_actuales)
-                    st.success(f"Usuario {c_nombre} ({c_rol}) registrado exitosamente.")
+                    st.success(f"Usuario {c_nombre} ({c_rol}) registrado exitosamente para {c_estado}.")
                     st.rerun()
                 else:
                     st.error("Aviso: Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
@@ -629,7 +737,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 jefatura_sesion = st.session_state.get("current_jefatura", "")
                 df_global = df_global[df_global['JEFATURA'] == jefatura_sesion]
                 st.info(f"Mostrando registros bajo la Jefatura: **{jefatura_sesion}**")
-            elif rol_actual == "Administrador Estatal":
+            elif rol_actual in ["Administrador Estatal", "Analista de Información"]:
                 estado_sesion = st.session_state.get("current_estado", "")
                 df_global = df_global[df_global['ESTADO_ADSCRIPCION'] == estado_sesion]
                 st.info(f"Mostrando registros del Estado: **{estado_sesion}**")
