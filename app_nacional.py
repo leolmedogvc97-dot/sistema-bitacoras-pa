@@ -3,6 +3,7 @@ import pandas as pd
 import openpyxl
 import json
 import os
+import pydeck as pdk
 from io import BytesIO
 from datetime import datetime, date
 
@@ -19,7 +20,22 @@ MUN_FILE = "MUNICIPIOS_202606.xlsx"
 LOC_FILE = "LOCALIDADES_202606.xlsx"
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
-# Listado oficial de los 32 Estados de la República Mexicana
+# Coordenadas de referencia aproximadas para municipios principales (Estado de México y Michoacán)
+CODS_MUNICIPIOS = {
+    "Toluca": {"lat": 19.2826, "lon": -99.6556},
+    "Naucalpan de Juárez": {"lat": 19.4781, "lon": -99.2363},
+    "Naucalpan": {"lat": 19.4781, "lon": -99.2363},
+    "Atizapán de Zaragoza": {"lat": 19.5667, "lon": -99.2500},
+    "Tlalnepantla de Baz": {"lat": 19.5400, "lon": -99.1900},
+    "Ecatepec de Morelos": {"lat": 19.6010, "lon": -99.0558},
+    "Texcoco": {"lat": 19.5100, "lon": -98.8800},
+    "Valle de Bravo": {"lat": 19.1944, "lon": -100.1333},
+    "Tenancingo": {"lat": 18.9667, "lon": -99.5833},
+    "Atlacomulco": {"lat": 19.8000, "lon": -99.8833},
+    "Morelia": {"lat": 19.7027, "lon": -101.1924},
+    "Uruapan": {"lat": 19.4128, "lon": -102.0647}
+}
+
 ESTADOS_REPUBLICA = [
     "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", 
     "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima", 
@@ -29,7 +45,6 @@ ESTADOS_REPUBLICA = [
     "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
 ]
 
-# Jefaturas de Residencia institucionales por defecto
 JEFATURAS_RESIDENCIA = [
     "RESIDENCIA NAUCALPAN",
     "RESIDENCIA TOLUCA",
@@ -47,7 +62,6 @@ ROLES_SISTEMA = [
     "Administrador Nacional"
 ]
 
-# Carga de catálogos geográficos nacionales
 @st.cache_data
 def cargar_catalogos_geograficos():
     muns_df = pd.read_excel(MUN_FILE) if os.path.exists(MUN_FILE) else pd.DataFrame()
@@ -110,7 +124,6 @@ def cargar_usuarios():
             "activo": True
         }
     }
-    
     if os.path.exists(USUARIOS_FILE):
         try:
             with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
@@ -120,7 +133,6 @@ def cargar_usuarios():
                 return usuarios_guardados
         except:
             pass
-            
     return usuarios_base
 
 def guardar_usuarios(usuarios_dict):
@@ -172,7 +184,6 @@ def registrar_auditoria(accion, detalle):
     with open(AUDIT_FILE, "w", encoding="utf-8") as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
-# Niveles de combustible con iconos originales
 OPCIONES_GASOLINA = {
     "🔴 1/4 de Tanque": "1/4",
     "🟡 1/2 Tanque": "1/2",
@@ -181,7 +192,6 @@ OPCIONES_GASOLINA = {
     "🔴 Reserva / Vacío (V)": "V"
 }
 
-# Inicialización segura de la sesión
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "current_email" not in st.session_state:
@@ -267,7 +277,6 @@ st.sidebar.write(f"**Jefe Resp.:** {st.session_state.get('current_jefe_residenci
 
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
 
-# Definición de módulos según rol
 if rol_actual == "Administrador Nacional":
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Panel de Administración y Auditoría"]
 elif rol_actual in ["Administrador Estatal", "Jefe de Residencia", "Analista de Información"]:
@@ -323,7 +332,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
     st.subheader("⛽ Solicitud de Recurso de Gasolina para Comisión Oficial")
     st.markdown("Apartado institucional para la gestión, solicitud y aprobación de asignación presupuestal de combustible.")
     
-    # Mejora 5: Notificaciones visuales en tiempo real de solicitudes del usuario
     todas_sols_notif = cargar_solicitudes()
     sols_mias = [s for s in todas_sols_notif if s.get("CORREO") == current_email_key]
     for s in sols_mias:
@@ -842,7 +850,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     m2.metric("Gasto Total de Combustible", f"${total_gas:,.2f} MXN")
                     m3.metric("Comisiones Registradas", f"{total_viajes}")
                     
-                    # Mejora 2: Alertas de mantenimiento preventivo por kilometraje
                     st.markdown("---")
                     st.subheader("🔧 Alertas de Mantenimiento Preventivo (Flotilla)")
                     df_mantenimiento = df_filtrado.groupby("Placas")["RECORRIDO"].sum().reset_index()
@@ -867,13 +874,96 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         df_jef_gas = df_filtrado.groupby("JEFATURA")["GASTO COMBUSTI"].sum()
                         st.bar_chart(df_jef_gas)
                     
-                    # Mejora 3: Gráficos de tendencia temporal
                     st.write("**Evolución Temporal de Kilómetros Recorridos**")
                     df_temporal = df_filtrado.groupby("FECHA COMPLETA")["RECORRIDO"].sum()
                     st.line_chart(df_temporal)
                     
+                    # --- MAPA INTERACTIVO DE TRAYECTORIAS Y RECORRIDOS ---
                     st.markdown("---")
-                    st.subheader("🗺️ Trazabilidad Geográfica y Municipios Visitados")
+                    st.subheader("🗺️ Mapa Interactivo de Movimiento y Rutas (Recorridos)")
+                    st.markdown("Visualización cartográfica de los destinos visitados y líneas de conexión cronológica entre comisiones.")
+                    
+                    # Preparar datos de coordenadas
+                    mapa_rows = []
+                    for _, r in df_filtrado.iterrows():
+                        mun = r["MUNICIPIO"]
+                        if mun in CODS_MUNICIPIOS:
+                            mapa_rows.append({
+                                "lat": CODS_MUNICIPIOS[mun]["lat"],
+                                "lon": CODS_MUNICIPIOS[mun]["lon"],
+                                "MUNICIPIO": mun,
+                                "POBLADO": r["POBLADO"],
+                                "FECHA": r["FECHA COMPLETA"],
+                                "USUARIO": r["Usuario Responsable"],
+                                "RECORRIDO": r["RECORRIDO"]
+                            })
+                    
+                    if mapa_rows:
+                        df_mapa = pd.DataFrame(mapa_rows)
+                        
+                        # Crear líneas de conexión cronológica (arcos de ruta)
+                        arcos_rows = []
+                        if len(df_mapa) > 1:
+                            for i in range(len(df_mapa) - 1):
+                                arcos_rows.append({
+                                    "start_lon": df_mapa.iloc[i]["lon"],
+                                    "start_lat": df_mapa.iloc[i]["lat"],
+                                    "end_lon": df_mapa.iloc[i+1]["lon"],
+                                    "end_lat": df_mapa.iloc[i+1]["lat"]
+                                })
+                        df_arcos = pd.DataFrame(arcos_rows) if arcos_rows else pd.DataFrame()
+                        
+                        # Configurar capas de PyDeck
+                        capa_puntos = pdk.Layer(
+                            "ScatterplotLayer",
+                            data=df_mapa,
+                            get_position='[lon, lat]',
+                            get_color='[0, 128, 255, 160]',
+                            get_radius=3000,
+                            pickable=True,
+                            auto_highlight=True
+                        )
+                        
+                        capa_lineas = None
+                        if not df_arcos.empty:
+                            capa_lineas = pdk.Layer(
+                                "ArcLayer",
+                                data=df_arcos,
+                                get_source_position='[start_lon, start_lat]',
+                                get_target_position='[end_lon, end_lat]',
+                                get_source_color='[255, 0, 0]',
+                                get_target_color='[0, 255, 0]',
+                                get_width=3
+                            )
+                        
+                        lat_centro = df_mapa["lat"].mean()
+                        lon_centro = df_mapa["lon"].mean()
+                        
+                        view_state = pdk.ViewState(
+                            latitude=lat_centro,
+                            longitude=lon_centro,
+                            zoom=8,
+                            pitch=30
+                        )
+                        
+                        layers = [capa_puntos]
+                        if capa_lineas:
+                            layers.append(capa_lineas)
+                            
+                        r_deck = pdk.Deck(
+                            layers=layers,
+                            initial_view_state=view_state,
+                            tooltip={
+                                "html": "<b>Municipio:</b> {MUNICIPIO}<br/><b>Poblado:</b> {POBLADO}<br/><b>Fecha:</b> {FECHA}<br/><b>Responsable:</b> {USUARIO}",
+                                "style": {"backgroundColor": "steelblue", "color": "white"}
+                            }
+                        )
+                        st.pydeck_chart(r_deck)
+                    else:
+                        st.info("No hay coordenadas registradas para los municipios seleccionados en el filtro.")
+                    
+                    st.markdown("---")
+                    st.subheader("📋 Trazabilidad Geográfica y Municipios Visitados")
                     
                     df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'JEFATURA', 'ESTADO_ADSCRIPCION']).agg({
                         'RECORRIDO': 'sum',
@@ -885,7 +975,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     municipios_visitados = df_filtrado['MUNICIPIO'].unique().tolist()
                     st.markdown(f"**Municipios únicos visitados en el filtro ({len(municipios_visitados)}):** " + ", ".join(municipios_visitados))
                     
-                    # Mejora 4: Exportación de reportes filtrados a Excel
                     st.markdown("---")
                     output_filtrado = BytesIO()
                     df_resumen_mun.to_excel(output_filtrado, index=False, sheet_name="REPORTE_FILTRADO")
