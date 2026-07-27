@@ -224,7 +224,7 @@ if rol_actual == "Administrador Nacional":
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Panel de Administración y Auditoría"]
 elif rol_actual in ["Administrador Estatal", "Jefe de Residencia"]:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Panel de Supervisión (Estatal/Residencia)"]
-else: # Organizador Agrario
+else:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto"]
 
 perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
@@ -442,7 +442,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             "📈 Resumen Ejecutivo y Auditoría"
         ])
     else:
-        # Vistas restringidas para Administradores Estatales y Jefes de Residencia
         tab_resumen_auditoria = st.container()
         st.markdown("---")
         st.subheader("📋 Supervisión de Organizadores Agrarios Adscritos")
@@ -594,9 +593,14 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         
         if len(st.session_state["registros_acumulados"]) > 0:
             df_global = pd.DataFrame(st.session_state["registros_acumulados"])
-            df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y').dt.date
             
-            # Restricciones según rol: Jefes de Residencia o Admins Estatales ven su ámbito
+            # --- Corrección de robustez: Asegurar columnas por defecto ---
+            for col in ['JEFATURA', 'ESTADO_ADSCRIPCION', 'JEFE_RESIDENCIA', 'Áreas de Adscripción', 'Usuario Responsable']:
+                if col not in df_global.columns:
+                    df_global[col] = 'N/A'
+            
+            df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y', errors='coerce').dt.date
+            
             if rol_actual == "Jefe de Residencia":
                 jefatura_sesion = st.session_state.get("current_jefatura", "")
                 df_global = df_global[df_global['JEFATURA'] == jefatura_sesion]
