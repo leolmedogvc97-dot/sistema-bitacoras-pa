@@ -114,19 +114,9 @@ def cargar_usuarios():
         try:
             with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
                 usuarios_guardados = json.load(f)
-                for email_admin in ["victor.olmedo@pa.gob.mx", "marichuy.duarte@pa.gob.mx", "marichuy@pa.gob.mx"]:
-                    if email_admin in usuarios_guardados:
-                        usuarios_guardados[email_admin]["rol"] = "Administrador Nacional"
-                        if "activo" not in usuarios_guardados[email_admin]:
-                            usuarios_guardados[email_admin]["activo"] = True
-                        if "estado" not in usuarios_guardados[email_admin]:
-                            usuarios_guardados[email_admin]["estado"] = usuarios_base[email_admin]["estado"]
-                        if "jefatura" not in usuarios_guardados[email_admin]:
-                            usuarios_guardados[email_admin]["jefatura"] = "RESIDENCIA NAUCALPAN"
-                        if "jefe_residencia" not in usuarios_guardados[email_admin]:
-                            usuarios_guardados[email_admin]["jefe_residencia"] = "N/A"
-                    elif email_admin in usuarios_base:
-                        usuarios_guardados[email_admin] = usuarios_base[email_admin]
+                # Solo inicializar si el archivo está completamente vacío
+                if not usuarios_guardados:
+                    return usuarios_base
                 return usuarios_guardados
         except:
             pass
@@ -382,7 +372,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                 guardar_solicitudes(lista_sols)
                 st.success("Solicitud de recurso de gasolina enviada y registrada correctamente para el estado.")
 
-    # Historial de solicitudes del estado o jefatura
     solicitudes_historial = cargar_solicitudes()
     if len(solicitudes_historial) > 0:
         st.markdown("---")
@@ -664,7 +653,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         st.markdown(
             """
             <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
-                <span style="flex: 1; text-align: center;">ACCIONES</span>
+                <span style="flex: 1.5; text-align: left;">ACCIONES</span>
                 <span style="flex: 2;">CORREO</span>
                 <span style="flex: 2;">NOMBRE</span>
                 <span style="flex: 2;">ROL</span>
@@ -681,7 +670,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
             texto_estado = "Activo" if estado_activo else "Desactivado"
             
-            col_btns, col_info = st.columns([1.5, 8.5])
+            col_btns, col_info = st.columns([2.0, 8.0])
             
             with col_btns:
                 b1, b2, b3 = st.columns(3)
