@@ -843,7 +843,8 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     col_e1, col_e2 = st.columns(2)
                     with col_e1:
                         e_nombre = st.text_input("Nombre Completo (Mayúsculas)", value=u_data.get("nombre", ""), max_chars=300)
-                        e_pass = st.text_input("Contraseña Asignada", value=u_data.get("pass", ""), type="password", max_chars=300)
+                        # Campo de contraseña visible en texto plano para fácil edición y visualización
+                        e_pass = st.text_input("Contraseña Asignada", value=u_data.get("pass", ""), max_chars=300)
                         e_licencia = st.text_input("Número de Licencia de Conducir", value=u_data.get("licencia", ""), max_chars=300)
                     with col_e2:
                         estado_actual = u_data.get("estado", "Estado de México")
