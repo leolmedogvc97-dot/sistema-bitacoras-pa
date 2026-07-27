@@ -3,6 +3,7 @@ import pandas as pd
 import openpyxl
 import json
 import os
+import random
 import pydeck as pdk
 from io import BytesIO
 from datetime import datetime, date
@@ -47,6 +48,17 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         background-color: #faf6f7;
         border-right: 1px solid #e0d0d3;
+    }
+    
+    /* Contenedor de frase agraria */
+    .frase-agraria {
+        background-color: #fcf5f6;
+        border-left: 5px solid #6B1D2F;
+        padding: 12px 18px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-style: italic;
+        color: #4a2c33;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -104,6 +116,35 @@ ROLES_SISTEMA = [
     "Jefe de Residencia", 
     "Administrador Estatal", 
     "Administrador Nacional"
+]
+
+# Compendio ampliado de frases motivacionales e inspiradoras del sector agrario y el servicio público
+FRASES_AGRARIAS = [
+    "“La tierra no pertenece al hombre; el hombre pertenece a la tierra.” — Jefe Seattle",
+    "“El agricultor es la única persona en el mundo que gasta dinero en esperar y arriesgarse a cosechar.” — E.W. Howe",
+    "“La agricultura es la base de todas las manufacturas y el sustento de la nación.” — Daniel Webster",
+    "“Quien planta un árbol cree en el mañana.” — Audrey Hepburn",
+    "“El campo da pan a todos, y la justicia agraria da paz y dignidad a nuestra gente.”",
+    "“Cultivar la tierra es servir a la patria con las manos y el corazón.”",
+    "“La tierra generosa recompensa siempre el esfuerzo honesto de quien la trabaja.”",
+    "“El verdadero desarrollo del país florece desde sus raíces ejidales y comunales.”",
+    "“Sembrar conciencia en el campo es cosechar soberanía y bienestar social.”",
+    "“La labor del agrónomo y del servidor agrario es transformar la esperanza en frutos tangibles.”",
+    "“Un pueblo que cuida su campo asegura su porvenir y su libertad.”",
+    "“La tierra es el espejo del alma de quienes la trabajan día con día.”",
+    "“Servir a los núcleos agrarios es un honor que exige lealtad, vocación y justicia social.”",
+    "“Detrás de cada surco hay una historia de esfuerzo, familia y amor por México.”",
+    "“La tierra bien administrada y respetada nunca defrauda a sus hijos.”",
+    "“Hacer justicia agraria es dar valor institucional al sudor del campesino.”",
+    "“El progreso del campo se construye con técnica, compromiso y cercanía con la gente.”",
+    "“La naturaleza no hace nada en vano; cada semilla es una promesa de futuro.”",
+    "“Trabajar por el campo es sembrar las bases de la justicia y la equidad nacional.”",
+    "“Cada kilómetro recorrido en comisión oficial es un paso más hacia la justicia agraria.”",
+    "“La tierra es fértil para quien la respeta; la ley es justa para quien la aplica con vocación.”",
+    "“El agrarismo es la fuerza viva que alimenta la historia y el orgullo de nuestras comunidades.”",
+    "“Cultivar el campo con ciencia y conciencia es el mejor legado para las nuevas generaciones.”",
+    "“El servicio público en el sector agrario es vocación de entrega y transformación social.”",
+    "“Donde hay un ejidatario trabajando, hay una patria entera floreciendo.”"
 ]
 
 @st.cache_data
@@ -269,6 +310,10 @@ if "current_jefatura" not in st.session_state:
 if "current_jefe_residencia" not in st.session_state:
     st.session_state["current_jefe_residencia"] = ""
 
+# Frase motivacional del día seleccionada aleatoriamente al iniciar sesión
+if "frase_dia" not in st.session_state:
+    st.session_state["frase_dia"] = random.choice(FRASES_AGRARIAS)
+
 # --- PANTALLA DE LOGIN ---
 if not st.session_state["logged_in"]:
     col_l_logo, col_l_title = st.columns([0.15, 2.85])
@@ -299,6 +344,7 @@ if not st.session_state["logged_in"]:
                     st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
                     st.session_state["current_jefatura"] = usuarios_actuales[email_input].get("jefatura", "RESIDENCIA NAUCALPAN")
                     st.session_state["current_jefe_residencia"] = usuarios_actuales[email_input].get("jefe_residencia", "N/A")
+                    st.session_state["frase_dia"] = random.choice(FRASES_AGRARIAS) # Nueva frase al entrar
                     registrar_auditoria("INICIO DE SESION", f"Acceso exitoso de {email_input}")
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
@@ -313,6 +359,9 @@ with col_m_logo:
         st.image(LOGO_FILE, width=60)
 with col_m_title:
     st.title("Sistema Nacional de Control Vehicular y Bitácoras")
+
+# Despliegue de la frase motivacional agraria del día
+st.markdown(f'<div class="frase-agraria">🌾 <b>Reflexión Agraria del Día:</b> {st.session_state["frase_dia"]}</div>', unsafe_allow_html=True)
 st.markdown("---")
 
 if os.path.exists(LOGO_FILE):
@@ -670,41 +719,66 @@ elif perfil == "Módulo de Captura (Recorrido)":
             elif km_final < km_inicial:
                 st.warning("⚠️ Aviso: El KM Final no puede ser menor al KM Inicial.")
             else:
-                recorrido = km_final - km_inicial
-                nuevo_reg = {
-                    "FECHA COMPLETA": fecha.strftime("%d/%m/%Y"),
-                    "MES": fecha.strftime("%B").upper(),
-                    "MUNICIPIO": municipio,
-                    "POBLADO": poblado,
-                    "folio CIIA": folio_ciia,
-                    "HORA DE SALIDA": h_salida,
-                    "KM INICIAL / Km de Salida": km_inicial,
-                    "RECORRIDO": recorrido,
-                    "HORA DE LLEGADA": h_llegada,
-                    "KM FINAL / Km de Llegada": km_final,
-                    "GASTO COMBUSTI": dotacion,
-                    "Gasolina de Salida": OPCIONES_GASOLINA[gas_salida_label],
-                    "Gasolina de Llegada": OPCIONES_GASOLINA[gas_llegada_label],
-                    "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)": dotacion,
-                    "Oficio Numero": oficio_num if oficio_num else None,
-                    "Oficio Fecha": oficio_fecha if oficio_fecha else None,
-                    "observaciones": observaciones if observaciones else None,
-                    "Usuario Responsable": usuario,
-                    "Áreas de Adscripción": residencia,
-                    "Tipo de Vehículo": vehiculo,
-                    "Placas": placas,
-                    "No. De Licencia": licencia,
-                    "ESTADO_ADSCRIPCION": estado_usuario_actual,
-                    "JEFATURA": jefatura_actual,
-                    "JEFE_RESIDENCIA": jefe_actual,
-                    "CORREO_ORGANIZADOR": current_email_key
-                }
-                
+                fecha_str = fecha.strftime("%d/%m/%Y")
+                placas_upper = placas.strip().upper()
                 registros_actuales = cargar_registros_acumulados()
-                registros_actuales.append(nuevo_reg)
-                guardar_registros_acumulados(registros_actuales)
-                registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {municipio} ({poblado})")
-                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente!")
+                
+                # Validación cruzada y bloqueo de duplicados exactos / traslapes de kilometraje
+                conflicto_duplicado = False
+                mensaje_error = ""
+                for r in registros_actuales:
+                    r_fecha = r.get("FECHA COMPLETA")
+                    r_placas = str(r.get("Placas", "")).strip().upper()
+                    r_km_ini = float(r.get("KM INICIAL / Km de Salida", 0))
+                    r_km_fin = float(r.get("KM FINAL / Km de Llegada", 0))
+                    
+                    if r_fecha == fecha_str and r_placas == placas_upper:
+                        if r_km_ini == km_inicial and r_km_fin == km_final and str(r.get("MUNICIPIO")) == municipio:
+                            conflicto_duplicado = True
+                            mensaje_error = "⚠️ Registro duplicado: Ya existe un recorrido guardado con exactamente la misma información (misma fecha, mismas placas, mismo rango de kilometraje y municipio)."
+                            break
+                        elif km_inicial < r_km_fin and km_final > r_km_ini:
+                            conflicto_duplicado = True
+                            mensaje_error = f"⚠️ Conflicto de Kilometraje: El vehículo con placas {placas_upper} ya registra un recorrido en la fecha {fecha_str} que abarca de {r_km_ini:,.0f} a {r_km_fin:,.0f} km. El rango ingresado se traslapa."
+                            break
+
+                if conflicto_duplicado:
+                    st.error(mensaje_error)
+                else:
+                    recorrido = km_final - km_inicial
+                    nuevo_reg = {
+                        "FECHA COMPLETA": fecha_str,
+                        "MES": fecha.strftime("%B").upper(),
+                        "MUNICIPIO": municipio,
+                        "POBLADO": poblado,
+                        "folio CIIA": folio_ciia,
+                        "HORA DE SALIDA": h_salida,
+                        "KM INICIAL / Km de Salida": km_inicial,
+                        "RECORRIDO": recorrido,
+                        "HORA DE LLEGADA": h_llegada,
+                        "KM FINAL / Km de Llegada": km_final,
+                        "GASTO COMBUSTI": dotacion,
+                        "Gasolina de Salida": OPCIONES_GASOLINA[gas_salida_label],
+                        "Gasolina de Llegada": OPCIONES_GASOLINA[gas_llegada_label],
+                        "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)": dotacion,
+                        "Oficio Numero": oficio_num if oficio_num else None,
+                        "Oficio Fecha": oficio_fecha if oficio_fecha else None,
+                        "observaciones": observaciones if observaciones else None,
+                        "Usuario Responsable": usuario,
+                        "Áreas de Adscripción": residencia,
+                        "Tipo de Vehículo": vehiculo,
+                        "Placas": placas_upper,
+                        "No. De Licencia": licencia,
+                        "ESTADO_ADSCRIPCION": estado_usuario_actual,
+                        "JEFATURA": jefatura_actual,
+                        "JEFE_RESIDENCIA": jefe_actual,
+                        "CORREO_ORGANIZADOR": current_email_key
+                    }
+                    
+                    registros_actuales.append(nuevo_reg)
+                    guardar_registros_acumulados(registros_actuales)
+                    registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {municipio} ({poblado})")
+                    st.success(f"✅ ¡Día {fecha_str} en {municipio} ({poblado}) guardado correctamente!")
 
     registros_totales = cargar_registros_acumulados()
     if len(registros_totales) > 0:
@@ -843,7 +917,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     col_e1, col_e2 = st.columns(2)
                     with col_e1:
                         e_nombre = st.text_input("Nombre Completo (Mayúsculas)", value=u_data.get("nombre", ""), max_chars=300)
-                        # Campo de contraseña visible en texto plano para fácil edición y visualización
                         e_pass = st.text_input("Contraseña Asignada", value=u_data.get("pass", ""), max_chars=300)
                         e_licencia = st.text_input("Número de Licencia de Conducir", value=u_data.get("licencia", ""), max_chars=300)
                     with col_e2:
