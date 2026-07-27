@@ -135,7 +135,6 @@ def guardar_usuarios(usuarios_dict):
     with open(USUARIOS_FILE, "w", encoding="utf-8") as f:
         json.dump(usuarios_dict, f, ensure_ascii=False, indent=4)
 
-# Funciones de persistencia para los registros acumulados
 def cargar_registros_acumulados():
     if os.path.exists(REGISTROS_FILE):
         try:
@@ -158,11 +157,23 @@ OPCIONES_GASOLINA = {
     "🔴 Reserva / Vacío (V)": "V"
 }
 
-# Inicialización de estados en sesión
+# Inicialización segura de la sesión
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
-if "usuarios" not in st.session_state:
-    st.session_state["usuarios"] = cargar_usuarios()
+if "current_email" not in st.session_state:
+    st.session_state["current_email"] = ""
+if "current_user" not in st.session_state:
+    st.session_state["current_user"] = ""
+if "current_licencia" not in st.session_state:
+    st.session_state["current_licencia"] = ""
+if "current_rol" not in st.session_state:
+    st.session_state["current_rol"] = ""
+if "current_estado" not in st.session_state:
+    st.session_state["current_estado"] = ""
+if "current_jefatura" not in st.session_state:
+    st.session_state["current_jefatura"] = ""
+if "current_jefe_residencia" not in st.session_state:
+    st.session_state["current_jefe_residencia"] = ""
 
 # --- PANTALLA DE LOGIN ---
 if not st.session_state["logged_in"]:
@@ -194,14 +205,13 @@ if not st.session_state["logged_in"]:
                     st.session_state["current_estado"] = usuarios_actuales[email_input].get("estado", "Estado de México")
                     st.session_state["current_jefatura"] = usuarios_actuales[email_input].get("jefatura", "RESIDENCIA NAUCALPAN")
                     st.session_state["current_jefe_residencia"] = usuarios_actuales[email_input].get("jefe_residencia", "N/A")
-                    st.session_state["current_foto"] = usuarios_actuales[email_input].get("foto", "")
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
                 st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
-# --- APLICACIÓN PRINCIPAL (UNA VEZ LOGUEADO) ---
+# --- APLICACIÓN PRINCIPAL ---
 col_m_logo, col_m_title = st.columns([0.15, 2.85])
 with col_m_logo:
     if os.path.exists(LOGO_FILE):
@@ -210,7 +220,6 @@ with col_m_title:
     st.title("Sistema Nacional de Control Vehicular y Bitácoras")
 st.markdown("---")
 
-# Panel lateral: Logotipo, foto de perfil y datos de sesión
 if os.path.exists(LOGO_FILE):
     st.sidebar.image(LOGO_FILE, use_container_width=True)
 
@@ -231,7 +240,6 @@ st.sidebar.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
 st.sidebar.write(f"**Jefatura:** {st.session_state.get('current_jefatura', 'N/A')}")
 st.sidebar.write(f"**Jefe Resp.:** {st.session_state.get('current_jefe_residencia', 'N/A')}")
 
-# Control de módulos según el rol del usuario
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
 if rol_actual == "Administrador Nacional":
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Panel de Administración y Auditoría"]
@@ -244,6 +252,7 @@ perfil = st.sidebar.selectbox("Selecciona tu módulo:", modulos_disponibles)
 
 if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state["logged_in"] = False
+    st.session_state["current_email"] = ""
     st.rerun()
 
 if perfil == "Mi Perfil / Foto":
@@ -277,7 +286,6 @@ if perfil == "Mi Perfil / Foto":
                 if current_email_key in all_users:
                     all_users[current_email_key]["foto"] = ruta_destino
                     guardar_usuarios(all_users)
-                    st.session_state["current_foto"] = ruta_destino
                     st.success("¡Fotografía de perfil actualizada con éxito!")
             else:
                 st.warning("⚠️ Selecciona un archivo de imagen válido antes de guardar.")
@@ -300,9 +308,10 @@ elif perfil == "Módulo de Captura (Recorrido)":
             fecha = st.date_input("Fecha de registro del uso del vehículo")
             municipio = st.selectbox(f"Municipio ({estado_usuario_actual})", lista_municipios)
             
+            # Carga dinámica estricta de localidades del municipio seleccionado
             lista_localidades = obtener_localidades_municipio(estado_usuario_actual, municipio)
             if not lista_localidades:
-                lista_localidades = ["Cabecera Municipal", "Comisión Oficial"]
+                lista_localidades = ["Sin localidades registradas en catálogo"]
             poblado = st.selectbox("Poblado / Localidad", lista_localidades)
             
             folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
@@ -378,12 +387,11 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     "CORREO_ORGANIZADOR": current_email_key
                 }
                 
-                # Cargar registros existentes del archivo persistente, agregar el nuevo y guardar
                 registros_actuales = cargar_registros_acumulados()
                 registros_actuales.append(nuevo_reg)
                 guardar_registros_acumulados(registros_actuales)
                 
-                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente de forma permanente!")
+                st.success(f"✅ ¡Día {fecha.strftime('%d/%m/%Y')} en {municipio} ({poblado}) guardado correctamente!")
 
     registros_totales = cargar_registros_acumulados()
     if len(registros_totales) > 0:
@@ -495,8 +503,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         "activo": True
                     }
                     guardar_usuarios(usuarios_actuales)
-                    st.session_state["usuarios"] = usuarios_actuales
-                    st.success(f"¡Usuario {c_nombre} ({c_rol}) registrado exitosamente bajo la jefatura de {c_jefatura}!")
+                    st.success(f"¡Usuario {c_nombre} ({c_rol}) registrado exitosamente!")
                     st.rerun()
                 else:
                     st.error("⚠️ Por favor completa los campos obligatorios (Correo, Nombre y Contraseña).")
