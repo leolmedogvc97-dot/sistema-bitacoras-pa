@@ -649,11 +649,11 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         st.subheader("👥 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
         usuarios_actuales_tabla = cargar_usuarios()
         
-        # Cabecera alineada exactamente con los anchos flex de las filas de datos
+        # Cabecera unificada con exactamente los mismos porcentajes de ancho (flex) que las filas de datos
         st.markdown(
             """
             <div style="background-color: #343a40; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
-                <span style="flex: 1.8; text-align: left;">ACCIONES</span>
+                <span style="flex: 2.2; text-align: left;">ACCIONES</span>
                 <span style="flex: 2.5; text-align: left;">CORREO</span>
                 <span style="flex: 2.5; text-align: left;">NOMBRE</span>
                 <span style="flex: 2.0; text-align: left;">ROL</span>
@@ -670,7 +670,8 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
             texto_estado = "🟢 Activo" if estado_activo else "🔴 Desac."
             
-            col_btns, col_info = st.columns([1.8, 8.2])
+            # Contenedor principal de la fila dividido en Acciones (2.2) y Datos (7.8) con idéntico flex
+            col_btns, col_info = st.columns([2.2, 7.8])
             
             with col_btns:
                 b1, b2, b3 = st.columns(3)
