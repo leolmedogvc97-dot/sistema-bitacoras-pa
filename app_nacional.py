@@ -101,6 +101,35 @@ ESTADOS_REPUBLICA = [
     "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
 ]
 
+MUNICIPIOS_EDOMEX = [
+    "ACAMBAY DE RUIZ CASTAÑEDA", "ACOLMAN", "ACULCO", "ALMOLOYA DE ALQUISIRAS",
+    "ALMOLOYA DE JUÁREZ", "ALMOLOYA DEL RÍO", "AMANALCO", "AMATEPEC", "AMECAMECA",
+    "APAXCO", "ATENCO", "ATIZAPÁN", "ATIZAPÁN DE ZARAGOZA", "ATLACOMULCO",
+    "ATLAUTLA", "AXAPUSCO", "AYAPANGO", "CALIMAYA", "CAPULHUAC",
+    "COACALCO DE BERRIOZÁBAL", "COATEPEC HARINAS", "COCOTITLÁN", "COYOTEPEC",
+    "CUAUTITLÁN", "CUAUTITLÁN IZCALLI", "CHALCO", "CHAPA DE MOTA", "CHAPULTEPEC",
+    "CHIAUTLA", "CHICOLOAPAN", "CHICONCUAC", "CHIMALHUACÁN", "DONATO GUERRA",
+    "ECATEPEC DE MORELOS", "ECATZINGO", "HUEHUETOCA", "HUEYPOXTLA", "HUIXQUILUCAN",
+    "ISIDRO FABELA", "IXTAPALUCA", "IXTAPAN DE LA SAL", "IXTAPAN DEL ORO",
+    "IXTLAHUACA", "XALATLACO", "JALTENCO", "JILOTEPEC", "JILOTZINGO", "JIQUIPILCO",
+    "JOCOTITLÁN", "JOQUICINGO", "JUCHITEPEC", "LERMA", "MALINALCO", "MELCHOR OCAMPO",
+    "METEPEC", "MEXICALTZINGO", "MORELOS", "NAUCALPAN DE JUÁREZ", "NEXTLALPAN",
+    "NEZAHUALCÓYOTL", "NICOLÁS ROMERO", "NOPALTEPEC", "OCOYOACAC", "OCUILAN",
+    "EL ORO", "OTUMBA", "OTZOLOAPAN", "OTZOLOTEPEC", "OZUMBA", "PAPALOTLA",
+    "LA PAZ", "POLOTITLÁN", "RAYÓN", "SAN ANTONIO LA ISLA", "SAN FELIPE DEL PROGRESO",
+    "SAN MARTÍN DE LAS PIRÁMIDES", "SAN MATEO ATENCO", "SAN SIMÓN DE GUERRERO",
+    "SANTO TOMÁS", "SOYANIQUILPAN DE JUÁREZ", "SULTEPEC", "TECÁMAC", "TEJUPILCO",
+    "TEMAMATLA", "TEMASCALAPA", "TEMASCALCINGO", "TEMASCALTEPEC", "TEMOAYA",
+    "TENANCINGO", "TENANGO DEL AIRE", "TENANGO DEL VALLE", "TEOLOYUCAN",
+    "TEOTIHUACÁN", "TEPETLAOXTOC", "TEPETLIXPA", "TEPOTZOTLÁN", "TEQUIXQUIAC",
+    "TEXCALTITLÁN", "TEXCALYACAC", "TEXCOCO", "TEZOYUCA", "TIANGUISTENCO",
+    "TIMILPAN", "TLALMANALCO", "TLALNEPANTLA DE BAZ", "TLATLAYA", "TOLUCA",
+    "TONATICO", "TULTEPEC", "TULTITLÁN", "VALLE DE BRAVO", "VILLA DE ALLENDE",
+    "VILLA DEL CARBÓN", "VILLA GUERRERO", "VILLA VICTORIA", "XONACATLÁN",
+    "ZACAZONAPAN", "ZACUALPAN", "ZINACANTEPEC", "ZUMPAHUACÁN", "ZUMPANGO",
+    "VALLE DE CHALCO SOLIDARIDAD", "LUVIANOS", "SAN JOSÉ DEL RINCÓN", "TONANITLA"
+]
+
 JEFATURAS_RESIDENCIA = [
     "RESIDENCIA NAUCALPAN",
     "RESIDENCIA TOLUCA",
@@ -470,7 +499,10 @@ elif perfil == "Solicitud de Recurso de Gasolina":
     
     lista_municipios = obtener_municipios_estado(estado_usuario_actual)
     if not lista_municipios:
-        lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"]
+        if estado_usuario_actual == "Estado de México":
+            lista_municipios = MUNICIPIOS_EDOMEX
+        else:
+            lista_municipios = ["Cabecera Municipal"]
         
     with st.form("form_solicitud_gasolina"):
         col_s1, col_s2 = st.columns(2)
@@ -672,7 +704,10 @@ elif perfil == "Módulo de Captura (Recorrido)":
 
     lista_municipios = obtener_municipios_estado(estado_usuario_actual)
     if not lista_municipios:
-        lista_municipios = ["Toluca", "Naucalpan de Juárez", "Metepec"]
+        if estado_usuario_actual == "Estado de México":
+            lista_municipios = MUNICIPIOS_EDOMEX
+        else:
+            lista_municipios = ["Cabecera Municipal"]
         
     with st.form("form_captura_dia"):
         col1, col2, col3, col4 = st.columns(4)
