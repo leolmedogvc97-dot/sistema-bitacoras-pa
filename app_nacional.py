@@ -672,7 +672,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -855,8 +855,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         ws[f'L{row_idx}'] = 23.99                                                 # L: Precio Gasolina
                         ws[f'M{row_idx}'] = f'=ROUND((H{row_idx}/K{row_idx})*L{row_idx}, 2)'        # M: Fórmula Gasto
                         ws[f'N{row_idx}'] = reg["Gasolina de Salida"]                             # N: Gas Salida
-                        ws[f'O{row_idx}'] = reg["Oficio Numero"]                                  # O: Oficio Número (¡Clave!)
-                        ws[f'P{row_idx}'] = reg["Oficio Fecha"]                                   # P: Oficio Fecha (¡Clave!)
+                        ws[f'O{row_idx}'] = reg["Oficio Numero"]                                  # O: Oficio Número
+                        ws[f'P{row_idx}'] = reg["Oficio Fecha"]                                   # P: Oficio Fecha
                         ws[f'Q{row_idx}'] = reg["observaciones"]                                  # Q: Observaciones
                         ws[f'R{row_idx}'] = reg["Usuario Responsable"]                            # R: Usuario
                         ws[f'S{row_idx}'] = reg["Áreas de Adscripción"]                           # S: Adscripción
