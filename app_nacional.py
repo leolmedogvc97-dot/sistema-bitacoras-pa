@@ -341,7 +341,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -630,7 +630,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -1064,7 +1064,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 if st.button("🔴 Apagar", key=f"desactivar_{email}"):
                     usuarios_actuales_tabla[email]["activo"] = False
                     guardar_usuarios(usuarios_actuales_tabla)
-                    registrar_auditoria("DESACTIVAR USUARIO", f"Desactivación de cuenta para {email}")
+                    registrar_auditoria("DESACTIVAR USUARIO", f"DesACTIVAR de cuenta para {email}")
                     st.rerun()
             with col_b3:
                 if st.button("🗑️ Eliminar", key=f"eliminar_{email}"):
