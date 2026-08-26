@@ -64,11 +64,11 @@ AUDIT_FILE = os.path.join(BASE_DIR, "audit_log.json")
 FOTOS_DIR = os.path.join(BASE_DIR, "fotos_perfil")
 LOGO_FILE = os.path.join(BASE_DIR, "logo_pa.png")
 MUN_FILE = os.path.join(BASE_DIR, "MUNICIPIOS_202606.xlsx")
-LOC_FILE = os.path.join(BASE_DIR, "LOCALIDADES_202606.xlsx")
+LOC_FILE = os.path.join(BASE_DIR, "localidades.xlsx")
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
 # Detección automática y flexible de la plantilla Excel institucional en la raíz
-excel_files = [os.path.join(BASE_DIR, f) for f in os.listdir(BASE_DIR) if f.endswith('.xlsx') and not f.startswith("BITACORAS_OFICIALES") and f not in ["MUNICIPIOS_202606.xlsx", "LOCALIDADES_202606.xlsx"]]
+excel_files = [os.path.join(BASE_DIR, f) for f in os.listdir(BASE_DIR) if f.endswith('.xlsx') and not f.startswith("BITACORAS_OFICIALES") and f not in ["MUNICIPIOS_202606.xlsx", "LOCALIDADES_202606.xlsx", "localidades.xlsx"]]
 PLANTILLA_EXCEL = excel_files[0] if excel_files else os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula (2).xlsx")
 
 CODS_MUNICIPIOS = {
@@ -159,12 +159,15 @@ FRASES_AGRARIAS = [
 @st.cache_data
 def cargar_catalogos_geograficos():
     muns_df = pd.read_excel(MUN_FILE) if os.path.exists(MUN_FILE) else pd.DataFrame()
-    locs_df = pd.read_excel(LOC_FILE) if os.path.exists(LOC_FILE) else pd.DataFrame()
+    locs_df = pd.read_excel(LOC_FILE, sheet_name='Hoja1') if os.path.exists(LOC_FILE) else pd.DataFrame()
     return muns_df, locs_df
 
 muns_global, locs_global = cargar_catalogos_geograficos()
 
 def obtener_municipios_estado(estado_nombre):
+    if estado_nombre == "Estado de México" and not locs_global.empty and 'NOMBRE DEL MUNICIPIO' in locs_global.columns:
+        muns = locs_global['NOMBRE DEL MUNICIPIO'].dropna().unique().tolist()
+        return sorted(list(set(muns)))
     if muns_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
         return MUNICIPIOS_EDOMEX if estado_nombre == "Estado de México" else ["Cabecera Municipal"]
     efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
@@ -177,16 +180,12 @@ def obtener_municipios_estado(estado_nombre):
     return sorted(list(set(muns))) if muns else ["Cabecera Municipal"]
 
 def obtener_localidades_municipio(estado_nombre, municipio_nombre):
-    if locs_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
+    if locs_global.empty:
         return ["Cabecera Municipal"]
-    efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
-    df_locs = locs_global.copy()
-    if 'EFE_KEY' in df_locs.columns and 'MUNICIPIO' in df_locs.columns:
-        locs = df_locs[(df_locs['EFE_KEY'] == efe_key) & (df_locs['MUNICIPIO'].str.upper() == municipio_nombre.upper())]['LOCALIDAD'].dropna().tolist()
-    elif 'MUNICIPIO' in df_locs.columns:
-        locs = df_locs[df_locs['MUNICIPIO'].str.upper() == municipio_nombre.upper()]['LOCALIDAD'].dropna().tolist()
+    if 'NOMBRE DEL MUNICIPIO' in locs_global.columns and 'NOMBRE DE LA LOCALIDAD' in locs_global.columns:
+        locs = locs_global[locs_global['NOMBRE DEL MUNICIPIO'].str.upper() == municipio_nombre.upper()]['NOMBRE DE LA LOCALIDAD'].dropna().tolist()
     else:
-        locs = df_locs.iloc[:, 2].dropna().tolist()
+        locs = locs_global.iloc[:, 1].dropna().tolist()
     if not locs:
         return ["Cabecera Municipal"]
     return sorted(list(set(locs)))
@@ -512,7 +511,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                 lista_loc_com = ["Cabecera Municipal"]
             localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
             vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
-            placas_vehiculo = st.text_input("Placas del Vehículo", value="MGX-543-A", max_chars=300)
+            placas_vehiculo = st.text_input("Placas del Vehículo", value="", max_chars=300)
             
         st.markdown("---")
         col_s3, col_s4, col_s5 = st.columns(3)
@@ -543,7 +542,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                     "FUNCIONARIO": funcionario_comisionado.upper(),
                     "DESTINO": f"{localidad_destino}, {municipio_destino}",
                     "VEHICULO": vehiculo_asignado,
-                    "PLACAS": placas_vehiculo,
+                    "PLACAS": placas_vehiculo.upper(),
                     "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
                     "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
                     "MONTO SOLICITADO": monto_solicitado,
@@ -607,7 +606,7 @@ elif perfil == "Reporte de Incidencias en Ruta":
         col_i1, col_i2 = st.columns(2)
         with col_i1:
             fecha_inc = st.date_input("Fecha de la Incidencia", value=date.today())
-            placas_inc = st.text_input("Placas del Vehículo Afectado", value="MGX-543-A", max_chars=300)
+            placas_inc = st.text_input("Placas del Vehículo Afectado", value="", max_chars=300)
             tipo_falla = st.selectbox("Tipo de Incidencia / Falla", [
                 "🔴 Falla Mecánica Mayor (Motor/Transmisión)",
                 "🟡 Falla Eléctrica / Batería",
@@ -622,8 +621,8 @@ elif perfil == "Reporte de Incidencias en Ruta":
         descripcion_inc = st.text_area("Descripción detallada de la incidencia mecánica o imprevisto")
         btn_enviar_inc = st.form_submit_button("🚨 Enviar Reporte de Incidencia")
         if btn_enviar_inc:
-            if not municipio_inc.strip() or not descripcion_inc.strip():
-                st.error("⚠️ Debes completar el municipio y la descripción de la falla.")
+            if not municipio_inc.strip() or not descripcion_inc.strip() or not placas_inc.strip():
+                st.error("⚠️ Debes completar las placas, el municipio y la descripción de la falla.")
             else:
                 nueva_inc = {
                     "FECHA": fecha_inc.strftime("%d/%m/%Y"),
@@ -631,7 +630,7 @@ elif perfil == "Reporte de Incidencias en Ruta":
                     "CORREO": current_email_key,
                     "JEFATURA": jefatura_actual,
                     "ESTADO": estado_usuario_actual,
-                    "PLACAS": placas_inc.upper(),
+                    "PLACAS": placas_inc.strip().upper(),
                     "TIPO": tipo_falla,
                     "MUNICIPIO": municipio_inc.upper(),
                     "URGENCIA": gravedad_inc,
@@ -719,7 +718,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
             ])))
             residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
             vehiculo = st.selectbox("Tipo de Vehículo", ["NISSAN VERSA", "PickUp", "Estacas"])
-            placas = st.text_input("Placas", value="MGX-543-A", max_chars=300)
+            placas = st.text_input("Placas (Sin valor predeterminado)", value="", max_chars=300)
             licencia = st.text_input("No. De Licencia", value=st.session_state["current_licencia"], max_chars=300)
         with col4:
             usuario = st.text_input("Usuario Responsable", value=st.session_state["current_user"], max_chars=300)
@@ -738,7 +737,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
         
         guardar_dia = st.form_submit_button("💾 Guardar Día")
         if guardar_dia:
-            if h_salida.strip() == h_llegada.strip():
+            if not placas.strip():
+                st.error("⚠️ Debes ingresar el número de placas del vehículo (no hay placa predeterminada).")
+            elif h_salida.strip() == h_llegada.strip():
                 st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
             elif km_final < km_inicial:
                 st.warning("⚠️ Aviso: El KM Final no puede ser menor al KM Inicial.")
