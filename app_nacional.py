@@ -614,7 +614,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
+    # CORRECCIÓN DEL ERROR DE SINTAXIS AQUÍ:
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -1141,7 +1142,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     mapa_rows = []
                     for _, r in df_filtrado.iterrows():
                         mun = r["MUNICIPIO"]
-                        # Buscar coordenadas exactas o aproximadas si el usuario escribió libremente
                         mun_key = next((k for k in CODS_MUNICIPIOS if k.upper() in mun.upper()), None)
                         if mun_key:
                             mapa_rows.append({
@@ -1183,7 +1183,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     df_res_mun = df_resumen_mun.copy()
                     df_res_mun.to_excel(output_filtrado, index=False, sheet_name="REPORTE_FILTRADO")
                     output_filtrado.seek(0)
-                    st.download_button("⬇️ Descargar Reporte Filtrado en Excel", data=output_filtrado, file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    st.download_button("⬇️ Descargar Reporte Filtrado in Excel", data=output_filtrado, file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 else:
                     st.warning("⚠️ No se encontraron registros con los filtros seleccionados.")
             else:
