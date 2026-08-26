@@ -147,12 +147,7 @@ FRASES_AGRARIAS = [
     "“La tierra generosa recompensa siempre el esfuerzo honesto de quien la trabaja.”",
     "“El verdadero desarrollo del país florece desde sus raíces ejidales y comunales.”",
     "“Sembrar conciencia en el campo es cosechar soberanía y bienestar social.”",
-    "“La labor del agrónomo y del servidor agrario es transformar la esperanza en frutos tangibles.”",
-    "“Un pueblo que cuida su campo asegura su porvenir y su libertad.”",
-    "“La tierra es el espejo del alma de quienes la trabajan día con día.”",
-    "“Servir a los núcleos agrarios es un honor que exige lealtad, vocación y justicia social.”",
-    "“Detrás de cada surco hay una historia de esfuerzo, familia y amor por México.”",
-    "“La tierra bien administrada y respetada nunca defrauda a sus hijos.”"
+    "“La labor del agrónomo y del servidor agrario es transformar la esperanza en frutos tangibles.”"
 ]
 
 @st.cache_data
@@ -632,7 +627,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -773,15 +768,15 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 st.rerun()
         
         with col_acc2:
-            if st.button("🚀 Guardar y Generar 3 Bitácoras Definitivas"):
+            st.markdown("### 📥 Generación de Bitácoras")
+            archivo_plantilla = st.file_uploader("Sube tu archivo de plantilla Excel (ej. Bitacora_Actualizada_Formula (2).xlsx)", type=["xlsx"])
+            
+            if archivo_plantilla is not None and st.button("🚀 Guardar y Generar 3 Bitácoras Definitivas"):
                 try:
-                    # Usamos tu plantilla oficial probada
-                    wb = openpyxl.load_workbook("Bitacora_Actualizada_Formula (2).xlsx")
+                    wb = openpyxl.load_workbook(archivo_plantilla)
                     
-                    # 1. Poblar BASE_DE_DATOS manteniendo fórmulas de columnas de km y costo
+                    # 1. Poblar BASE_DE_DATOS
                     ws_b = wb["BASE_DE_DATOS"]
-                    
-                    # Limpiar filas desde la 2 en adelante hasta la 32 o más
                     max_r_existente = max(33, ws_b.max_row)
                     for r in range(2, max_r_existente + 1):
                         ws_b[f'A{r}'] = None
@@ -815,7 +810,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         ws_b[f'E{i}'] = reg["folio CIIA"]
                         ws_b[f'F{i}'] = reg["HORA DE SALIDA"]
                         
-                        # KM Inicial encadenado automáticamente
                         if i == 2:
                             ws_b[f'G{i}'] = reg["KM INICIAL / Km de Salida"]
                         else:
@@ -823,17 +817,12 @@ elif perfil == "Módulo de Captura (Recorrido)":
                             
                         ws_b[f'H{i}'] = reg["RECORRIDO"]
                         ws_b[f'I{i}'] = reg["HORA DE LLEGADA"]
-                        
-                        # KM Final con fórmula automática G + H
                         ws_b[f'J{i}'] = f'=G{i}+H{i}'
-                        
                         ws_b[f'K{i}'] = 12.0
-                        ws_b[f'L{i}'] = 23.99 # Precio Gasolina estándar
-                        ws_b[f'M{i}'] = f'=ROUND((H{i}/K{i})*L{i}, 2)' # Gasto combustible fórmula oficial
+                        ws_b[f'L{i}'] = 23.99
+                        ws_b[f'M{i}'] = f'=ROUND((H{i}/K{i})*L{i}, 2)'
                         ws_b[f'N{i}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
-                        ws_b[f'L{i}_Nivel'] = reg["Gasolina de Salida"] # Mapeo auxiliar si aplica
                         ws_b[f'L{i}'] = reg["Gasolina de Salida"]
-                        ws_b[f'M{i}_Nivel'] = reg["Gasolina de Llegada"]
                         ws_b[f'O{i}'] = reg["Oficio Numero"]
                         ws_b[f'P{i}'] = reg["Oficio Fecha"]
                         ws_b[f'Q{i}'] = reg["observaciones"]
@@ -843,7 +832,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         ws_b[f'U{i}'] = reg["Placas"]
                         ws_b[f'V{i}'] = reg["No. De Licencia"]
 
-                    # Actualizar celda de Totales en Base de Datos si existe
                     row_tot = len(registros_totales) + 2
                     ws_b[f'A{row_tot}'] = "TOTALES"
                     ws_b[f'H{row_tot}'] = f'=SUM(H2:H{row_tot-1})'
@@ -904,8 +892,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     wb.save(output)
                     output.seek(0)
                     
-                    registrar_auditoria("GENERAR BITACORAS", "Generación perfecta utilizando Bitacora_Actualizada_Formula (2).xlsx")
-                    st.success("✅ ¡Las 3 bitácoras se generaron utilizando tu formato oficial y quedaron perfectamente vinculadas!")
+                    registrar_auditoria("GENERAR BITACORAS", "Generación perfecta con archivo subido por usuario")
+                    st.success("✅ ¡Las 3 bitácoras se generaron y vincularon con éxito!")
                     st.download_button(
                         label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
                         data=output,
@@ -913,7 +901,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
                 except Exception as e:
-                    st.error(f"Error al generar el archivo definitivo: {e}")
+                    st.error(f"Error al procesar la plantilla: {e}")
+            elif archivo_plantilla is None:
+                st.info("💡 Sube tu archivo de plantilla Excel (ej. `Bitacora_Actualizada_Formula (2).xlsx`) para habilitar el botón de generación.")
 
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
