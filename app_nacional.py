@@ -427,6 +427,7 @@ if perfil == "Mi Perfil / Foto":
                 st.warning("⚠️ Selecciona un archivo de imagen válido antes de guardar.")
 
 elif perfil == "Solicitud de Recurso de Gasolina":
+    st.error("⚠️ **[PRUEBA]** - Módulo en Fase de Pruebas Operativas")
     st.subheader("⛽ Solicitud de Recurso de Gasolina para Comisión Oficial")
     st.markdown("Apartado institucional para la gestión, solicitud y aprobación de asignación presupuestal de combustible.")
     
@@ -478,7 +479,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
         with col_s7:
             motivo_comision = st.text_input("Motivo / Descripción de la Comisión Oficial", value="", max_chars=300)
             
-        btn_enviar_solicitud = st.form_submit_button("📥 Enviar Solicitud de Recurso Estatal")
+        btn_enviar_solicitud = st.form_submit_button("📥 Enviar Solicitud de Recurso")
         if btn_enviar_solicitud:
             if not funcionario_comisionado.strip() or not motivo_comision.strip():
                 st.error("⚠️ Debes completar el nombre del funcionario comisionado y el motivo.")
@@ -498,14 +499,14 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                     "MONTO SOLICITADO": monto_solicitado,
                     "OFICIO": oficio_asociado if oficio_asociado else "N/A",
                     "MOTIVO": motivo_comision,
-                    "ESTATUS": "PENDIENTE DE APROBACIÓN ESTATAL",
+                    "ESTATUS": "PENDIENTE DE APROBACIÓN",
                     "CORREO": current_email_key
                 }
                 lista_sols = cargar_solicitudes()
                 lista_sols.append(nueva_solicitud)
                 guardar_solicitudes(lista_sols)
                 registrar_auditoria("SOLICITUD GASOLINA", f"Solicitud de ${monto_solicitado} para {funcionario_comisionado} en {estado_usuario_actual}")
-                st.success("✅ Solicitud de recurso de gasolina enviada y registrada correctamente para el estado.")
+                st.success("✅ Solicitud de recurso enviada y registrada correctamente.")
 
     solicitudes_historial = cargar_solicitudes()
     if len(solicitudes_historial) > 0:
@@ -526,7 +527,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             st.markdown("---")
             st.subheader("⚙️ Panel de Aprobación de Solicitudes")
             for idx, sol in enumerate(solicitudes_historial):
-                if sol.get("ESTATUS") == "PENDIENTE DE APROBACIÓN ESTATAL":
+                if sol.get("ESTATUS") == "PENDIENTE DE APROBACIÓN":
                     col_info_s, col_btn_ap, col_btn_re = st.columns([5, 1, 1])
                     with col_info_s:
                         st.write(f"**{sol['FUNCIONARIO']}** | Destino: {sol['DESTINO']} | Monto: ${sol['MONTO SOLICITADO']:,.2f} MXN ({sol['JEFATURA']})")
@@ -544,6 +545,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                             st.rerun()
 
 elif perfil == "Reporte de Incidencias en Ruta":
+    st.error("⚠️ **[PRUEBA]** - Módulo en Fase de Pruebas Operativas")
     st.subheader("🚨 Reporte y Gestión de Incidencias y Fallas Mecánicas")
     st.markdown("Módulo para registrar y dar seguimiento a averías, fallas mecánicas o imprevistos durante las comisiones oficiales.")
     
@@ -1064,7 +1066,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 if st.button("🔴 Apagar", key=f"desactivar_{email}"):
                     usuarios_actuales_tabla[email]["activo"] = False
                     guardar_usuarios(usuarios_actuales_tabla)
-                    registrar_auditoria("DESACTIVAR USUARIO", f"DesACTIVAR de cuenta para {email}")
+                    registrar_auditoria("DESACTIVAR USUARIO", f"Desactivación de cuenta para {email}")
                     st.rerun()
             with col_b3:
                 if st.button("🗑️ Eliminar", key=f"eliminar_{email}"):
