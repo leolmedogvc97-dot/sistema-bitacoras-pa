@@ -672,7 +672,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -827,59 +827,80 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     wb = openpyxl.load_workbook("Prueba unificación.xlsx")
                     ws = wb["BASE_DE_DATOS"]
                     
-                    # 1. Limpiar filas previas manteniendo intactas las demás hojas
-                    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=25):
+                    # 1. Limpiar filas previas de BASE_DE_DATOS conservando la estructura y fórmulas de las hojas 2 y 3
+                    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=22):
                         for cell in row:
                             cell.value = None
                             
-                    # 2. Configurar encabezados de control en la fila 1 exactamente como lo exigen las fórmulas:
-                    ws["K1"] = "Rendimiento (km/L)"
-                    ws["L1"] = "Gasolina de Salida"
-                    ws["M1"] = "Gasolina de Llegada"
-                    ws["N1"] = "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"
-                    ws["O1"] = "Oficio Numero"
-                    ws["P1"] = "Oficio Fecha"
-                    ws["Q1"] = "observaciones"
-                    ws["R1"] = "Usuario Responsable"
-                    ws["S1"] = "Áreas de Adscripción"
-                    ws["T1"] = "Tipo de Vehículo"
-                    ws["U1"] = "Placas"
-                    ws["V1"] = "No. De Licencia"
-                    
-                    # 3. Escritura estricta alineada con las fórmulas de las hojas 2 y 3:
-                    for i, reg in enumerate(registros_totales):
-                        row_idx = 2 + i
-                        
-                        ws[f'A{row_idx}'] = reg["FECHA COMPLETA"]                                   # A: Fecha
-                        ws[f'B{row_idx}'] = f'=UPPER(TEXT(A{row_idx}, "MMMM"))'                   # B: Mes
-                        ws[f'C{row_idx}'] = reg["MUNICIPIO"]                                      # C: Municipio
-                        ws[f'D{row_idx}'] = reg["POBLADO"]                                        # D: Poblado
-                        ws[f'E{row_idx}'] = reg["folio CIIA"]                                     # E: Folio CIIA
-                        ws[f'F{row_idx}'] = reg["HORA DE SALIDA"]                                 # F: Hora Salida
-                        ws[f'G{row_idx}'] = reg["KM INICIAL / Km de Salida"]                      # G: Km Salida
-                        ws[f'H{row_idx}'] = reg["RECORRIDO"]                                      # H: Recorrido (Km)
-                        ws[f'I{row_idx}'] = reg["HORA DE LLEGADA"]                                # I: Hora Llegada
-                        ws[f'J{row_idx}'] = reg["KM FINAL / Km de Llegada"]                       # J: Km Llegada
-                        ws[f'K{row_idx}'] = 12.0                                                  # K: Rendimiento (km/L)
-                        ws[f'L{row_idx}'] = reg["Gasolina de Salida"]                             # L: Gasolina de Salida ("1/4", "1/2", etc.) -> vital para J,K,L,M de hoja 2
-                        ws[f'M{row_idx}'] = reg["Gasolina de Llegada"]                            # M: Gasolina de Llegada -> vital para P,Q,R,S de hoja 2
-                        ws[f'N{row_idx}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"] # N: Dotación -> vital para col T de hoja 2
-                        ws[f'O{row_idx}'] = reg["Oficio Numero"]                                  # O: Oficio Número
-                        ws[f'P{row_idx}'] = reg["Oficio Fecha"]                                   # P: Oficio Fecha
-                        ws[f'Q{row_idx}'] = reg["observaciones"]                                  # Q: Observaciones -> vital para col W de hoja 2
-                        ws[f'R{row_idx}'] = reg["Usuario Responsable"]                            # R: Usuario Responsable -> vital para col B de hoja 2 y col 4 de hoja 3
-                        ws[f'S{row_idx}'] = reg["Áreas de Adscripción"]                           # S: Áreas de Adscripción -> vital para col C de hoja 2
-                        ws[f'T{row_idx}'] = reg["Tipo de Vehículo"]                               # T: Tipo de Vehículo -> vital para col D de hoja 2 y col 3 de hoja 3
-                        ws[f'U{row_idx}'] = reg["Placas"]                                         # U: Placas -> vital para col E de hoja 2 y col 3 de hoja 3
-                        ws[f'V{row_idx}'] = reg["No. De Licencia"]                                # V: Licencia -> vital para col V de hoja 2 y col 4 de hoja 3
+                    # 2. Encabezados de control en la fila 1
+                    encabezados = {
+                        "A1": "FECHA COMPLETA",
+                        "B1": "MES",
+                        "C1": "MUNICIPIO",
+                        "D1": "POBLADO",
+                        "E1": "folio CIIA",
+                        "F1": "HORA DE SALIDA",
+                        "G1": "KM INICIAL / Km de Salida",
+                        "H1": "RECORRIDO",
+                        "I1": "HORA DE LLEGADA",
+                        "J1": "KM FINAL / Km de Llegada",
+                        "K1": "Rendimiento (km/L)",
+                        "L1": "Gasolina de Salida",
+                        "M1": "Gasolina de Llegada",
+                        "N1": "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)",
+                        "O1": "Oficio Numero",
+                        "P1": "Oficio Fecha",
+                        "Q1": "observaciones",
+                        "R1": "Usuario Responsable",
+                        "S1": "Áreas de Adscripción",
+                        "T1": "Tipo de Vehículo",
+                        "U1": "Placas",
+                        "V1": "No. De Licencia"
+                    }
 
-                    # 4. Guardar archivo y descargar
+                    for celda, valor in encabezados.items():
+                        ws[celda] = valor
+                    
+                    # 3. Escritura de registros con formato de fecha real de Excel
+                    for i, reg in enumerate(registros_totales, start=2):
+                        fecha_excel = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
+                        
+                        ws[f'A{i}'] = fecha_excel
+                        ws[f'A{i}'].number_format = "dd/mm/yyyy"
+                        
+                        ws[f'B{i}'] = f'=UPPER(TEXT(A{i}, "MMMM"))'
+                        ws[f'C{i}'] = reg["MUNICIPIO"]
+                        ws[f'D{i}'] = reg["POBLADO"]
+                        ws[f'E{i}'] = reg["folio CIIA"]
+                        ws[f'F{i}'] = reg["HORA DE SALIDA"]
+                        ws[f'G{i}'] = reg["KM INICIAL / Km de Salida"]
+                        ws[f'H{i}'] = reg["RECORRIDO"]
+                        ws[f'I{i}'] = reg["HORA DE LLEGADA"]
+                        ws[f'J{i}'] = reg["KM FINAL / Km de Llegada"]
+                        ws[f'K{i}'] = 12.0
+                        ws[f'L{i}'] = reg["Gasolina de Salida"]
+                        ws[f'M{i}'] = reg["Gasolina de Llegada"]
+                        ws[f'N{i}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
+                        ws[f'O{i}'] = reg["Oficio Numero"]
+                        ws[f'P{i}'] = reg["Oficio Fecha"]
+                        ws[f'Q{i}'] = reg["observaciones"]
+                        ws[f'R{i}'] = reg["Usuario Responsable"]
+                        ws[f'S{i}'] = reg["Áreas de Adscripción"]
+                        ws[f'T{i}'] = reg["Tipo de Vehículo"]
+                        ws[f'U{i}'] = reg["Placas"]
+                        ws[f'V{i}'] = reg["No. De Licencia"]
+
+                    # 4. Configurar recálculo automático para Excel
+                    wb.calculation.fullCalcOnLoad = True
+                    wb.calculation.forceFullCalc = True
+                    wb.calculation.calcMode = "auto"
+
                     output = BytesIO()
                     wb.save(output)
                     output.seek(0)
                     
-                    registrar_auditoria("GENERAR BITACORAS", "Generación exitosa con mapeo exacto de columnas L, M y N para combustible")
-                    st.success("¡Archivo generado con éxito y listo para descarga!")
+                    registrar_auditoria("GENERAR BITACORAS", "Generación exitosa con fechas reales de Excel y recálculo automático")
+                    st.success("✅ ¡Las 3 bitácoras se generaron y vincularon perfectamente con BASE_DE_DATOS!")
                     st.download_button(
                         label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
                         data=output,
