@@ -14,12 +14,9 @@ st.set_page_config(page_title="Sistema Nacional de Bitácoras - Procuraduría Ag
 # Inyección de estilos CSS personalizados (Colores Institucionales / Guinda Morena)
 st.markdown("""
     <style>
-    /* Estilos globales y elementos principales */
     h1, h2, h3 {
         color: #6B1D2F !important;
     }
-    
-    /* Botones principales de la aplicación */
     .stButton>button {
         background-color: #6B1D2F !important;
         color: white !important;
@@ -27,31 +24,23 @@ st.markdown("""
         border: none !important;
         font-weight: bold;
     }
-    
     .stButton>button:hover {
         background-color: #8A253D !important;
         color: white !important;
     }
-    
-    /* Botones de envío en formularios */
     [data-testid="stFormSubmitButton"]>button {
         background-color: #6B1D2F !important;
         color: white !important;
         border-radius: 6px !important;
         font-weight: bold;
     }
-    
     [data-testid="stFormSubmitButton"]>button:hover {
         background-color: #8A253D !important;
     }
-    
-    /* Barra lateral */
     section[data-testid="stSidebar"] {
         background-color: #faf6f7;
         border-right: 1px solid #e0d0d3;
     }
-    
-    /* Contenedor de frase agraria */
     .frase-agraria {
         background-color: #fcf5f6;
         border-left: 5px solid #6B1D2F;
@@ -76,7 +65,6 @@ MUN_FILE = "MUNICIPIOS_202606.xlsx"
 LOC_FILE = "LOCALIDADES_202606.xlsx"
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
-# Coordenadas de referencia aproximadas para municipios principales
 CODS_MUNICIPIOS = {
     "Toluca": {"lat": 19.2826, "lon": -99.6556},
     "Naucalpan de Juárez": {"lat": 19.4781, "lon": -99.2363},
@@ -164,17 +152,7 @@ FRASES_AGRARIAS = [
     "“La tierra es el espejo del alma de quienes la trabajan día con día.”",
     "“Servir a los núcleos agrarios es un honor que exige lealtad, vocación y justicia social.”",
     "“Detrás de cada surco hay una historia de esfuerzo, familia y amor por México.”",
-    "“La tierra bien administrada y respetada nunca defrauda a sus hijos.”",
-    "“Hacer justicia agraria es dar valor institucional al sudor del campesino.”",
-    "“El progreso del campo se construye con técnica, compromiso y cercanía con la gente.”",
-    "“La naturaleza no hace nada en vano; cada semilla es una promesa de futuro.”",
-    "“Trabajar por el campo es sembrar las bases de la justicia y la equidad nacional.”",
-    "“Cada kilómetro recorrido en comisión oficial es un paso más hacia la justicia agraria.”",
-    "“La tierra es fértil para quien la respeta; la ley es justa para quien la aplica con vocación.”",
-    "“El agrarismo es la fuerza viva que alimenta la historia y el orgullo de nuestras comunidades.”",
-    "“Cultivar el campo con ciencia y conciencia es el mejor legado para las nuevas generaciones.”",
-    "“El servicio público en el sector agrario es vocación de entrega y transformación social.”",
-    "“Donde hay un ejidatario trabajando, hay una patria entera floreciendo.”"
+    "“La tierra bien administrada y respetada nunca defrauda a sus hijos.”"
 ]
 
 @st.cache_data
@@ -201,7 +179,6 @@ def obtener_localidades_municipio(estado_nombre, municipio_nombre):
     if locs_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
         return ["Cabecera Municipal"]
     efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
-    
     df_locs = locs_global.copy()
     if 'EFE_KEY' in df_locs.columns and 'MUNICIPIO' in df_locs.columns:
         locs = df_locs[(df_locs['EFE_KEY'] == efe_key) & (df_locs['MUNICIPIO'].str.upper() == municipio_nombre.upper())]['LOCALIDAD'].dropna().tolist()
@@ -209,7 +186,6 @@ def obtener_localidades_municipio(estado_nombre, municipio_nombre):
         locs = df_locs[df_locs['MUNICIPIO'].str.upper() == municipio_nombre.upper()]['LOCALIDAD'].dropna().tolist()
     else:
         locs = df_locs.iloc[:, 2].dropna().tolist()
-        
     if not locs:
         return ["Cabecera Municipal"]
     return sorted(list(set(locs)))
@@ -228,7 +204,6 @@ def cargar_usuarios():
         "carlos.javg.96@gmail.com": {"nombre": "CARLOS JAVIER GALVEZ GONZALEZ", "pass": "Carlos", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
         "dehnny.vasquez@pa.gob.mx": {"nombre": "DEHNNY VAZQUEZ FLORES", "pass": "Dehnny", "licencia": "", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "", "foto": "", "activo": True}
     }
-    
     if os.path.exists(USUARIOS_FILE):
         try:
             with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
@@ -327,7 +302,6 @@ if "current_jefatura" not in st.session_state:
     st.session_state["current_jefatura"] = ""
 if "current_jefe_residencia" not in st.session_state:
     st.session_state["current_jefe_residencia"] = ""
-
 if "frase_dia" not in st.session_state:
     st.session_state["frase_dia"] = random.choice(FRASES_AGRARIAS)
 
@@ -385,7 +359,6 @@ if os.path.exists(LOGO_FILE):
 
 current_email_key = st.session_state['current_email']
 usuarios_actuales_sidebar = cargar_usuarios()
-
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
 
 st.sidebar.title("📌 Menú de Navegación")
@@ -405,7 +378,6 @@ with st.sidebar.expander("👤 Sesión Activa (Ver Datos)", expanded=False):
         st.image(foto_actual, width=100)
     else:
         st.info("Sin foto de perfil.")
-
     st.write(f"**Usuario:** {st.session_state['current_user']}")
     st.write(f"**Correo:** {st.session_state['current_email']}")
     st.write(f"**Rol:** {st.session_state.get('current_rol', 'Organizador')}")
@@ -437,16 +409,13 @@ if perfil == "Mi Perfil / Foto":
     with st.form("form_foto_perfil"):
         archivo_foto = st.file_uploader("Seleccionar imagen de perfil (JPG, PNG)", type=["jpg", "jpeg", "png"])
         btn_subir_foto = st.form_submit_button("💾 Guardar Fotografía")
-        
         if btn_subir_foto:
             if archivo_foto is not None:
                 extension = archivo_foto.name.split(".")[-1]
                 nombre_archivo = f"{current_email_key.replace('@', '_').replace('.', '_')}.{extension}"
                 ruta_destino = os.path.join(FOTOS_DIR, nombre_archivo)
-                
                 with open(ruta_destino, "wb") as f:
                     f.write(archivo_foto.getbuffer())
-                
                 all_users = cargar_usuarios()
                 if current_email_key in all_users:
                     all_users[current_email_key]["foto"] = ruta_destino
@@ -489,12 +458,10 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
         with col_s2:
             municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
-            
             lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
             if not lista_loc_com:
                 lista_loc_com = ["Cabecera Municipal"]
             localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
-            
             vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
             placas_vehiculo = st.text_input("Placas del Vehículo", value="MGX-543-A", max_chars=300)
             
@@ -514,7 +481,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             motivo_comision = st.text_input("Motivo / Descripción de la Comisión Oficial", value="", max_chars=300)
             
         btn_enviar_solicitud = st.form_submit_button("📥 Enviar Solicitud de Recurso Estatal")
-        
         if btn_enviar_solicitud:
             if not funcionario_comisionado.strip() or not motivo_comision.strip():
                 st.error("⚠️ Debes completar el nombre del funcionario comisionado y el motivo.")
@@ -537,7 +503,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                     "ESTATUS": "PENDIENTE DE APROBACIÓN ESTATAL",
                     "CORREO": current_email_key
                 }
-                
                 lista_sols = cargar_solicitudes()
                 lista_sols.append(nueva_solicitud)
                 guardar_solicitudes(lista_sols)
@@ -549,7 +514,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
         st.markdown("---")
         st.subheader("📋 Historial y Gestión de Solicitudes de Gasolina")
         df_sols = pd.DataFrame(solicitudes_historial)
-        
         if rol_actual == "Analista de Información":
             df_sols_filtrado = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
         elif rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
@@ -558,7 +522,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             df_sols_filtrado = df_sols
         else:
             df_sols_filtrado = df_sols[df_sols['CORREO'] == current_email_key]
-            
         st.dataframe(df_sols_filtrado, use_container_width=True)
         
         if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)", "Administrador Estatal", "Administrador Nacional"]:
@@ -607,7 +570,6 @@ elif perfil == "Reporte de Incidencias en Ruta":
             gravedad_inc = st.selectbox("Nivel de Urgencia", ["Baja", "Media", "Alta (Requiere Grúa/Auxilio Inmediato)"])
             
         descripcion_inc = st.text_area("Descripción detallada de la incidencia mecánica o imprevisto")
-        
         btn_enviar_inc = st.form_submit_button("🚨 Enviar Reporte de Incidencia")
         if btn_enviar_inc:
             if not municipio_inc.strip() or not descripcion_inc.strip():
@@ -637,7 +599,6 @@ elif perfil == "Reporte de Incidencias en Ruta":
         st.markdown("---")
         st.subheader("📋 Historial de Incidencias en Ruta")
         df_incs = pd.DataFrame(todas_incs)
-        
         if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
             df_incs_filtrado = df_incs[df_incs['ESTADO'] == estado_usuario_actual]
         elif rol_actual == "Administrador Estatal":
@@ -646,7 +607,6 @@ elif perfil == "Reporte de Incidencias en Ruta":
             df_incs_filtrado = df_incs
         else:
             df_incs_filtrado = df_incs[df_incs['CORREO'] == current_email_key]
-            
         st.dataframe(df_incs_filtrado, use_container_width=True)
         
         if rol_actual in ["Administrador de Vehículos (Estatal)", "Administrador Estatal", "Administrador Nacional", "Jefe de Residencia"]:
@@ -690,12 +650,10 @@ elif perfil == "Módulo de Captura (Recorrido)":
         with col1:
             fecha = st.date_input("Fecha de registro del uso del vehículo")
             municipio = st.selectbox(f"Municipio ({estado_usuario_actual})", lista_municipios)
-            
             lista_localidades = obtener_localidades_municipio(estado_usuario_actual, municipio)
             if not lista_localidades:
                 lista_localidades = ["Sin localidades registradas en catálogo"]
             poblado = st.selectbox("Poblado / Localidad", lista_localidades)
-            
             folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
         with col2:
             h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00", max_chars=300)
@@ -719,7 +677,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
         with col4:
             usuario = st.text_input("Usuario Responsable", value=st.session_state["current_user"], max_chars=300)
             dotacion = st.number_input("Dotación de Gasolina ($)", min_value=0.0, value=200.0, step=1.0)
-            
             gas_salida_label = st.selectbox("Gasolina de Salida (Nivel)", list(OPCIONES_GASOLINA.keys()))
             gas_llegada_label = st.selectbox("Gasolina de Llegada (Nivel)", list(OPCIONES_GASOLINA.keys()))
         
@@ -733,7 +690,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
             observaciones = st.text_input("Observaciones / Ruta", value="", max_chars=300)
         
         guardar_dia = st.form_submit_button("💾 Guardar Día")
-        
         if guardar_dia:
             if h_salida.strip() == h_llegada.strip():
                 st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
@@ -751,15 +707,14 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     r_placas = str(r.get("Placas", "")).strip().upper()
                     r_km_ini = float(r.get("KM INICIAL / Km de Salida", 0))
                     r_km_fin = float(r.get("KM FINAL / Km de Llegada", 0))
-                    
                     if r_fecha == fecha_str and r_placas == placas_upper:
                         if r_km_ini == km_inicial and r_km_fin == km_final and str(r.get("MUNICIPIO")) == municipio:
                             conflicto_duplicado = True
-                            mensaje_error = "⚠️ Registro duplicado: Ya existe un recorrido guardado con exactamente la misma información (misma fecha, mismas placas, mismo rango de kilometraje y municipio)."
+                            mensaje_error = "⚠️ Registro duplicado: Ya existe un recorrido guardado con exactamente la misma información."
                             break
                         elif km_inicial < r_km_fin and km_final > r_km_ini:
                             conflicto_duplicado = True
-                            mensaje_error = f"⚠️ Conflicto de Kilometraje: El vehículo con placas {placas_upper} ya registra un recorrido en la fecha {fecha_str} que abarca de {r_km_ini:,.0f} a {r_km_fin:,.0f} km. El rango ingresado se traslapa."
+                            mensaje_error = f"⚠️ Conflicto de Kilometraje: El vehículo {placas_upper} ya registra un recorrido el {fecha_str} de {r_km_ini:,.0f} a {r_km_fin:,.0f} km."
                             break
 
                 if conflicto_duplicado:
@@ -794,7 +749,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         "JEFE_RESIDENCIA": jefe_actual,
                         "CORREO_ORGANIZADOR": current_email_key
                     }
-                    
                     registros_actuales.append(nuevo_reg)
                     guardar_registros_acumulados(registros_actuales)
                     registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {municipio} ({poblado})")
@@ -804,14 +758,11 @@ elif perfil == "Módulo de Captura (Recorrido)":
     if len(registros_totales) > 0:
         st.markdown("---")
         st.subheader("📋 Días Guardados (Historial Acumulado Permanente)")
-        
         busqueda_texto = st.text_input("🔍 Buscar en historial (Folio CIIA, Oficio, Poblado o Municipio):").strip().lower()
         df_acumulado = pd.DataFrame(registros_totales)
-        
         if busqueda_texto:
             mask = df_acumulado.apply(lambda row: row.astype(str).str.lower().str.contains(busqueda_texto).any(), axis=1)
             df_acumulado = df_acumulado[mask]
-            
         st.dataframe(df_acumulado, use_container_width=True)
         
         col_acc1, col_acc2 = st.columns(2)
@@ -824,73 +775,127 @@ elif perfil == "Módulo de Captura (Recorrido)":
         with col_acc2:
             if st.button("🚀 Guardar y Generar 3 Bitácoras Definitivas"):
                 try:
-                    wb = openpyxl.load_workbook("Prueba unificación.xlsx")
-                    ws = wb["BASE_DE_DATOS"]
+                    # Usamos tu plantilla oficial probada
+                    wb = openpyxl.load_workbook("Bitacora_Actualizada_Formula (2).xlsx")
                     
-                    # 1. Limpiar filas previas de BASE_DE_DATOS conservando la estructura y fórmulas de las hojas 2 y 3
-                    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=22):
-                        for cell in row:
-                            cell.value = None
-                            
-                    # 2. Encabezados de control en la fila 1
-                    encabezados = {
-                        "A1": "FECHA COMPLETA",
-                        "B1": "MES",
-                        "C1": "MUNICIPIO",
-                        "D1": "POBLADO",
-                        "E1": "folio CIIA",
-                        "F1": "HORA DE SALIDA",
-                        "G1": "KM INICIAL / Km de Salida",
-                        "H1": "RECORRIDO",
-                        "I1": "HORA DE LLEGADA",
-                        "J1": "KM FINAL / Km de Llegada",
-                        "K1": "Rendimiento (km/L)",
-                        "L1": "Gasolina de Salida",
-                        "M1": "Gasolina de Llegada",
-                        "N1": "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)",
-                        "O1": "Oficio Numero",
-                        "P1": "Oficio Fecha",
-                        "Q1": "observaciones",
-                        "R1": "Usuario Responsable",
-                        "S1": "Áreas de Adscripción",
-                        "T1": "Tipo de Vehículo",
-                        "U1": "Placas",
-                        "V1": "No. De Licencia"
-                    }
+                    # 1. Poblar BASE_DE_DATOS manteniendo fórmulas de columnas de km y costo
+                    ws_b = wb["BASE_DE_DATOS"]
+                    
+                    # Limpiar filas desde la 2 en adelante hasta la 32 o más
+                    max_r_existente = max(33, ws_b.max_row)
+                    for r in range(2, max_r_existente + 1):
+                        ws_b[f'A{r}'] = None
+                        ws_b[f'B{r}'] = None
+                        ws_b[f'C{r}'] = None
+                        ws_b[f'D{r}'] = None
+                        ws_b[f'E{r}'] = None
+                        ws_b[f'F{r}'] = None
+                        ws_b[f'G{r}'] = None
+                        ws_b[f'H{r}'] = None
+                        ws_b[f'I{r}'] = None
+                        ws_b[f'J{r}'] = None
+                        ws_b[f'L{r}'] = None
+                        ws_b[f'M{r}'] = None
+                        ws_b[f'O{r}'] = None
+                        ws_b[f'P{r}'] = None
+                        ws_b[f'Q{r}'] = None
+                        ws_b[f'R{r}'] = None
+                        ws_b[f'S{r}'] = None
+                        ws_b[f'T{r}'] = None
+                        ws_b[f'U{r}'] = None
+                        ws_b[f'V{r}'] = None
 
-                    for celda, valor in encabezados.items():
-                        ws[celda] = valor
-                    
-                    # 3. Escritura de registros con formato de fecha real de Excel
                     for i, reg in enumerate(registros_totales, start=2):
                         fecha_excel = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
+                        ws_b[f'A{i}'] = fecha_excel
+                        ws_b[f'A{i}'].number_format = "dd/mm/yyyy"
+                        ws_b[f'B{i}'] = f'=UPPER(TEXT(A{i}, "MMMM"))'
+                        ws_b[f'C{i}'] = reg["MUNICIPIO"]
+                        ws_b[f'D{i}'] = reg["POBLADO"]
+                        ws_b[f'E{i}'] = reg["folio CIIA"]
+                        ws_b[f'F{i}'] = reg["HORA DE SALIDA"]
                         
-                        ws[f'A{i}'] = fecha_excel
-                        ws[f'A{i}'].number_format = "dd/mm/yyyy"
+                        # KM Inicial encadenado automáticamente
+                        if i == 2:
+                            ws_b[f'G{i}'] = reg["KM INICIAL / Km de Salida"]
+                        else:
+                            ws_b[f'G{i}'] = f'=J{i-1}'
+                            
+                        ws_b[f'H{i}'] = reg["RECORRIDO"]
+                        ws_b[f'I{i}'] = reg["HORA DE LLEGADA"]
                         
-                        ws[f'B{i}'] = f'=UPPER(TEXT(A{i}, "MMMM"))'
-                        ws[f'C{i}'] = reg["MUNICIPIO"]
-                        ws[f'D{i}'] = reg["POBLADO"]
-                        ws[f'E{i}'] = reg["folio CIIA"]
-                        ws[f'F{i}'] = reg["HORA DE SALIDA"]
-                        ws[f'G{i}'] = reg["KM INICIAL / Km de Salida"]
-                        ws[f'H{i}'] = reg["RECORRIDO"]
-                        ws[f'I{i}'] = reg["HORA DE LLEGADA"]
-                        ws[f'J{i}'] = reg["KM FINAL / Km de Llegada"]
-                        ws[f'K{i}'] = 12.0
-                        ws[f'L{i}'] = reg["Gasolina de Salida"]
-                        ws[f'M{i}'] = reg["Gasolina de Llegada"]
-                        ws[f'N{i}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
-                        ws[f'O{i}'] = reg["Oficio Numero"]
-                        ws[f'P{i}'] = reg["Oficio Fecha"]
-                        ws[f'Q{i}'] = reg["observaciones"]
-                        ws[f'R{i}'] = reg["Usuario Responsable"]
-                        ws[f'S{i}'] = reg["Áreas de Adscripción"]
-                        ws[f'T{i}'] = reg["Tipo de Vehículo"]
-                        ws[f'U{i}'] = reg["Placas"]
-                        ws[f'V{i}'] = reg["No. De Licencia"]
+                        # KM Final con fórmula automática G + H
+                        ws_b[f'J{i}'] = f'=G{i}+H{i}'
+                        
+                        ws_b[f'K{i}'] = 12.0
+                        ws_b[f'L{i}'] = 23.99 # Precio Gasolina estándar
+                        ws_b[f'M{i}'] = f'=ROUND((H{i}/K{i})*L{i}, 2)' # Gasto combustible fórmula oficial
+                        ws_b[f'N{i}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
+                        ws_b[f'L{i}_Nivel'] = reg["Gasolina de Salida"] # Mapeo auxiliar si aplica
+                        ws_b[f'L{i}'] = reg["Gasolina de Salida"]
+                        ws_b[f'M{i}_Nivel'] = reg["Gasolina de Llegada"]
+                        ws_b[f'O{i}'] = reg["Oficio Numero"]
+                        ws_b[f'P{i}'] = reg["Oficio Fecha"]
+                        ws_b[f'Q{i}'] = reg["observaciones"]
+                        ws_b[f'R{i}'] = reg["Usuario Responsable"]
+                        ws_b[f'S{i}'] = reg["Áreas de Adscripción"]
+                        ws_b[f'T{i}'] = reg["Tipo de Vehículo"]
+                        ws_b[f'U{i}'] = reg["Placas"]
+                        ws_b[f'V{i}'] = reg["No. De Licencia"]
 
-                    # 4. Configurar recálculo automático para Excel
+                    # Actualizar celda de Totales en Base de Datos si existe
+                    row_tot = len(registros_totales) + 2
+                    ws_b[f'A{row_tot}'] = "TOTALES"
+                    ws_b[f'H{row_tot}'] = f'=SUM(H2:H{row_tot-1})'
+
+                    # 2. Sincronizar hoja 2_BITACORA_VERSA
+                    if "2_BITACORA_VERSA" in wb.sheetnames:
+                        ws_v = wb["2_BITACORA_VERSA"]
+                        for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
+                            r_v = idx + 3
+                            ws_v[f'A{r_v}'] = f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})'
+                            ws_v[f'B{r_v}'] = f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})'
+                            ws_v[f'C{r_v}'] = f'=IF(BASE_DE_DATOS!S{r_db}="","",BASE_DE_DATOS!S{r_db})'
+                            ws_v[f'D{r_v}'] = f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})'
+                            ws_v[f'E{r_v}'] = f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})'
+                            ws_v[f'F{r_v}'] = f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})'
+                            ws_v[f'G{r_v}'] = f'=IF(BASE_DE_DATOS!P{r_db}="","",BASE_DE_DATOS!P{r_db})'
+                            ws_v[f'H{r_v}'] = f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})'
+                            ws_v[f'I{r_v}'] = f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})'
+                            ws_v[f'J{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="v","X","")'
+                            ws_v[f'K{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/4","X","")'
+                            ws_v[f'L{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/2","X","")'
+                            ws_v[f'M{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1","X","")'
+                            ws_v[f'N{r_v}'] = f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})'
+                            ws_v[f'O{r_v}'] = f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})'
+                            ws_v[f'P{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="v","X","")'
+                            ws_v[f'Q{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/4","X","")'
+                            ws_v[f'R{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/2","X","")'
+                            ws_v[f'S{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1","X","")'
+                            ws_v[f'T{r_v}'] = f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})'
+                            ws_v[f'V{r_v}'] = f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})'
+                            ws_v[f'W{r_v}'] = f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})'
+
+                    # 3. Sincronizar hoja 3_BITACORAS_INDIVIDUALES
+                    if "3_BITACORAS_INDIVIDUALES" in wb.sheetnames:
+                        ws_i = wb["3_BITACORAS_INDIVIDUALES"]
+                        for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
+                            start_row = 1 + idx * 12
+                            ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & UPPER(TEXT(BASE_DE_DATOS!A{r_db}, "MMMM"))')
+                            ws_i.cell(row=start_row+1, column=4, value=f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})')
+                            ws_i.cell(row=start_row+2, column=2, value=f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})')
+                            ws_i.cell(row=start_row+2, column=4, value=f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})')
+                            ws_i.cell(row=start_row+3, column=2, value=f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})')
+                            ws_i.cell(row=start_row+3, column=4, value=f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})')
+                            ws_i.cell(row=start_row+4, column=2, value=f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})')
+                            ws_i.cell(row=start_row+4, column=4, value=f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})')
+                            ws_i.cell(row=start_row+5, column=4, value=f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})')
+                            ws_i.cell(row=start_row+6, column=2, value=f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})')
+                            ws_i.cell(row=start_row+6, column=4, value=f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})')
+                            ws_i.cell(row=start_row+7, column=3, value=f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})')
+                            ws_i.cell(row=start_row+8, column=2, value=f'=IF(BASE_DE_DATOS!C{r_db}="","",BASE_DE_DATOS!C{r_db})')
+                            ws_i.cell(row=start_row+9, column=2, value=f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})')
+
                     wb.calculation.fullCalcOnLoad = True
                     wb.calculation.forceFullCalc = True
                     wb.calculation.calcMode = "auto"
@@ -899,8 +904,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     wb.save(output)
                     output.seek(0)
                     
-                    registrar_auditoria("GENERAR BITACORAS", "Generación exitosa con fechas reales de Excel y recálculo automático")
-                    st.success("✅ ¡Las 3 bitácoras se generaron y vincularon perfectamente con BASE_DE_DATOS!")
+                    registrar_auditoria("GENERAR BITACORAS", "Generación perfecta utilizando Bitacora_Actualizada_Formula (2).xlsx")
+                    st.success("✅ ¡Las 3 bitácoras se generaron utilizando tu formato oficial y quedaron perfectamente vinculadas!")
                     st.download_button(
                         label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
                         data=output,
@@ -912,15 +917,10 @@ elif perfil == "Módulo de Captura (Recorrido)":
 
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
-    
     if rol_actual == "Administrador Nacional":
         tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit, tab_respaldo = st.tabs([
-            "➕ Alta de Usuario", 
-            "✏️ Editar Usuario", 
-            "👥 Control y Estatus", 
-            "📈 Resumen Ejecutivo y Auditoría",
-            "🛡️ Bitácora de Auditoría",
-            "💾 Respaldo de Usuarios"
+            "➕ Alta de Usuario", "✏️ Editar Usuario", "👥 Control y Estatus", 
+            "📈 Resumen Ejecutivo y Auditoría", "🛡️ Bitácora de Auditoría", "💾 Respaldo de Usuarios"
         ])
     else:
         tab_resumen_auditoria = st.container()
@@ -940,22 +940,15 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 c_jefatura = st.selectbox("Jefatura de Residencia", JEFATURAS_RESIDENCIA)
                 c_jefe_res = st.text_input("Nombre del Jefe de Residencia Asignado", value="ING. GABRIEL ESTRADA", max_chars=300)
                 c_rol = st.selectbox("Rol en el Sistema", ROLES_SISTEMA)
-            
             btn_crear = st.form_submit_button("Registrar Usuario en la Red")
             if btn_crear:
                 if c_email and c_nombre and c_pass:
                     usuarios_actuales = cargar_usuarios()
                     email_limpio = c_email.strip().lower()
                     usuarios_actuales[email_limpio] = {
-                        "nombre": c_nombre.strip().upper(),
-                        "pass": c_pass.strip(),
-                        "licencia": c_licencia.strip(),
-                        "estado": c_estado,
-                        "jefatura": c_jefatura,
-                        "jefe_residencia": c_jefe_res.strip().upper(),
-                        "rol": c_rol,
-                        "foto": "",
-                        "activo": True
+                        "nombre": c_nombre.strip().upper(), "pass": c_pass.strip(), "licencia": c_licencia.strip(),
+                        "estado": c_estado, "jefatura": c_jefatura, "jefe_residencia": c_jefe_res.strip().upper(),
+                        "rol": c_rol, "foto": "", "activo": True
                     }
                     guardar_usuarios(usuarios_actuales)
                     registrar_auditoria("ALTA USUARIO", f"Creación de usuario {email_limpio} con rol {c_rol}")
@@ -981,16 +974,12 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         estado_actual = u_data.get("estado", "Estado de México")
                         idx_estado = ESTADOS_REPUBLICA.index(estado_actual) if estado_actual in ESTADOS_REPUBLICA else 0
                         e_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA, index=idx_estado)
-                        
                         jef_actual = u_data.get("jefatura", "RESIDENCIA NAUCALPAN")
                         idx_jef = JEFATURAS_RESIDENCIA.index(jef_actual) if jef_actual in JEFATURAS_RESIDENCIA else 0
                         e_jefatura = st.selectbox("Jefatura de Residencia", JEFATURAS_RESIDENCIA, index=idx_jef)
-                        
                         e_jefe_res = st.text_input("Jefe de Residencia Asignado", value=u_data.get("jefe_residencia", ""), max_chars=300)
-                        
                         idx_rol = ROLES_SISTEMA.index(u_data.get("rol", "Organizador Agrario (Operador)")) if u_data.get("rol") in ROLES_SISTEMA else 0
                         e_rol = st.selectbox("Rol en el Sistema", ROLES_SISTEMA, index=idx_rol)
-                    
                     btn_actualizar = st.form_submit_button("💾 Guardar Cambios")
                     if btn_actualizar:
                         usuarios_actuales_edit[email_a_editar]["nombre"] = e_nombre.strip().upper()
@@ -1004,32 +993,26 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         registrar_auditoria("EDITAR USUARIO", f"Actualización de datos para {email_a_editar}")
                         st.success(f"¡Información de {email_a_editar} actualizada exitosamente!")
                         st.rerun()
-        else:
-            st.info("No hay usuarios registrados para editar.")
 
     def render_control_estatus():
         st.subheader("👥 Control, Estatus y Eliminación de Usuarios en la Red Nacional")
         usuarios_actuales_tabla = cargar_usuarios()
-        
         filas_html = ""
         for email, datos in usuarios_actuales_tabla.items():
             estado_activo = datos.get("activo", True)
             color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
             texto_estado = "🟢 Activo" if estado_activo else "🔴 Desac."
-            
             filas_html += f"""
             <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                <span style="flex: 2.0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;"><b>{email}</b></span>
-                <span style="flex: 2.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('nombre')}</span>
-                <span style="flex: 2.0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('rol')}</span>
-                <span style="flex: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('estado')}</span>
-                <span style="flex: 1.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;">{datos.get('jefatura')}</span>
-                <span style="flex: 0.9; text-align: right; white-space: nowrap;"><b>{texto_estado}</b></span>
+                <span style="flex: 2.0; text-align: left;"><b>{email}</b></span>
+                <span style="flex: 2.5; text-align: left;">{datos.get('nombre')}</span>
+                <span style="flex: 2.0; text-align: left;">{datos.get('rol')}</span>
+                <span style="flex: 1.3; text-align: left;">{datos.get('estado')}</span>
+                <span style="flex: 1.8; text-align: left;">{datos.get('jefatura')}</span>
+                <span style="flex: 0.9; text-align: right;"><b>{texto_estado}</b></span>
             </div>
             """
-            
-        st.markdown(
-            f"""
+        st.markdown(f"""
             <div style="background-color: #6B1D2F; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
                 <span style="flex: 2.0; text-align: left;">CORREO</span>
                 <span style="flex: 2.5; text-align: left;">NOMBRE</span>
@@ -1039,9 +1022,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 <span style="flex: 0.9; text-align: right;">ESTATUS</span>
             </div>
             {filas_html}
-            """,
-            unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
         
         st.markdown("---")
         st.subheader("⚙️ Botones de Acción por Usuario")
@@ -1073,57 +1054,38 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
 
     def render_respaldo_usuarios():
         st.subheader("💾 Respaldo y Restauración de Usuarios")
-        st.markdown("Descarga la base de datos actual de usuarios o sube un archivo previamente guardado para restaurarlos.")
-        
         usuarios_actuales = cargar_usuarios()
         json_usuarios = json.dumps(usuarios_actuales, ensure_ascii=False, indent=4)
-        
-        st.download_button(
-            label="⬇️ Descargar Archivo de Usuarios (usuarios_respaldo.json)",
-            data=json_usuarios,
-            file_name="usuarios_respaldo.json",
-            mime="application/json"
-        )
-        
+        st.download_button("⬇️ Descargar Archivo de Usuarios", data=json_usuarios, file_name="usuarios_respaldo.json", mime="application/json")
         st.markdown("---")
-        st.write("**Restaurar Usuarios desde Archivo**")
-        archivo_respaldo = st.file_uploader("Sube el archivo usuarios_respaldo.json que descargaste previamente", type=["json"])
-        
+        archivo_respaldo = st.file_uploader("Sube el archivo usuarios_respaldo.json", type=["json"])
         if st.button("📤 Cargar y Restaurar Usuarios"):
             if archivo_respaldo is not None:
                 try:
                     usuarios_cargados = json.load(archivo_respaldo)
                     guardar_usuarios(usuarios_cargados)
-                    registrar_auditoria("RESTAURAR USUARIOS", "Se restauró la base de datos de usuarios desde un archivo externo")
-                    st.success("✅ ¡Usuarios restaurados con éxito! El sistema aplicará los cambios ahora.")
+                    registrar_auditoria("RESTAURAR USUARIOS", "Se restauró la base de datos de usuarios")
+                    st.success("✅ ¡Usuarios restaurados con éxito!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Error al leer el archivo. Asegúrate de que es un JSON válido. Detalle: {e}")
-            else:
-                st.warning("⚠️ Selecciona un archivo de tu computadora primero.")
+                    st.error(f"Error al leer el archivo: {e}")
 
     def render_resumen_auditoria():
         st.subheader("📈 Resumen Ejecutivo y Auditoría (Control Vehicular)")
-        st.markdown("Consulta y segmentación del uso general de vehículos por rango de fechas, usuario organizador, estado y jefatura de residencia.")
-        
         registros_persisted = cargar_registros_acumulados()
         if len(registros_persisted) > 0:
             df_global = pd.DataFrame(registros_persisted)
-            
             for col in ['JEFATURA', 'ESTADO_ADSCRIPCION', 'JEFE_RESIDENCIA', 'Áreas de Adscripción', 'Usuario Responsable']:
                 if col not in df_global.columns:
                     df_global[col] = 'N/A'
-            
             df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y', errors='coerce').dt.date
             
             if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
                 jefatura_sesion = st.session_state.get("current_jefatura", "")
                 df_global = df_global[df_global['JEFATURA'] == jefatura_sesion]
-                st.info(f"Mostrando registros bajo la Jefatura: **{jefatura_sesion}**")
             elif rol_actual in ["Administrador Estatal", "Analista de Información"]:
                 estado_sesion = st.session_state.get("current_estado", "")
                 df_global = df_global[df_global['ESTADO_ADSCRIPCION'] == estado_sesion]
-                st.info(f"Mostrando registros del Estado: **{estado_sesion}**")
             
             col_f1, col_f2, col_f3, col_f4, col_f5 = st.columns(5)
             with col_f1:
@@ -1167,129 +1129,65 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         km_total_veh = row["RECORRIDO"]
                         placa_v = row["Placas"]
                         if km_total_veh >= 5000:
-                            st.error(f"🚨 **ALERTA DE MANTENIMIENTO**: El vehículo con placas **{placa_v}** ha acumulado **{km_total_veh:,.1f} km**. Requiere servicio preventivo urgente (cambio de aceite/filtros).")
+                            st.error(f"🚨 **ALERTA DE MANTENIMIENTO**: El vehículo **{placa_v}** suma **{km_total_veh:,.1f} km**. Requiere servicio.")
                         else:
-                            st.info(f"✅ El vehículo con placas **{placa_v}** registra **{km_total_veh:,.1f} km** (En rango operativo normal).")
+                            st.info(f"✅ El vehículo **{placa_v}** registra **{km_total_veh:,.1f} km** (En rango operativo normal).")
                     
                     st.markdown("---")
-                    st.subheader("📊 Gráficos Analíticos de Kilometraje, Gasto y Tendencia")
-                    
                     col_g1, col_g2 = st.columns(2)
                     with col_g1:
                         st.write("**Kilómetros por Municipio**")
-                        df_mun_km = df_filtrado.groupby("MUNICIPIO")["RECORRIDO"].sum()
-                        st.bar_chart(df_mun_km)
+                        st.bar_chart(df_filtrado.groupby("MUNICIPIO")["RECORRIDO"].sum())
                     with col_g2:
                         st.write("**Gasto de Combustible por Jefatura**")
-                        df_jef_gas = df_filtrado.groupby("JEFATURA")["GASTO COMBUSTI"].sum()
-                        st.bar_chart(df_jef_gas)
-                    
-                    st.write("**Evolución Temporal de Kilómetros Recorridos**")
-                    df_temporal = df_filtrado.groupby("FECHA COMPLETA")["RECORRIDO"].sum()
-                    st.line_chart(df_temporal)
+                        st.bar_chart(df_filtrado.groupby("JEFATURA")["GASTO COMBUSTI"].sum())
                     
                     st.markdown("---")
-                    st.subheader("🗺️ Mapa Interactivo de Movimiento y Rutas (Recorridos)")
-                    st.markdown("Visualización cartográfica de los destinos visitados y líneas de conexión cronológica entre comisiones.")
-                    
+                    st.subheader("🗺️ Mapa Interactivo de Movimiento y Rutas")
                     mapa_rows = []
                     for _, r in df_filtrado.iterrows():
                         mun = r["MUNICIPIO"]
                         if mun in CODS_MUNICIPIOS:
                             mapa_rows.append({
-                                "lat": CODS_MUNICIPIOS[mun]["lat"],
-                                "lon": CODS_MUNICIPIOS[mun]["lon"],
-                                "MUNICIPIO": mun,
-                                "POBLADO": r["POBLADO"],
-                                "FECHA": r["FECHA COMPLETA"],
-                                "USUARIO": r["Usuario Responsable"],
-                                "RECORRIDO": r["RECORRIDO"]
+                                "lat": CODS_MUNICIPIOS[mun]["lat"], "lon": CODS_MUNICIPIOS[mun]["lon"],
+                                "MUNICIPIO": mun, "POBLADO": r["POBLADO"], "FECHA": r["FECHA COMPLETA"],
+                                "USUARIO": r["Usuario Responsable"], "RECORRIDO": r["RECORRIDO"]
                             })
-                    
                     if mapa_rows:
                         df_mapa = pd.DataFrame(mapa_rows)
                         arcos_rows = []
                         if len(df_mapa) > 1:
                             for i in range(len(df_mapa) - 1):
                                 arcos_rows.append({
-                                    "start_lon": df_mapa.iloc[i]["lon"],
-                                    "start_lat": df_mapa.iloc[i]["lat"],
-                                    "end_lon": df_mapa.iloc[i+1]["lon"],
-                                    "end_lat": df_mapa.iloc[i+1]["lat"]
+                                    "start_lon": df_mapa.iloc[i]["lon"], "start_lat": df_mapa.iloc[i]["lat"],
+                                    "end_lon": df_mapa.iloc[i+1]["lon"], "end_lat": df_mapa.iloc[i+1]["lat"]
                                 })
                         df_arcos = pd.DataFrame(arcos_rows) if arcos_rows else pd.DataFrame()
                         
-                        capa_puntos = pdk.Layer(
-                            "ScatterplotLayer",
-                            data=df_mapa,
-                            get_position='[lon, lat]',
-                            get_color='[107, 29, 47, 180]',
-                            get_radius=3000,
-                            pickable=True,
-                            auto_highlight=True
-                        )
-                        
-                        capa_lineas = None
-                        if not df_arcos.empty:
-                            capa_lineas = pdk.Layer(
-                                "ArcLayer",
-                                data=df_arcos,
-                                get_source_position='[start_lon, start_lat]',
-                                get_target_position='[end_lon, end_lat]',
-                                get_source_color='[107, 29, 47]',
-                                get_target_color='[138, 37, 61]',
-                                get_width=3
-                            )
-                        
-                        lat_centro = df_mapa["lat"].mean()
-                        lon_centro = df_mapa["lon"].mean()
-                        
-                        view_state = pdk.ViewState(
-                            latitude=lat_centro,
-                            longitude=lon_centro,
-                            zoom=8,
-                            pitch=30
-                        )
-                        
+                        capa_puntos = pdk.Layer("ScatterplotLayer", data=df_mapa, get_position='[lon, lat]', get_color='[107, 29, 47, 180]', get_radius=3000, pickable=True, auto_highlight=True)
                         layers = [capa_puntos]
-                        if capa_lineas:
+                        if not df_arcos.empty:
+                            capa_lineas = pdk.Layer("ArcLayer", data=df_arcos, get_source_position='[start_lon, start_lat]', get_target_position='[end_lon, end_lat]', get_source_color='[107, 29, 47]', get_target_color='[138, 37, 61]', get_width=3)
                             layers.append(capa_lineas)
                             
                         r_deck = pdk.Deck(
                             layers=layers,
-                            initial_view_state=view_state,
-                            tooltip={
-                                "html": "<b>Municipio:</b> {MUNICIPIO}<br/><b>Poblado:</b> {POBLADO}<br/><b>Fecha:</b> {FECHA}<br/><b>Responsable:</b> {USUARIO}",
-                                "style": {"backgroundColor": "#6B1D2F", "color": "white"}
-                            }
+                            initial_view_state=pdk.ViewState(latitude=df_mapa["lat"].mean(), longitude=df_mapa["lon"].mean(), zoom=8, pitch=30),
+                            tooltip={"html": "<b>Municipio:</b> {MUNICIPIO}<br/><b>Poblado:</b> {POBLADO}<br/><b>Fecha:</b> {FECHA}<br/><b>Responsable:</b> {USUARIO}", "style": {"backgroundColor": "#6B1D2F", "color": "white"}}
                         )
                         st.pydeck_chart(r_deck)
-                    else:
-                        st.info("No hay coordenadas registradas para los municipios seleccionados en el filtro.")
                     
                     st.markdown("---")
-                    st.subheader("📋 Trazabilidad Geográfica y Municipios Visitados")
-                    
                     df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'JEFATURA', 'ESTADO_ADSCRIPCION']).agg({
-                        'RECORRIDO': 'sum',
-                        'GASTO COMBUSTI': 'sum'
+                        'RECORRIDO': 'sum', 'GASTO COMBUSTI': 'sum'
                     }).reset_index().sort_values(by='FECHA COMPLETA')
-                    
                     st.dataframe(df_resumen_mun, use_container_width=True)
                     
-                    municipios_visitados = df_filtrado['MUNICIPIO'].unique().tolist()
-                    st.markdown(f"**Municipios únicos visitados en el filtro ({len(municipios_visitados)}):** " + ", ".join(municipios_visitados))
-                    
-                    st.markdown("---")
                     output_filtrado = BytesIO()
-                    df_resumen_mun.to_excel(output_filtrado, index=False, sheet_name="REPORTE_FILTRADO")
+                    df_res_mun = df_resumen_mun.copy()
+                    df_res_mun.to_excel(output_filtrado, index=False, sheet_name="REPORTE_FILTRADO")
                     output_filtrado.seek(0)
-                    st.download_button(
-                        label="⬇️ Descargar Reporte Filtrado en Excel",
-                        data=output_filtrado,
-                        file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+                    st.download_button("⬇️ Descargar Reporte Filtrado en Excel", data=output_filtrado, file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 else:
                     st.warning("⚠️ No se encontraron registros con los filtros seleccionados.")
             else:
@@ -1299,14 +1197,12 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
 
     def render_bitacora_audit():
         st.subheader("🛡️ Bitácora de Auditoría del Sistema")
-        st.markdown("Registro cronológico de acciones administrativas y de seguridad realizadas en la red nacional.")
         if os.path.exists(AUDIT_FILE):
             try:
                 with open(AUDIT_FILE, "r", encoding="utf-8") as f:
                     logs_data = json.load(f)
                 if logs_data:
-                    df_audit = pd.DataFrame(logs_data)
-                    st.dataframe(df_audit, use_container_width=True)
+                    st.dataframe(pd.DataFrame(logs_data), use_container_width=True)
                 else:
                     st.info("No hay registros de auditoría almacenados.")
             except:
@@ -1315,17 +1211,11 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             st.info("Aún no se han generado eventos de auditoría.")
 
     if rol_actual == "Administrador Nacional":
-        with tab_reg_user:
-            render_alta_usuario()
-        with tab_edit_user:
-            render_editar_usuario()
-        with tab_ctrl_user:
-            render_control_estatus()
-        with tab_resumen_auditoria:
-            render_resumen_auditoria()
-        with tab_bitacora_audit:
-            render_bitacora_audit()
-        with tab_respaldo:
-            render_respaldo_usuarios()
+        with tab_reg_user: render_alta_usuario()
+        with tab_edit_user: render_editar_usuario()
+        with tab_ctrl_user: render_control_estatus()
+        with tab_resumen_auditoria: render_resumen_auditoria()
+        with tab_bitacora_audit: render_bitacora_audit()
+        with tab_respaldo: render_respaldo_usuarios()
     else:
         render_resumen_auditoria()
