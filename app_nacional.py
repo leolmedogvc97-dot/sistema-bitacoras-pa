@@ -832,10 +832,10 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         for cell in row:
                             cell.value = None
                             
-                    # 2. Encabezados adicionales exigidos por las fórmulas de las hojas 2 y 3:
+                    # 2. Configurar encabezados de control en la fila 1 exactamente como lo exigen las fórmulas:
                     ws["K1"] = "Rendimiento (km/L)"
-                    ws["L1"] = "Precio Gasolina ($)"
-                    ws["M1"] = "GASTO COMBUSTI"
+                    ws["L1"] = "Gasolina de Salida"
+                    ws["M1"] = "Gasolina de Llegada"
                     ws["N1"] = "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"
                     ws["O1"] = "Oficio Numero"
                     ws["P1"] = "Oficio Fecha"
@@ -846,7 +846,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     ws["U1"] = "Placas"
                     ws["V1"] = "No. De Licencia"
                     
-                    # 3. Mapeo exacto de columnas acorde a las fórmulas de las hojas 2 y 3:
+                    # 3. Escritura estricta alineada con las fórmulas de las hojas 2 y 3:
                     for i, reg in enumerate(registros_totales):
                         row_idx = 2 + i
                         
@@ -860,25 +860,25 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         ws[f'H{row_idx}'] = reg["RECORRIDO"]                                      # H: Recorrido (Km)
                         ws[f'I{row_idx}'] = reg["HORA DE LLEGADA"]                                # I: Hora Llegada
                         ws[f'J{row_idx}'] = reg["KM FINAL / Km de Llegada"]                       # J: Km Llegada
-                        ws[f'K{row_idx}'] = 12.0                                                  # K: Rendimiento
-                        ws[f'L{row_idx}'] = reg["Gasolina de Salida"]                             # L: Gas Salida
-                        ws[f'M{row_idx}'] = f'=ROUND((H{row_idx}/12.0)*23.99, 2)'                 # M: Fórmula Gasto
-                        ws[f'N{row_idx}'] = reg["Gasolina de Llegada"]                            # N: Gas Llegada
+                        ws[f'K{row_idx}'] = 12.0                                                  # K: Rendimiento (km/L)
+                        ws[f'L{row_idx}'] = reg["Gasolina de Salida"]                             # L: Gasolina de Salida ("1/4", "1/2", etc.) -> vital para J,K,L,M de hoja 2
+                        ws[f'M{row_idx}'] = reg["Gasolina de Llegada"]                            # M: Gasolina de Llegada -> vital para P,Q,R,S de hoja 2
+                        ws[f'N{row_idx}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"] # N: Dotación -> vital para col T de hoja 2
                         ws[f'O{row_idx}'] = reg["Oficio Numero"]                                  # O: Oficio Número
                         ws[f'P{row_idx}'] = reg["Oficio Fecha"]                                   # P: Oficio Fecha
-                        ws[f'Q{row_idx}'] = reg["observaciones"]                                  # Q: Observaciones
-                        ws[f'R{row_idx}'] = reg["Usuario Responsable"]                            # R: Usuario Responsable
-                        ws[f'S{row_idx}'] = reg["Áreas de Adscripción"]                           # S: Áreas de Adscripción
-                        ws[f'T{row_idx}'] = reg["Tipo de Vehículo"]                               # T: Tipo de Vehículo
-                        ws[f'U{row_idx}'] = reg["Placas"]                                         # U: Placas
-                        ws[f'V{row_idx}'] = reg["No. De Licencia"]                                # V: No. De Licencia
+                        ws[f'Q{row_idx}'] = reg["observaciones"]                                  # Q: Observaciones -> vital para col W de hoja 2
+                        ws[f'R{row_idx}'] = reg["Usuario Responsable"]                            # R: Usuario Responsable -> vital para col B de hoja 2 y col 4 de hoja 3
+                        ws[f'S{row_idx}'] = reg["Áreas de Adscripción"]                           # S: Áreas de Adscripción -> vital para col C de hoja 2
+                        ws[f'T{row_idx}'] = reg["Tipo de Vehículo"]                               # T: Tipo de Vehículo -> vital para col D de hoja 2 y col 3 de hoja 3
+                        ws[f'U{row_idx}'] = reg["Placas"]                                         # U: Placas -> vital para col E de hoja 2 y col 3 de hoja 3
+                        ws[f'V{row_idx}'] = reg["No. De Licencia"]                                # V: Licencia -> vital para col V de hoja 2 y col 4 de hoja 3
 
                     # 4. Guardar archivo y descargar
                     output = BytesIO()
                     wb.save(output)
                     output.seek(0)
                     
-                    registrar_auditoria("GENERAR BITACORAS", "Generación exitosa con mapeo exacto de columnas")
+                    registrar_auditoria("GENERAR BITACORAS", "Generación exitosa con mapeo exacto de columnas L, M y N para combustible")
                     st.success("¡Archivo generado con éxito y listo para descarga!")
                     st.download_button(
                         label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
