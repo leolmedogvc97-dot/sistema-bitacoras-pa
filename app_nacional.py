@@ -4,7 +4,7 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font
 import json
 import os
-import glob
+import unicodedata
 import random
 import pydeck as pdk
 from io import BytesIO
@@ -62,12 +62,44 @@ SOLICITUDES_FILE = os.path.join(BASE_DIR, "solicitudes_gasolina.json")
 INCIDENCIAS_FILE = os.path.join(BASE_DIR, "incidencias_mecanicas.json")
 AUDIT_FILE = os.path.join(BASE_DIR, "audit_log.json")
 
-# Detección dinámica y robusta de la plantilla institucional
-posibles_plantillas = glob.glob(os.path.join(BASE_DIR, "Bitacora_Actualizada*.xlsx")) + glob.glob(os.path.join(BASE_DIR, "Bitácora_Actualizada*.xlsx"))
-if posibles_plantillas:
-    PLANTILLA_EXCEL = posibles_plantillas[0]
-else:
-    PLANTILLA_EXCEL = os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula.xlsx")
+# --- DETECCIÓN ROBUSTA Y FLEXIBLE DE PLANTILLA (Solución Claude) ---
+def _normalizar_texto(texto):
+    """Quita acentos y pasa a minúsculas para comparar nombres de archivo sin errores."""
+    texto = unicodedata.normalize('NFKD', texto)
+    return ''.join(c for c in texto if not unicodedata.combining(c)).lower()
+
+def buscar_plantilla_excel(base_dir):
+    """
+    Busca de forma flexible cualquier .xlsx que comience con 'bitacora' (con o sin acento,
+    mayúsculas, espacios o sufijos tipo '(2)', '_final', etc.) dentro de base_dir.
+    Devuelve (ruta_elegida_o_None, lista_completa_de_candidatos).
+    """
+    if not os.path.isdir(base_dir):
+        return None, []
+
+    candidatos = []
+    for nombre in os.listdir(base_dir):
+        ruta = os.path.join(base_dir, nombre)
+        if not os.path.isfile(ruta):
+            continue
+        nombre_norm = _normalizar_texto(nombre)
+        if nombre_norm.startswith("bitacora") and nombre_norm.endswith(".xlsx"):
+            candidatos.append(ruta)
+
+    candidatos.sort()
+
+    # Si hay varias coincidencias, prioriza las que digan "formula" o "actualizada"
+    if len(candidatos) > 1:
+        preferidos = [
+            c for c in candidatos
+            if "formula" in _normalizar_texto(c) or "actualizada" in _normalizar_texto(c)
+        ]
+        if preferidos:
+            candidatos = preferidos
+
+    return (candidatos[0] if candidatos else None), candidatos
+
+PLANTILLA_EXCEL, PLANTILLAS_DETECTADAS = buscar_plantilla_excel(BASE_DIR)
 
 FOTOS_DIR = os.path.join(BASE_DIR, "fotos_perfil")
 LOGO_FILE = os.path.join(BASE_DIR, "logo_pa.png")
@@ -778,13 +810,33 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 st.rerun()
         
         with col_acc2:
+            # --- MANEJO ROBUSTO DE PLANTILLA Y FALLBACK (Solución Claude) ---
             if st.button("🚀 Generar y Descargar 3 Bitácoras Oficiales Definitivas"):
-                if not os.path.exists(PLANTILLA_EXCEL):
-                    st.error(f"⚠️ Error crítico: No se encuentra la plantilla oficial. Ruta buscada: {PLANTILLA_EXCEL}")
+                wb = None
+
+                if PLANTILLA_EXCEL and os.path.exists(PLANTILLA_EXCEL):
+                    wb = openpyxl.load_workbook(PLANTILLA_EXCEL)
                 else:
+                    st.warning("⚠️ No se encontró automáticamente la plantilla oficial en el repositorio.")
+
+                    with st.expander("🔍 Archivos encontrados en la carpeta base (para depurar)", expanded=True):
+                        archivos_carpeta = sorted(os.listdir(BASE_DIR)) if os.path.isdir(BASE_DIR) else []
+                        if archivos_carpeta:
+                            st.write(archivos_carpeta)
+                        else:
+                            st.write("No se pudo listar el contenido de la carpeta base o está vacía.")
+                        if PLANTILLAS_DETECTADAS:
+                            st.caption(f"Archivos tipo 'bitácora' detectados: {PLANTILLAS_DETECTADAS}")
+
+                    st.info("Puedes subir la plantilla manualmente como respaldo temporal para generar las bitácoras sin modificar el repositorio.")
+                    plantilla_respaldo = st.file_uploader(
+                        "Subir plantilla de respaldo (.xlsx)", type=["xlsx"], key="plantilla_respaldo_uploader"
+                    )
+                    if plantilla_respaldo is not None:
+                        wb = openpyxl.load_workbook(plantilla_respaldo)
+
+                if wb is not None:
                     try:
-                        wb = openpyxl.load_workbook(PLANTILLA_EXCEL)
-                        
                         # 1. Poblar BASE_DE_DATOS manteniendo fórmulas de columnas de km y costo
                         ws_b = wb["BASE_DE_DATOS"]
                         max_r_existente = max(33, ws_b.max_row)
@@ -901,7 +953,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         wb.save(output)
                         output.seek(0)
                         
-                        registrar_auditoria("GENERAR BITACORAS", "Generación nativa mediante búsqueda dinámica de plantilla")
+                        registrar_auditoria("GENERAR BITACORAS", "Generación nativa mediante búsqueda dinámica flexible de plantilla")
                         st.success("✅ ¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente!")
                         st.download_button(
                             label="⬇️ Descargar Archivo Oficial Definitivo",
@@ -911,6 +963,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         )
                     except Exception as e:
                         st.error(f"Error crítico al procesar la plantilla Excel: {e}")
+                else:
+                    st.stop()
 
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
