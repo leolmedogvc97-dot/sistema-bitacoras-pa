@@ -179,11 +179,20 @@ def obtener_municipios_estado(estado_nombre):
         muns = muns_global.iloc[:, 1].dropna().tolist()
     return sorted(list(set(muns))) if muns else ["Cabecera Municipal"]
 
+import unicodedata
+
+def norm_text(s):
+    if not isinstance(s, str):
+        return ""
+    return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').strip().upper()
+
 def obtener_localidades_municipio(estado_nombre, municipio_nombre):
     if locs_global.empty:
         return ["Cabecera Municipal"]
     if 'NOMBRE DEL MUNICIPIO' in locs_global.columns and 'NOMBRE DE LA LOCALIDAD' in locs_global.columns:
-        locs = locs_global[locs_global['NOMBRE DEL MUNICIPIO'].str.upper() == municipio_nombre.upper()]['NOMBRE DE LA LOCALIDAD'].dropna().tolist()
+        mun_clean = norm_text(municipio_nombre)
+        mask = locs_global['NOMBRE DEL MUNICIPIO'].apply(norm_text) == mun_clean
+        locs = locs_global[mask]['NOMBRE DE LA LOCALIDAD'].dropna().tolist()
     else:
         locs = locs_global.iloc[:, 1].dropna().tolist()
     if not locs:
@@ -718,8 +727,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
             ])))
             residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
             vehiculo = st.selectbox("Tipo de Vehículo", ["NISSAN VERSA", "PickUp", "Estacas"])
-            placas = st.text_input("Placas (Sin valor predeterminado)", value="", max_chars=300)
-            licencia = st.text_input("No. De Licencia", value=st.session_state["current_licencia"], max_chars=300)
+            placas = st.text_input("Placas", value="", max_chars=300)
+            licencia = st.text_input("No. De Licencia", value="", max_chars=300)
         with col4:
             usuario = st.text_input("Usuario Responsable", value=st.session_state["current_user"], max_chars=300)
             dotacion = st.number_input("Dotación de Gasolina ($)", min_value=0.0, value=200.0, step=1.0)
