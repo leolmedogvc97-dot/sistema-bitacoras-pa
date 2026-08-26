@@ -5,6 +5,7 @@ from openpyxl.styles import PatternFill, Font
 import json
 import os
 import random
+import zipfile
 import pydeck as pdk
 from io import BytesIO
 from datetime import datetime, date
@@ -885,6 +886,53 @@ elif perfil == "Módulo de Captura (Recorrido)":
 
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
+    
+    # --- PANEL EXCLUSIVO DE RESPALDO MAESTRO (SOLO PARA VICTOR OLMEDO) ---
+    if st.session_state.get("current_email") == "victor.olmedo@pa.gob.mx":
+        st.markdown("""
+            <div style="background-color: #fcf5f6; border: 2px solid #6B1D2F; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="color: #6B1D2F; margin-top: 0;">🔒 Panel de Respaldo Maestro Exclusivo (Víctor Olmedo)</h4>
+                <p style="font-size: 13px; color: #4a2c33;">Este botón descarga un archivo ZIP con absolutamente todo: el código fuente actual, todas las bases de datos de registros, solicitudes, incidencias, auditoría y las fotografías de perfil de todos los usuarios de la red.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("📦 Generar y Descargar ZIP Maestro (Sistema + Bases de Datos + Fotos)"):
+            zip_buffer = BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                # 1. Código fuente
+                script_actual = os.path.join(BASE_DIR, "app_nacional.py")
+                if os.path.exists(script_actual):
+                    zip_file.write(script_actual, "app_nacional.py")
+                
+                # 2. Bases de datos JSON
+                for json_f in [USUARIOS_FILE, REGISTROS_FILE, SOLICITUDES_FILE, INCIDENCIAS_FILE, AUDIT_FILE]:
+                    if os.path.exists(json_f):
+                        zip_file.write(json_f, os.path.basename(json_f))
+                
+                # 3. Fotos de perfil
+                if os.path.exists(FOTOS_DIR):
+                    for root, dirs, files in os.walk(FOTOS_DIR):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.join("fotos_perfil", file)
+                            zip_file.write(file_path, arcname)
+                            
+                # 4. Catálogos y plantilla Excel
+                for ext_f in [PLANTILLA_EXCEL, MUN_FILE, LOC_FILE]:
+                    if ext_f and os.path.exists(ext_f):
+                        zip_file.write(ext_f, os.path.basename(ext_f))
+                        
+            zip_buffer.seek(0)
+            registrar_auditoria("RESPALDO MAESTRO", "Descarga de ZIP maestro de sistema y bases de datos")
+            st.success("✅ ¡Paquete de respaldo maestro generado exitosamente!")
+            st.download_button(
+                label="⬇️ Descargar Archivo ZIP Maestro Institucional",
+                data=zip_buffer,
+                file_name=f"RESPALDO_MAESTRO_PA_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+                mime="application/zip"
+            )
+        st.markdown("---")
+
     if rol_actual == "Administrador Nacional":
         tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit, tab_respaldo = st.tabs([
             "➕ Alta de Usuario", "✏️ Editar Usuario", "👥 Control y Estatus", 
