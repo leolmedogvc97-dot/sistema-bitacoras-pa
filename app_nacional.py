@@ -4,6 +4,7 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font
 import json
 import os
+import glob
 import random
 import pydeck as pdk
 from io import BytesIO
@@ -60,7 +61,14 @@ REGISTROS_FILE = os.path.join(BASE_DIR, "registros.json")
 SOLICITUDES_FILE = os.path.join(BASE_DIR, "solicitudes_gasolina.json")
 INCIDENCIAS_FILE = os.path.join(BASE_DIR, "incidencias_mecanicas.json")
 AUDIT_FILE = os.path.join(BASE_DIR, "audit_log.json")
-PLANTILLA_EXCEL = os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula (2).xlsx")
+
+# Detección dinámica y robusta de la plantilla institucional
+posibles_plantillas = glob.glob(os.path.join(BASE_DIR, "Bitacora_Actualizada*.xlsx")) + glob.glob(os.path.join(BASE_DIR, "Bitácora_Actualizada*.xlsx"))
+if posibles_plantillas:
+    PLANTILLA_EXCEL = posibles_plantillas[0]
+else:
+    PLANTILLA_EXCEL = os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula.xlsx")
+
 FOTOS_DIR = os.path.join(BASE_DIR, "fotos_perfil")
 LOGO_FILE = os.path.join(BASE_DIR, "logo_pa.png")
 MUN_FILE = os.path.join(BASE_DIR, "MUNICIPIOS_202606.xlsx")
@@ -772,10 +780,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
         with col_acc2:
             if st.button("🚀 Generar y Descargar 3 Bitácoras Oficiales Definitivas"):
                 if not os.path.exists(PLANTILLA_EXCEL):
-                    st.error(f"⚠️ Error crítico: No se encuentra la plantilla oficial en la ruta: {PLANTILLA_EXCEL}")
+                    st.error(f"⚠️ Error crítico: No se encuentra la plantilla oficial. Ruta buscada: {PLANTILLA_EXCEL}")
                 else:
                     try:
-                        # Carga nativa mediante ruta absoluta robusta
                         wb = openpyxl.load_workbook(PLANTILLA_EXCEL)
                         
                         # 1. Poblar BASE_DE_DATOS manteniendo fórmulas de columnas de km y costo
@@ -894,7 +901,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         wb.save(output)
                         output.seek(0)
                         
-                        registrar_auditoria("GENERAR BITACORAS", "Generación nativa y vinculación exitosa con plantilla local")
+                        registrar_auditoria("GENERAR BITACORAS", "Generación nativa mediante búsqueda dinámica de plantilla")
                         st.success("✅ ¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente!")
                         st.download_button(
                             label="⬇️ Descargar Archivo Oficial Definitivo",
