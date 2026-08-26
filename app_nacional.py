@@ -53,16 +53,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Archivos persistentes y carpetas de almacenamiento
-USUARIOS_FILE = "usuarios.json"
-REGISTROS_FILE = "registros.json"
-SOLICITUDES_FILE = "solicitudes_gasolina.json"
-INCIDENCIAS_FILE = "incidencias_mecanicas.json"
-AUDIT_FILE = "audit_log.json"
-FOTOS_DIR = "fotos_perfil"
-LOGO_FILE = "logo_pa.png"
-MUN_FILE = "MUNICIPIOS_202606.xlsx"
-LOC_FILE = "LOCALIDADES_202606.xlsx"
+# Rutas absolutas seguras basadas en la ubicación del script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+USUARIOS_FILE = os.path.join(BASE_DIR, "usuarios.json")
+REGISTROS_FILE = os.path.join(BASE_DIR, "registros.json")
+SOLICITUDES_FILE = os.path.join(BASE_DIR, "solicitudes_gasolina.json")
+INCIDENCIAS_FILE = os.path.join(BASE_DIR, "incidencias_mecanicas.json")
+AUDIT_FILE = os.path.join(BASE_DIR, "audit_log.json")
+PLANTILLA_EXCEL = os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula (2).xlsx")
+FOTOS_DIR = os.path.join(BASE_DIR, "fotos_perfil")
+LOGO_FILE = os.path.join(BASE_DIR, "logo_pa.png")
+MUN_FILE = os.path.join(BASE_DIR, "MUNICIPIOS_202606.xlsx")
+LOC_FILE = os.path.join(BASE_DIR, "LOCALIDADES_202606.xlsx")
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
 CODS_MUNICIPIOS = {
@@ -627,7 +629,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    # Línea 630 corregida con paréntesis cerrado correctamente
     registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
@@ -769,142 +770,140 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 st.rerun()
         
         with col_acc2:
-            st.markdown("### 📥 Generación de Bitácoras")
-            archivo_plantilla = st.file_uploader("Sube tu archivo de plantilla Excel (ej. Bitacora_Actualizada_Formula (2).xlsx)", type=["xlsx"])
-            
-            if archivo_plantilla is not None and st.button("🚀 Guardar y Generar 3 Bitácoras Definitivas"):
-                try:
-                    wb = openpyxl.load_workbook(archivo_plantilla)
-                    
-                    # 1. Poblar BASE_DE_DATOS
-                    ws_b = wb["BASE_DE_DATOS"]
-                    max_r_existente = max(33, ws_b.max_row)
-                    for r in range(2, max_r_existente + 1):
-                        ws_b[f'A{r}'] = None
-                        ws_b[f'B{r}'] = None
-                        ws_b[f'C{r}'] = None
-                        ws_b[f'D{r}'] = None
-                        ws_b[f'E{r}'] = None
-                        ws_b[f'F{r}'] = None
-                        ws_b[f'G{r}'] = None
-                        ws_b[f'H{r}'] = None
-                        ws_b[f'I{r}'] = None
-                        ws_b[f'J{r}'] = None
-                        ws_b[f'L{r}'] = None
-                        ws_b[f'M{r}'] = None
-                        ws_b[f'O{r}'] = None
-                        ws_b[f'P{r}'] = None
-                        ws_b[f'Q{r}'] = None
-                        ws_b[f'R{r}'] = None
-                        ws_b[f'S{r}'] = None
-                        ws_b[f'T{r}'] = None
-                        ws_b[f'U{r}'] = None
-                        ws_b[f'V{r}'] = None
-
-                    for i, reg in enumerate(registros_totales, start=2):
-                        fecha_excel = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
-                        ws_b[f'A{i}'] = fecha_excel
-                        ws_b[f'A{i}'].number_format = "dd/mm/yyyy"
-                        ws_b[f'B{i}'] = f'=UPPER(TEXT(A{i}, "MMMM"))'
-                        ws_b[f'C{i}'] = reg["MUNICIPIO"]
-                        ws_b[f'D{i}'] = reg["POBLADO"]
-                        ws_b[f'E{i}'] = reg["folio CIIA"]
-                        ws_b[f'F{i}'] = reg["HORA DE SALIDA"]
+            if st.button("🚀 Generar y Descargar 3 Bitácoras Oficiales Definitivas"):
+                if not os.path.exists(PLANTILLA_EXCEL):
+                    st.error(f"⚠️ Error crítico: No se encuentra la plantilla oficial en la ruta: {PLANTILLA_EXCEL}")
+                else:
+                    try:
+                        # Carga nativa mediante ruta absoluta robusta
+                        wb = openpyxl.load_workbook(PLANTILLA_EXCEL)
                         
-                        if i == 2:
-                            ws_b[f'G{i}'] = reg["KM INICIAL / Km de Salida"]
-                        else:
-                            ws_b[f'G{i}'] = f'=J{i-1}'
+                        # 1. Poblar BASE_DE_DATOS manteniendo fórmulas de columnas de km y costo
+                        ws_b = wb["BASE_DE_DATOS"]
+                        max_r_existente = max(33, ws_b.max_row)
+                        for r in range(2, max_r_existente + 1):
+                            ws_b[f'A{r}'] = None
+                            ws_b[f'B{r}'] = None
+                            ws_b[f'C{r}'] = None
+                            ws_b[f'D{r}'] = None
+                            ws_b[f'E{r}'] = None
+                            ws_b[f'F{r}'] = None
+                            ws_b[f'G{r}'] = None
+                            ws_b[f'H{r}'] = None
+                            ws_b[f'I{r}'] = None
+                            ws_b[f'J{r}'] = None
+                            ws_b[f'L{r}'] = None
+                            ws_b[f'M{r}'] = None
+                            ws_b[f'O{r}'] = None
+                            ws_b[f'P{r}'] = None
+                            ws_b[f'Q{r}'] = None
+                            ws_b[f'R{r}'] = None
+                            ws_b[f'S{r}'] = None
+                            ws_b[f'T{r}'] = None
+                            ws_b[f'U{r}'] = None
+                            ws_b[f'V{r}'] = None
+
+                        for i, reg in enumerate(registros_totales, start=2):
+                            fecha_excel = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
+                            ws_b[f'A{i}'] = fecha_excel
+                            ws_b[f'A{i}'].number_format = "dd/mm/yyyy"
+                            ws_b[f'B{i}'] = f'=UPPER(TEXT(A{i}, "MMMM"))'
+                            ws_b[f'C{i}'] = reg["MUNICIPIO"]
+                            ws_b[f'D{i}'] = reg["POBLADO"]
+                            ws_b[f'E{i}'] = reg["folio CIIA"]
+                            ws_b[f'F{i}'] = reg["HORA DE SALIDA"]
                             
-                        ws_b[f'H{i}'] = reg["RECORRIDO"]
-                        ws_b[f'I{i}'] = reg["HORA DE LLEGADA"]
-                        ws_b[f'J{i}'] = f'=G{i}+H{i}'
-                        ws_b[f'K{i}'] = 12.0
-                        ws_b[f'L{i}'] = 23.99
-                        ws_b[f'M{i}'] = f'=ROUND((H{i}/K{i})*L{i}, 2)'
-                        ws_b[f'N{i}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
-                        ws_b[f'L{i}'] = reg["Gasolina de Salida"]
-                        ws_b[f'O{i}'] = reg["Oficio Numero"]
-                        ws_b[f'P{i}'] = reg["Oficio Fecha"]
-                        ws_b[f'Q{i}'] = reg["observaciones"]
-                        ws_b[f'R{i}'] = reg["Usuario Responsable"]
-                        ws_b[f'S{i}'] = reg["Áreas de Adscripción"]
-                        ws_b[f'T{i}'] = reg["Tipo de Vehículo"]
-                        ws_b[f'U{i}'] = reg["Placas"]
-                        ws_b[f'V{i}'] = reg["No. De Licencia"]
+                            if i == 2:
+                                ws_b[f'G{i}'] = reg["KM INICIAL / Km de Salida"]
+                            else:
+                                ws_b[f'G{i}'] = f'=J{i-1}'
+                                
+                            ws_b[f'H{i}'] = reg["RECORRIDO"]
+                            ws_b[f'I{i}'] = reg["HORA DE LLEGADA"]
+                            ws_b[f'J{i}'] = f'=G{i}+H{i}'
+                            ws_b[f'K{i}'] = 12.0
+                            ws_b[f'L{i}'] = reg["Gasolina de Salida"]
+                            ws_b[f'M{i}'] = f'=ROUND((H{i}/K{i})*23.99, 2)'
+                            ws_b[f'N{i}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
+                            ws_b[f'O{i}'] = reg["Oficio Numero"]
+                            ws_b[f'P{i}'] = reg["Oficio Fecha"]
+                            ws_b[f'Q{i}'] = reg["observaciones"]
+                            ws_b[f'R{i}'] = reg["Usuario Responsable"]
+                            ws_b[f'S{i}'] = reg["Áreas de Adscripción"]
+                            ws_b[f'T{i}'] = reg["Tipo de Vehículo"]
+                            ws_b[f'U{i}'] = reg["Placas"]
+                            ws_b[f'V{i}'] = reg["No. De Licencia"]
 
-                    row_tot = len(registros_totales) + 2
-                    ws_b[f'A{row_tot}'] = "TOTALES"
-                    ws_b[f'H{row_tot}'] = f'=SUM(H2:H{row_tot-1})'
+                        row_tot = len(registros_totales) + 2
+                        ws_b[f'A{row_tot}'] = "TOTALES"
+                        ws_b[f'H{row_tot}'] = f'=SUM(H2:H{row_tot-1})'
 
-                    # 2. Sincronizar hoja 2_BITACORA_VERSA
-                    if "2_BITACORA_VERSA" in wb.sheetnames:
-                        ws_v = wb["2_BITACORA_VERSA"]
-                        for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
-                            r_v = idx + 3
-                            ws_v[f'A{r_v}'] = f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})'
-                            ws_v[f'B{r_v}'] = f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})'
-                            ws_v[f'C{r_v}'] = f'=IF(BASE_DE_DATOS!S{r_db}="","",BASE_DE_DATOS!S{r_db})'
-                            ws_v[f'D{r_v}'] = f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})'
-                            ws_v[f'E{r_v}'] = f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})'
-                            ws_v[f'F{r_v}'] = f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})'
-                            ws_v[f'G{r_v}'] = f'=IF(BASE_DE_DATOS!P{r_db}="","",BASE_DE_DATOS!P{r_db})'
-                            ws_v[f'H{r_v}'] = f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})'
-                            ws_v[f'I{r_v}'] = f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})'
-                            ws_v[f'J{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="v","X","")'
-                            ws_v[f'K{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/4","X","")'
-                            ws_v[f'L{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/2","X","")'
-                            ws_v[f'M{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1","X","")'
-                            ws_v[f'N{r_v}'] = f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})'
-                            ws_v[f'O{r_v}'] = f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})'
-                            ws_v[f'P{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="v","X","")'
-                            ws_v[f'Q{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/4","X","")'
-                            ws_v[f'R{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/2","X","")'
-                            ws_v[f'S{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1","X","")'
-                            ws_v[f'T{r_v}'] = f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})'
-                            ws_v[f'V{r_v}'] = f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})'
-                            ws_v[f'W{r_v}'] = f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})'
+                        # 2. Sincronizar hoja 2_BITACORA_VERSA
+                        if "2_BITACORA_VERSA" in wb.sheetnames:
+                            ws_v = wb["2_BITACORA_VERSA"]
+                            for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
+                                r_v = idx + 3
+                                ws_v[f'A{r_v}'] = f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})'
+                                ws_v[f'B{r_v}'] = f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})'
+                                ws_v[f'C{r_v}'] = f'=IF(BASE_DE_DATOS!S{r_db}="","",BASE_DE_DATOS!S{r_db})'
+                                ws_v[f'D{r_v}'] = f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})'
+                                ws_v[f'E{r_v}'] = f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})'
+                                ws_v[f'F{r_v}'] = f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})'
+                                ws_v[f'G{r_v}'] = f'=IF(BASE_DE_DATOS!P{r_db}="","",BASE_DE_DATOS!P{r_db})'
+                                ws_v[f'H{r_v}'] = f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})'
+                                ws_v[f'I{r_v}'] = f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})'
+                                ws_v[f'J{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="v","X","")'
+                                ws_v[f'K{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/4","X","")'
+                                ws_v[f'L{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/2","X","")'
+                                ws_v[f'M{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1","X","")'
+                                ws_v[f'N{r_v}'] = f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})'
+                                ws_v[f'O{r_v}'] = f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})'
+                                ws_v[f'P{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="v","X","")'
+                                ws_v[f'Q{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/4","X","")'
+                                ws_v[f'R{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/2","X","")'
+                                ws_v[f'S{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1","X","")'
+                                ws_v[f'T{r_v}'] = f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})'
+                                ws_v[f'V{r_v}'] = f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})'
+                                ws_v[f'W{r_v}'] = f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})'
 
-                    # 3. Sincronizar hoja 3_BITACORAS_INDIVIDUALES
-                    if "3_BITACORAS_INDIVIDUALES" in wb.sheetnames:
-                        ws_i = wb["3_BITACORAS_INDIVIDUALES"]
-                        for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
-                            start_row = 1 + idx * 12
-                            ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & UPPER(TEXT(BASE_DE_DATOS!A{r_db}, "MMMM"))')
-                            ws_i.cell(row=start_row+1, column=4, value=f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})')
-                            ws_i.cell(row=start_row+2, column=2, value=f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})')
-                            ws_i.cell(row=start_row+2, column=4, value=f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})')
-                            ws_i.cell(row=start_row+3, column=2, value=f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})')
-                            ws_i.cell(row=start_row+3, column=4, value=f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})')
-                            ws_i.cell(row=start_row+4, column=2, value=f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})')
-                            ws_i.cell(row=start_row+4, column=4, value=f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})')
-                            ws_i.cell(row=start_row+5, column=4, value=f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})')
-                            ws_i.cell(row=start_row+6, column=2, value=f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})')
-                            ws_i.cell(row=start_row+6, column=4, value=f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})')
-                            ws_i.cell(row=start_row+7, column=3, value=f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})')
-                            ws_i.cell(row=start_row+8, column=2, value=f'=IF(BASE_DE_DATOS!C{r_db}="","",BASE_DE_DATOS!C{r_db})')
-                            ws_i.cell(row=start_row+9, column=2, value=f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})')
+                        # 3. Sincronizar hoja 3_BITACORAS_INDIVIDUALES
+                        if "3_BITACORAS_INDIVIDUALES" in wb.sheetnames:
+                            ws_i = wb["3_BITACORAS_INDIVIDUALES"]
+                            for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
+                                start_row = 1 + idx * 12
+                                ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & UPPER(TEXT(BASE_DE_DATOS!A{r_db}, "MMMM"))')
+                                ws_i.cell(row=start_row+1, column=4, value=f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})')
+                                ws_i.cell(row=start_row+2, column=2, value=f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})')
+                                ws_i.cell(row=start_row+2, column=4, value=f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})')
+                                ws_i.cell(row=start_row+3, column=2, value=f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})')
+                                ws_i.cell(row=start_row+3, column=4, value=f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})')
+                                ws_i.cell(row=start_row+4, column=2, value=f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})')
+                                ws_i.cell(row=start_row+4, column=4, value=f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})')
+                                ws_i.cell(row=start_row+5, column=4, value=f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})')
+                                ws_i.cell(row=start_row+6, column=2, value=f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})')
+                                ws_i.cell(row=start_row+6, column=4, value=f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})')
+                                ws_i.cell(row=start_row+7, column=3, value=f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})')
+                                ws_i.cell(row=start_row+8, column=2, value=f'=IF(BASE_DE_DATOS!C{r_db}="","",BASE_DE_DATOS!C{r_db})')
+                                ws_i.cell(row=start_row+9, column=2, value=f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})')
 
-                    wb.calculation.fullCalcOnLoad = True
-                    wb.calculation.forceFullCalc = True
-                    wb.calculation.calcMode = "auto"
+                        wb.calculation.fullCalcOnLoad = True
+                        wb.calculation.forceFullCalc = True
+                        wb.calculation.calcMode = "auto"
 
-                    output = BytesIO()
-                    wb.save(output)
-                    output.seek(0)
-                    
-                    registrar_auditoria("GENERAR BITACORAS", "Generación perfecta con archivo subido por usuario")
-                    st.success("✅ ¡Las 3 bitácoras se generaron y vincularon con éxito!")
-                    st.download_button(
-                        label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
-                        data=output,
-                        file_name="BITACORAS_OFICIALES_DEFINITIVAS.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                except Exception as e:
-                    st.error(f"Error al procesar la plantilla: {e}")
-            elif archivo_plantilla is None:
-                st.info("💡 Sube tu archivo de plantilla Excel (ej. `Bitacora_Actualizada_Formula (2).xlsx`) para habilitar el botón de generación.")
+                        output = BytesIO()
+                        wb.save(output)
+                        output.seek(0)
+                        
+                        registrar_auditoria("GENERAR BITACORAS", "Generación nativa y vinculación exitosa con plantilla local")
+                        st.success("✅ ¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente!")
+                        st.download_button(
+                            label="⬇️ Descargar Archivo Oficial Definitivo",
+                            data=output,
+                            file_name="BITACORAS_OFICIALES_DEFINITIVAS.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    except Exception as e:
+                        st.error(f"Error crítico al procesar la plantilla Excel: {e}")
 
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
