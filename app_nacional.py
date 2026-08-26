@@ -136,7 +136,8 @@ JEFATURAS_RESIDENCIA = [
     "RESIDENCIA ATLACOMULCO",
     "RESIDENCIA TEXCOCO",
     "RESIDENCIA VALLE DE BRAVO",
-    "RESIDENCIA TENANCINGO"
+    "RESIDENCIA TENANCINGO",
+    "RESIDENCIA MORELIA"
 ]
 
 ROLES_SISTEMA = [
@@ -158,7 +159,7 @@ FRASES_AGRARIAS = [
     "“La tierra generosa recompensa siempre el esfuerzo honesto de quien la trabaja.”",
     "“El verdadero desarrollo del país florece desde sus raíces ejidales y comunales.”",
     "“Sembrar conciencia en el campo es cosechar soberanía y bienestar social.”",
-    "“La labor del agrónomo y del servidor agrario es transformar la esperanza en frutos tangibles.”",
+    "“La labor del agrónomo y del servidor agrario es transform la esperanza en frutos tangibles.”",
     "“Un pueblo que cuida su campo asegura su porvenir y su libertad.”",
     "“La tierra es el espejo del alma de quienes la trabajan día con día.”",
     "“Servir a los núcleos agrarios es un honor que exige lealtad, vocación y justicia social.”",
@@ -214,50 +215,29 @@ def obtener_localidades_municipio(estado_nombre, municipio_nombre):
     return sorted(list(set(locs)))
 
 def cargar_usuarios():
+    # Base de usuarios inamovible (asegura que estos perfiles nunca se pierdan)
     usuarios_base = {
-        "victor.olmedo@pa.gob.mx": {
-            "nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ",
-            "pass": "Leonardo",
-            "licencia": "0101P3402484l",
-            "rol": "Administrador Nacional",
-            "estado": "Estado de México",
-            "jefatura": "RESIDENCIA NAUCALPAN",
-            "jefe_residencia": "N/A",
-            "foto": "",
-            "activo": True
-        },
-        "marichuy.duarte@pa.gob.mx": {
-            "nombre": "MARICHUY DUARTE SALAMANCA",
-            "pass": "Marichuy2026",
-            "licencia": "12345678",
-            "rol": "Administrador Nacional",
-            "estado": "Estado de México",
-            "jefatura": "RESIDENCIA TOLUCA",
-            "jefe_residencia": "N/A",
-            "foto": "",
-            "activo": True
-        },
-        "marichuy@pa.gob.mx": {
-            "nombre": "MARICHUY",
-            "pass": "Marichuy2026",
-            "licencia": "0000000000000",
-            "rol": "Administrador Nacional",
-            "estado": "Michoacán",
-            "jefatura": "RESIDENCIA MORELIA",
-            "jefe_residencia": "N/A",
-            "foto": "",
-            "activo": True
-        }
+        "victor.olmedo@pa.gob.mx": {"nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ", "pass": "Leonardo", "licencia": "0101P3402484l", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "N/A", "foto": "", "activo": True},
+        "marichuy.duarte@pa.gob.mx": {"nombre": "MARICHUY DUARTE SALAMANCA", "pass": "Marichuy2026", "licencia": "12345678", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "N/A", "foto": "", "activo": True},
+        "marichuy@pa.gob.mx": {"nombre": "MARICHUY", "pass": "Marichuy2026", "licencia": "0000000000000", "rol": "Administrador Nacional", "estado": "Michoacán", "jefatura": "RESIDENCIA MORELIA", "jefe_residencia": "N/A", "foto": "", "activo": True},
+        "jcarlos.patino@pa.gob.mx": {"nombre": "JUAN CARLOS PATINO PEREZ", "pass": "Perez", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "NINGUNO", "foto": "", "activo": True},
+        "arosales@pa.gob.mx": {"nombre": "ARISVE LESEIE ESLAVA ROSALES", "pass": "Arosales", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "NINGUNO", "foto": "", "activo": True},
+        "carmen.lara@pa.gob.mx": {"nombre": "CARMEN LARA", "pass": "Carmen", "licencia": "", "rol": "Administrador Nacional", "estado": "Aguascalientes", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "josue.rodriguez@pa.gob.mx": {"nombre": "JOSUE RODRIGUEZ", "pass": "Josue", "licencia": "", "rol": "Administrador Nacional", "estado": "Aguascalientes", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "nsalgado@pa.gob.mx": {"nombre": "NANCY SALGADO ANTUNEZ", "pass": "Nancy", "licencia": "", "rol": "Analista de Información", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "esperanza.ramos@pa.gob.mx": {"nombre": "ESPERANZA WENDY RAMOS RODRIGUEZ", "pass": "Wendy", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
+        "carlos.javg.96@gmail.com": {"nombre": "CARLOS JAVIER GALVEZ GONZALEZ", "pass": "Carlos", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
+        "dehnny.vasquez@pa.gob.mx": {"nombre": "DEHNNY VAZQUEZ FLORES", "pass": "Dehnny", "licencia": "", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "", "foto": "", "activo": True}
     }
+    
     if os.path.exists(USUARIOS_FILE):
         try:
             with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
                 usuarios_guardados = json.load(f)
-                if "victor.olmedo@pa.gob.mx" in usuarios_guardados:
-                    usuarios_guardados["victor.olmedo@pa.gob.mx"]["rol"] = "Administrador Nacional"
-                    usuarios_guardados["victor.olmedo@pa.gob.mx"]["activo"] = True
-                else:
-                    usuarios_guardados["victor.olmedo@pa.gob.mx"] = usuarios_base["victor.olmedo@pa.gob.mx"]
+                # Combina los guardados con los base para asegurar que los base nunca falten
+                for email, data in usuarios_base.items():
+                    if email not in usuarios_guardados:
+                        usuarios_guardados[email] = data
                 return usuarios_guardados
         except:
             pass
@@ -407,8 +387,6 @@ if os.path.exists(LOGO_FILE):
 
 current_email_key = st.session_state['current_email']
 usuarios_actuales_sidebar = cargar_usuarios()
-if current_email_key == "victor.olmedo@pa.gob.mx":
-    st.session_state["current_rol"] = "Administrador Nacional"
 
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
 
@@ -851,69 +829,51 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     wb = openpyxl.load_workbook("Prueba unificación.xlsx")
                     ws = wb["BASE_DE_DATOS"]
                     
-                    # Limpiar filas previas para evitar encimar datos
-                    if ws.max_row >= 2:
-                        ws.delete_rows(2, ws.max_row)
-                    
-                    # 1. Escribir nuevos encabezados para las columnas adicionales
+                    # 1. Limpiar sutilmente el contenido de la hoja base desde la fila 2
+                    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=25):
+                        for cell in row:
+                            cell.value = None
+                            
+                    # 2. Asegurar encabezados adicionales
                     ws["K1"] = "Rendimiento (km/L)"
                     ws["L1"] = "Precio Gasolina ($)"
                     ws["M1"] = "GASTO COMBUSTI"
                     
+                    # 3. Insertar datos sobrescribiendo celdas (para no romper fórmulas de otras hojas)
                     for i, reg in enumerate(registros_totales):
                         row_idx = 2 + i
                         
-                        # 2. Agregar los datos iterados con las fórmulas de Excel
-                        fila_datos = [
-                            reg["FECHA COMPLETA"],
-                            f'=UPPER(TEXT(A{row_idx}, "MMMM"))',
-                            reg["MUNICIPIO"],
-                            reg["POBLADO"],
-                            reg["folio CIIA"],
-                            reg["HORA DE SALIDA"],
-                            reg["KM INICIAL / Km de Salida"],
-                            reg["RECORRIDO"],                       # Columna H (Kilometraje)
-                            reg["HORA DE LLEGADA"],
-                            reg["KM FINAL / Km de Llegada"],
-                            12.0,                                   # Columna K: Rendimiento (Dato base)
-                            23.99,                                  # Columna L: Precio de gasolina (Dato base)
-                            f'=ROUND((H{row_idx}/K{row_idx})*L{row_idx}, 2)', # Columna M: FÓRMULA DE GASTO
-                            reg["Gasolina de Salida"],
-                            reg["Gasolina de Llegada"],
-                            reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"],
-                            reg["Oficio Numero"],
-                            reg["Oficio Fecha"],
-                            reg["observaciones"],
-                            reg["Usuario Responsable"],
-                            reg["Áreas de Adscripción"],
-                            reg["Tipo de Vehículo"],
-                            reg["Placas"],
-                            reg["No. De Licencia"]
-                        ]
-                        ws.append(fila_datos)
-                    
-                    # 3. CREAR LA FILA DE TOTALES
-                    last_row = ws.max_row + 1
-                    ws[f'A{last_row}'] = "TOTALES"
-                    ws[f'H{last_row}'] = f'=SUM(H2:H{last_row-1})' # Suma de Recorrido
-                    ws[f'M{last_row}'] = f'=SUM(M2:M{last_row-1})' # Suma de Gasto de Combustible
-                    
-                    # 4. DAR FORMATO ROJO A LA FILA DE TOTALES
-                    red_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
-                    white_font = Font(color="FFFFFF", bold=True)
-                    
-                    # Colorear toda la fila de totales de rojo con letra blanca
-                    for col in range(1, 25):  # De la columna A hasta la X
-                        cell = ws.cell(row=last_row, column=col)
-                        cell.fill = red_fill
-                        if col in [1, 8, 13]: # Remarcar texto de totales en negritas (A, H, M)
-                            cell.font = white_font
-                    
+                        ws[f'A{row_idx}'] = reg["FECHA COMPLETA"]
+                        ws[f'B{row_idx}'] = f'=UPPER(TEXT(A{row_idx}, "MMMM"))'
+                        ws[f'C{row_idx}'] = reg["MUNICIPIO"]
+                        ws[f'D{row_idx}'] = reg["POBLADO"]
+                        ws[f'E{row_idx}'] = reg["folio CIIA"]
+                        ws[f'F{row_idx}'] = reg["HORA DE SALIDA"]
+                        ws[f'G{row_idx}'] = reg["KM INICIAL / Km de Salida"]
+                        ws[f'H{row_idx}'] = reg["RECORRIDO"]
+                        ws[f'I{row_idx}'] = reg["HORA DE LLEGADA"]
+                        ws[f'J{row_idx}'] = reg["KM FINAL / Km de Llegada"]
+                        ws[f'K{row_idx}'] = 12.0
+                        ws[f'L{row_idx}'] = 23.99
+                        ws[f'M{row_idx}'] = f'=ROUND((H{row_idx}/K{row_idx})*L{row_idx}, 2)'
+                        ws[f'N{row_idx}'] = reg["Gasolina de Salida"]
+                        ws[f'O{row_idx}'] = reg["Gasolina de Llegada"]
+                        ws[f'P{row_idx}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
+                        ws[f'Q{row_idx}'] = reg["Oficio Numero"]
+                        ws[f'R{row_idx}'] = reg["Oficio Fecha"]
+                        ws[f'S{row_idx}'] = reg["observaciones"]
+                        ws[f'T{row_idx}'] = reg["Usuario Responsable"]
+                        ws[f'U{row_idx}'] = reg["Áreas de Adscripción"]
+                        ws[f'V{row_idx}'] = reg["Tipo de Vehículo"]
+                        ws[f'W{row_idx}'] = reg["Placas"]
+                        ws[f'X{row_idx}'] = reg["No. De Licencia"]
+
+                    # 4. Guardar archivo y descargar
                     output = BytesIO()
                     wb.save(output)
                     output.seek(0)
                     
-                    registrar_auditoria("GENERAR BITACORAS", "Generación y descarga de archivo unificado con fórmulas y totales")
+                    registrar_auditoria("GENERAR BITACORAS", "Generación de 3 bitácoras (sin fila roja, vinculación reparada)")
                     st.success("¡Archivo generado con éxito y listo para descarga!")
                     st.download_button(
                         label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
@@ -928,12 +888,13 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
     
     if rol_actual == "Administrador Nacional":
-        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit = st.tabs([
+        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit, tab_respaldo = st.tabs([
             "➕ Alta de Usuario", 
             "✏️ Editar Usuario", 
             "👥 Control y Estatus", 
             "📈 Resumen Ejecutivo y Auditoría",
-            "🛡️ Bitácora de Auditoría"
+            "🛡️ Bitácora de Auditoría",
+            "💾 Respaldo de Usuarios"
         ])
     else:
         tab_resumen_auditoria = st.container()
@@ -1083,6 +1044,37 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         guardar_usuarios(usuarios_actuales_tabla)
                         registrar_auditoria("ELIMINAR USUARIO", f"Eliminación permanente de cuenta para {email}")
                         st.rerun()
+
+    def render_respaldo_usuarios():
+        st.subheader("💾 Respaldo y Restauración de Usuarios")
+        st.markdown("Descarga la base de datos actual de usuarios o sube un archivo previamente guardado para restaurarlos.")
+        
+        usuarios_actuales = cargar_usuarios()
+        json_usuarios = json.dumps(usuarios_actuales, ensure_ascii=False, indent=4)
+        
+        st.download_button(
+            label="⬇️ Descargar Archivo de Usuarios (usuarios_respaldo.json)",
+            data=json_usuarios,
+            file_name="usuarios_respaldo.json",
+            mime="application/json"
+        )
+        
+        st.markdown("---")
+        st.write("**Restaurar Usuarios desde Archivo**")
+        archivo_respaldo = st.file_uploader("Sube el archivo usuarios_respaldo.json que descargaste previamente", type=["json"])
+        
+        if st.button("📤 Cargar y Restaurar Usuarios"):
+            if archivo_respaldo is not None:
+                try:
+                    usuarios_cargados = json.load(archivo_respaldo)
+                    guardar_usuarios(usuarios_cargados)
+                    registrar_auditoria("RESTAURAR USUARIOS", "Se restauró la base de datos de usuarios desde un archivo externo")
+                    st.success("✅ ¡Usuarios restaurados con éxito! El sistema aplicará los cambios ahora.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error al leer el archivo. Asegúrate de que es un JSON válido. Detalle: {e}")
+            else:
+                st.warning("⚠️ Selecciona un archivo de tu computadora primero.")
 
     def render_resumen_auditoria():
         st.subheader("📈 Resumen Ejecutivo y Auditoría (Control Vehicular)")
@@ -1307,5 +1299,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             render_resumen_auditoria()
         with tab_bitacora_audit:
             render_bitacora_audit()
+        with tab_respaldo:
+            render_respaldo_usuarios()
     else:
         render_resumen_auditoria()
