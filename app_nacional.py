@@ -672,7 +672,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -832,16 +832,21 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         for cell in row:
                             cell.value = None
                             
-                    # 2. Encabezados adicionales
+                    # 2. Encabezados adicionales exigidos por las fórmulas de las hojas 2 y 3:
                     ws["K1"] = "Rendimiento (km/L)"
                     ws["L1"] = "Precio Gasolina ($)"
                     ws["M1"] = "GASTO COMBUSTI"
+                    ws["N1"] = "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"
+                    ws["O1"] = "Oficio Numero"
+                    ws["P1"] = "Oficio Fecha"
+                    ws["Q1"] = "observaciones"
+                    ws["R1"] = "Usuario Responsable"
+                    ws["S1"] = "Áreas de Adscripción"
+                    ws["T1"] = "Tipo de Vehículo"
+                    ws["U1"] = "Placas"
+                    ws["V1"] = "No. De Licencia"
                     
                     # 3. Mapeo exacto de columnas acorde a las fórmulas de las hojas 2 y 3:
-                    # A: Fecha | B: Mes | C: Municipio | D: Poblado | E: Folio CIIA | F: Hora Salida | G: Km Salida
-                    # H: Recorrido | I: Hora Llegada | J: Km Llegada | K: Rendimiento | L: Gas Salida | M: Gasto
-                    # N: Gas Llegada | O: Oficio Numero | P: Oficio Fecha | Q: observaciones
-                    # R: Usuario Responsable | S: Áreas de Adscripción | T: Tipo de Vehículo | U: Placas | V: No. De Licencia
                     for i, reg in enumerate(registros_totales):
                         row_idx = 2 + i
                         
@@ -862,11 +867,11 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         ws[f'O{row_idx}'] = reg["Oficio Numero"]                                  # O: Oficio Número
                         ws[f'P{row_idx}'] = reg["Oficio Fecha"]                                   # P: Oficio Fecha
                         ws[f'Q{row_idx}'] = reg["observaciones"]                                  # Q: Observaciones
-                        ws[f'R{row_idx}'] = reg["Usuario Responsable"]                            # R: Usuario
-                        ws[f'S{row_idx}'] = reg["Áreas de Adscripción"]                           # S: Adscripción
-                        ws[f'T{row_idx}'] = reg["Tipo de Vehículo"]                               # T: Tipo Vehículo
+                        ws[f'R{row_idx}'] = reg["Usuario Responsable"]                            # R: Usuario Responsable
+                        ws[f'S{row_idx}'] = reg["Áreas de Adscripción"]                           # S: Áreas de Adscripción
+                        ws[f'T{row_idx}'] = reg["Tipo de Vehículo"]                               # T: Tipo de Vehículo
                         ws[f'U{row_idx}'] = reg["Placas"]                                         # U: Placas
-                        ws[f'V{row_idx}'] = reg["No. De Licencia"]                                # V: Licencia
+                        ws[f'V{row_idx}'] = reg["No. De Licencia"]                                # V: No. De Licencia
 
                     # 4. Guardar archivo y descargar
                     output = BytesIO()
