@@ -95,35 +95,6 @@ ESTADOS_REPUBLICA = [
     "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
 ]
 
-MUNICIPIOS_EDOMEX = [
-    "ACAMBAY DE RUIZ CASTAÑEDA", "ACOLMAN", "ACULCO", "ALMOLOYA DE ALQUISIRAS",
-    "ALMOLOYA DE JUÁREZ", "ALMOLOYA DEL RÍO", "AMANALCO", "AMATEPEC", "AMECAMECA",
-    "APAXCO", "ATENCO", "ATIZAPÁN", "ATIZAPÁN DE ZARAGOZA", "ATLACOMULCO",
-    "ATLAUTLA", "AXAPUSCO", "AYAPANGO", "CALIMAYA", "CAPULHUAC",
-    "COACALCO DE BERRIOZÁBAL", "COATEPEC HARINAS", "COCOTITLÁN", "COYOTEPEC",
-    "CUAUTITLÁN", "CUAUTITLÁN IZCALLI", "CHALCO", "CHAPA DE MOTA", "CHAPULTEPEC",
-    "CHIAUTLA", "CHICOLOAPAN", "CHICONCUAC", "CHIMALHUACÁN", "DONATO GUERRA",
-    "ECATEPEC DE MORELOS", "ECATZINGO", "HUEHUETOCA", "HUEYPOXTLA", "HUIXQUILUCAN",
-    "ISIDRO FABELA", "IXTAPALUCA", "IXTAPAN DE LA SAL", "IXTAPAN DEL ORO",
-    "IXTLAHUACA", "XALATLACO", "JALTENCO", "JILOTEPEC", "JILOTZINGO", "JIQUIPILCO",
-    "JOCOTITLÁN", "JOQUICINGO", "JUCHITEPEC", "LERMA", "MALINALCO", "MELCHOR OCAMPO",
-    "METEPEC", "MEXICALTZINGO", "MORELOS", "NAUCALPAN DE JUÁREZ", "NEXTLALPAN",
-    "NEZAHUALCÓYOTL", "NICOLÁS ROMERO", "NOPALTEPEC", "OCOYOACAC", "OCUILAN",
-    "EL ORO", "OTUMBA", "OTZOLOAPAN", "OTZOLOTEPEC", "OZUMBA", "PAPALOTLA",
-    "LA PAZ", "POLOTITLÁN", "RAYÓN", "SAN ANTONIO LA ISLA", "SAN FELIPE DEL PROGRESO",
-    "SAN MARTÍN DE LAS PIRÁMIDES", "SAN MATEO ATENCO", "SAN SIMÓN DE GUERRERO",
-    "SANTO TOMÁS", "SOYANIQUILPAN DE JUÁREZ", "SULTEPEC", "TECÁMAC", "TEJUPILCO",
-    "TEMAMATLA", "TEMASCALAPA", "TEMASCALCINGO", "TEMASCALTEPEC", "TEMOAYA",
-    "TENANCINGO", "TENANGO DEL AIRE", "TENANGO DEL VALLE", "TEOLOYUCAN",
-    "TEOTIHUACÁN", "TEPETLAOXTOC", "TEPETLIXPA", "TEPOTZOTLÁN", "TEQUIXQUIAC",
-    "TEXCALTITLÁN", "TEXCALYACAC", "TEXCOCO", "TEZOYUCA", "TIANGUISTENCO",
-    "TIMILPAN", "TLALMANALCO", "TLALNEPANTLA DE BAZ", "TLATLAYA", "TOLUCA",
-    "TONATICO", "TULTEPEC", "TULTITLÁN", "VALLE DE BRAVO", "VILLA DE ALLENDE",
-    "VILLA DEL CARBÓN", "VILLA GUERRERO", "VILLA VICTORIA", "XONACATLÁN",
-    "ZACAZONAPAN", "ZACUALPAN", "ZINACANTEPEC", "ZUMPAHUACÁN", "ZUMPANGO",
-    "VALLE DE CHALCO SOLIDARIDAD", "LUVIANOS", "SAN JOSÉ DEL RINCÓN", "TONANITLA"
-]
-
 JEFATURAS_RESIDENCIA = [
     "RESIDENCIA NAUCALPAN",
     "RESIDENCIA TOLUCA",
@@ -155,49 +126,6 @@ FRASES_AGRARIAS = [
     "“Sembrar conciencia en el campo es cosechar soberanía y bienestar social.”",
     "“La labor del agrónomo y del servidor agrario es transformar la esperanza en frutos tangibles.”"
 ]
-
-@st.cache_data
-def cargar_catalogos_geograficos():
-    muns_df = pd.read_excel(MUN_FILE) if os.path.exists(MUN_FILE) else pd.DataFrame()
-    locs_df = pd.read_excel(LOC_FILE, sheet_name='Hoja1') if os.path.exists(LOC_FILE) else pd.DataFrame()
-    return muns_df, locs_df
-
-muns_global, locs_global = cargar_catalogos_geograficos()
-
-def obtener_municipios_estado(estado_nombre):
-    if estado_nombre == "Estado de México" and not locs_global.empty and 'NOMBRE DEL MUNICIPIO' in locs_global.columns:
-        muns = locs_global['NOMBRE DEL MUNICIPIO'].dropna().unique().tolist()
-        return sorted(list(set(muns)))
-    if muns_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
-        return MUNICIPIOS_EDOMEX if estado_nombre == "Estado de México" else ["Cabecera Municipal"]
-    efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
-    if 'EFE_KEY' in muns_global.columns:
-        muns = muns_global[muns_global['EFE_KEY'] == efe_key]['MUNICIPIO'].dropna().tolist()
-    elif 'ENTIDAD' in muns_global.columns:
-        muns = muns_global[muns_global['ENTIDAD'].str.upper() == estado_nombre.upper()]['MUNICIPIO'].dropna().tolist()
-    else:
-        muns = muns_global.iloc[:, 1].dropna().tolist()
-    return sorted(list(set(muns))) if muns else ["Cabecera Municipal"]
-
-import unicodedata
-
-def norm_text(s):
-    if not isinstance(s, str):
-        return ""
-    return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').strip().upper()
-
-def obtener_localidades_municipio(estado_nombre, municipio_nombre):
-    if locs_global.empty:
-        return ["Cabecera Municipal"]
-    if 'NOMBRE DEL MUNICIPIO' in locs_global.columns and 'NOMBRE DE LA LOCALIDAD' in locs_global.columns:
-        mun_clean = norm_text(municipio_nombre)
-        mask = locs_global['NOMBRE DEL MUNICIPIO'].apply(norm_text) == mun_clean
-        locs = locs_global[mask]['NOMBRE DE LA LOCALIDAD'].dropna().tolist()
-    else:
-        locs = locs_global.iloc[:, 1].dropna().tolist()
-    if not locs:
-        return ["Cabecera Municipal"]
-    return sorted(list(set(locs)))
 
 def cargar_usuarios():
     usuarios_base = {
@@ -501,10 +429,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
     solicitante_actual = st.session_state.get("current_user", "")
-    
-    lista_municipios = obtener_municipios_estado(estado_usuario_actual)
-    if not lista_municipios:
-        lista_municipios = MUNICIPIOS_EDOMEX if estado_usuario_actual == "Estado de México" else ["Cabecera Municipal"]
         
     with st.form("form_solicitud_gasolina"):
         col_s1, col_s2 = st.columns(2)
@@ -514,12 +438,12 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
             funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
         with col_s2:
-            municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
-            lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
-            if not lista_loc_com:
-                lista_loc_com = ["Cabecera Municipal"]
-            localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
-            vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
+            # CAMPO DE MUNICIPIO CON ESCRITURA LIBRE
+            municipio_destino = st.text_input(f"Municipio de Destino ({estado_usuario_actual}) - Libre", value="", max_chars=300, placeholder="Escribe el municipio libremente...")
+            # CAMPO DE LOCALIDAD CON ESCRITURA LIBRE
+            localidad_destino = st.text_input("Localidad / Poblado de Destino - Libre", value="", max_chars=300, placeholder="Escribe la localidad libremente...")
+            # CAMPO DE VEHÍCULO CON ESCRITURA LIBRE
+            vehiculo_asignado = st.text_input("Vehículo Oficial Asignado - Libre", value="", max_chars=300, placeholder="Ej. Nissan Versa, PickUp...")
             placas_vehiculo = st.text_input("Placas del Vehículo", value="", max_chars=300)
             
         st.markdown("---")
@@ -549,8 +473,8 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                     "JEFATURA": residencia_adscripcion,
                     "ESTADO": estado_usuario_actual,
                     "FUNCIONARIO": funcionario_comisionado.upper(),
-                    "DESTINO": f"{localidad_destino}, {municipio_destino}",
-                    "VEHICULO": vehiculo_asignado,
+                    "DESTINO": f"{localidad_destino.strip().upper()}, {municipio_destino.strip().upper()}",
+                    "VEHICULO": vehiculo_asignado.strip().upper(),
                     "PLACAS": placas_vehiculo.upper(),
                     "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
                     "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
@@ -690,25 +614,20 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
         km_sugerido = float(ultimo_reg.get("KM FINAL / Km de Llegada", 0.0))
-
-    lista_municipios = obtener_municipios_estado(estado_usuario_actual)
-    if not lista_municipios:
-        lista_municipios = MUNICIPIOS_EDOMEX if estado_usuario_actual == "Estado de México" else ["Cabecera Municipal"]
         
     with st.form("form_captura_dia"):
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             fecha = st.date_input("Fecha de registro del uso del vehículo")
-            municipio = st.selectbox(f"Municipio ({estado_usuario_actual})", lista_municipios)
-            lista_localidades = obtener_localidades_municipio(estado_usuario_actual, municipio)
-            if not lista_localidades:
-                lista_localidades = ["Sin localidades registradas en catálogo"]
-            poblado = st.selectbox("Poblado / Localidad", lista_localidades)
+            # CAMPO DE MUNICIPIO CON ESCRITURA LIBRE
+            municipio = st.text_input(f"Municipio ({estado_usuario_actual}) - Libre", value="", max_chars=300, placeholder="Escribe el municipio libremente...")
+            # CAMPO DE POBLADO / LOCALIDAD CON ESCRITURA LIBRE
+            poblado = st.text_input("Poblado / Localidad - Libre", value="", max_chars=300, placeholder="Escribe la localidad libremente...")
             folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
         with col2:
             h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00", max_chars=300)
@@ -726,7 +645,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 "RESIDENCIA TENANCINGO"
             ])))
             residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
-            vehiculo = st.selectbox("Tipo de Vehículo", ["NISSAN VERSA", "PickUp", "Estacas"])
+            # CAMPO DE TIPO DE VEHÍCULO CON ESCRITURA LIBRE
+            vehiculo = st.text_input("Tipo de Vehículo - Libre", value="", max_chars=300, placeholder="Ej. Nissan Versa, PickUp, Estacas...")
             placas = st.text_input("Placas", value="", max_chars=300)
             licencia = st.text_input("No. De Licencia", value="", max_chars=300)
         with col4:
@@ -748,6 +668,12 @@ elif perfil == "Módulo de Captura (Recorrido)":
         if guardar_dia:
             if not placas.strip():
                 st.error("⚠️ Debes ingresar el número de placas del vehículo (no hay placa predeterminada).")
+            elif not municipio.strip():
+                st.error("⚠️ Debes escribir el municipio.")
+            elif not poblado.strip():
+                st.error("⚠️ Debes escribir la localidad o poblado.")
+            elif not vehiculo.strip():
+                st.error("⚠️ Debes escribir el tipo de vehículo.")
             elif h_salida.strip() == h_llegada.strip():
                 st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
             elif km_final < km_inicial:
@@ -755,6 +681,10 @@ elif perfil == "Módulo de Captura (Recorrido)":
             else:
                 fecha_str = fecha.strftime("%d/%m/%Y")
                 placas_upper = placas.strip().upper()
+                mun_upper = municipio.strip().upper()
+                pob_upper = poblado.strip().upper()
+                veh_upper = vehiculo.strip().upper()
+                
                 registros_actuales = cargar_registros_acumulados()
                 
                 conflicto_duplicado = False
@@ -765,7 +695,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     r_km_ini = float(r.get("KM INICIAL / Km de Salida", 0))
                     r_km_fin = float(r.get("KM FINAL / Km de Llegada", 0))
                     if r_fecha == fecha_str and r_placas == placas_upper:
-                        if r_km_ini == km_inicial and r_km_fin == km_final and str(r.get("MUNICIPIO")) == municipio:
+                        if r_km_ini == km_inicial and r_km_fin == km_final and str(r.get("MUNICIPIO")).upper() == mun_upper:
                             conflicto_duplicado = True
                             mensaje_error = "⚠️ Registro duplicado: Ya existe un recorrido guardado con exactamente la misma información."
                             break
@@ -781,8 +711,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     nuevo_reg = {
                         "FECHA COMPLETA": fecha_str,
                         "MES": fecha.strftime("%B").upper(),
-                        "MUNICIPIO": municipio,
-                        "POBLADO": poblado,
+                        "MUNICIPIO": mun_upper,
+                        "POBLADO": pob_upper,
                         "folio CIIA": folio_ciia,
                         "HORA DE SALIDA": h_salida,
                         "KM INICIAL / Km de Salida": km_inicial,
@@ -798,7 +728,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         "observaciones": observaciones if observaciones else None,
                         "Usuario Responsable": usuario,
                         "Áreas de Adscripción": residencia,
-                        "Tipo de Vehículo": vehiculo,
+                        "Tipo de Vehículo": veh_upper,
                         "Placas": placas_upper,
                         "No. De Licencia": licencia,
                         "ESTADO_ADSCRIPCION": estado_usuario_actual,
@@ -808,8 +738,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     }
                     registros_actuales.append(nuevo_reg)
                     guardar_registros_acumulados(registros_actuales)
-                    registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {municipio} ({poblado})")
-                    st.success(f"✅ ¡Día {fecha_str} en {municipio} ({poblado}) guardado correctamente!")
+                    registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {mun_upper} ({pob_upper})")
+                    st.success(f"✅ ¡Día {fecha_str} en {mun_upper} ({pob_upper}) guardado correctamente!")
 
     registros_totales = cargar_registros_acumulados()
     if len(registros_totales) > 0:
@@ -969,17 +899,14 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         if st.button("📦 Generar y Descargar ZIP Maestro (Sistema + Bases de Datos + Fotos)"):
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                # 1. Código fuente
                 script_actual = os.path.join(BASE_DIR, "app_nacional.py")
                 if os.path.exists(script_actual):
                     zip_file.write(script_actual, "app_nacional.py")
                 
-                # 2. Bases de datos JSON
                 for json_f in [USUARIOS_FILE, REGISTROS_FILE, SOLICITUDES_FILE, INCIDENCIAS_FILE, AUDIT_FILE]:
                     if os.path.exists(json_f):
                         zip_file.write(json_f, os.path.basename(json_f))
                 
-                # 3. Fotos de perfil
                 if os.path.exists(FOTOS_DIR):
                     for root, dirs, files in os.walk(FOTOS_DIR):
                         for file in files:
@@ -987,7 +914,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                             arcname = os.path.join("fotos_perfil", file)
                             zip_file.write(file_path, arcname)
                             
-                # 4. Catálogos y plantilla Excel
                 for ext_f in [PLANTILLA_EXCEL, MUN_FILE, LOC_FILE]:
                     if ext_f and os.path.exists(ext_f):
                         zip_file.write(ext_f, os.path.basename(ext_f))
@@ -1215,9 +1141,11 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     mapa_rows = []
                     for _, r in df_filtrado.iterrows():
                         mun = r["MUNICIPIO"]
-                        if mun in CODS_MUNICIPIOS:
+                        # Buscar coordenadas exactas o aproximadas si el usuario escribió libremente
+                        mun_key = next((k for k in CODS_MUNICIPIOS if k.upper() in mun.upper()), None)
+                        if mun_key:
                             mapa_rows.append({
-                                "lat": CODS_MUNICIPIOS[mun]["lat"], "lon": CODS_MUNICIPIOS[mun]["lon"],
+                                "lat": CODS_MUNICIPIOS[mun_key]["lat"], "lon": CODS_MUNICIPIOS[mun_key]["lon"],
                                 "MUNICIPIO": mun, "POBLADO": r["POBLADO"], "FECHA": r["FECHA COMPLETA"],
                                 "USUARIO": r["Usuario Responsable"], "RECORRIDO": r["RECORRIDO"]
                             })
