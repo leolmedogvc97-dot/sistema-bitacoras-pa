@@ -837,7 +837,11 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     ws["L1"] = "Precio Gasolina ($)"
                     ws["M1"] = "GASTO COMBUSTI"
                     
-                    # 3. Escribir los datos en el orden exacto de columnas que esperan las otras hojas
+                    # 3. Mapeo exacto de columnas acorde a las fórmulas de las hojas 2 y 3:
+                    # A: Fecha | B: Mes | C: Municipio | D: Poblado | E: Folio CIIA | F: Hora Salida | G: Km Salida
+                    # H: Recorrido | I: Hora Llegada | J: Km Llegada | K: Rendimiento | L: Precio Gasolina | M: Gasto
+                    # N: Gas Salida | O: Gas Llegada | P: Dotación | Q: Oficio Numero | R: Oficio Fecha | S: observaciones
+                    # T: Usuario Responsable | U: Áreas de Adscripción | V: Tipo de Vehículo | W: Placas | X: No. De Licencia
                     for i, reg in enumerate(registros_totales):
                         row_idx = 2 + i
                         
@@ -855,21 +859,23 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         ws[f'L{row_idx}'] = 23.99                                                 # L: Precio Gasolina
                         ws[f'M{row_idx}'] = f'=ROUND((H{row_idx}/K{row_idx})*L{row_idx}, 2)'        # M: Fórmula Gasto
                         ws[f'N{row_idx}'] = reg["Gasolina de Salida"]                             # N: Gas Salida
-                        ws[f'O{row_idx}'] = reg["Oficio Numero"]                                  # O: Oficio Número
-                        ws[f'P{row_idx}'] = reg["Oficio Fecha"]                                   # P: Oficio Fecha
-                        ws[f'Q{row_idx}'] = reg["observaciones"]                                  # Q: Observaciones
-                        ws[f'R{row_idx}'] = reg["Usuario Responsable"]                            # R: Usuario
-                        ws[f'S{row_idx}'] = reg["Áreas de Adscripción"]                           # S: Adscripción
-                        ws[f'T{row_idx}'] = reg["Tipo de Vehículo"]                               # T: Tipo Vehículo
-                        ws[f'U{row_idx}'] = reg["Placas"]                                         # U: Placas
-                        ws[f'V{row_idx}'] = reg["No. De Licencia"]                                # V: Licencia
+                        ws[f'O{row_idx}'] = reg["Gasolina de Llegada"]                            # O: Gas Llegada
+                        ws[f'P{row_idx}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"] # P: Dotación
+                        ws[f'Q{row_idx}'] = reg["Oficio Numero"]                                  # Q: Oficio Número
+                        ws[f'R{row_idx}'] = reg["Oficio Fecha"]                                   # R: Oficio Fecha
+                        ws[f'S{row_idx}'] = reg["observaciones"]                                  # S: Observaciones
+                        ws[f'T{row_idx}'] = reg["Usuario Responsable"]                            # T: Usuario
+                        ws[f'U{row_idx}'] = reg["Áreas de Adscripción"]                           # U: Adscripción
+                        ws[f'V{row_idx}'] = reg["Tipo de Vehículo"]                               # V: Tipo Vehículo
+                        ws[f'W{row_idx}'] = reg["Placas"]                                         # W: Placas
+                        ws[f'X{row_idx}'] = reg["No. De Licencia"]                                # X: Licencia
 
                     # 4. Guardar archivo y descargar
                     output = BytesIO()
                     wb.save(output)
                     output.seek(0)
                     
-                    registrar_auditoria("GENERAR BITACORAS", "Generación exitosa con mapeo correcto de columnas")
+                    registrar_auditoria("GENERAR BITACORAS", "Generación exitosa con mapeo exacto de columnas")
                     st.success("¡Archivo generado con éxito y listo para descarga!")
                     st.download_button(
                         label="⬇️ Descargar Archivo Definitivo (Incluye las 3 Bitácoras)",
