@@ -426,6 +426,56 @@ if perfil == "Mi Perfil / Foto":
             else:
                 st.warning("⚠️ Selecciona un archivo de imagen válido antes de guardar.")
 
+    st.markdown("---")
+    st.subheader("📊 Resumen de Actividad y Uso de la Red (Accesos y Bitácoras)")
+    st.markdown("Auditoría general del sistema: Conoce qué usuarios han ingresado, cuántas veces han accedido, cuántas bitácoras oficiales han generado y cuántos registros acumulan.")
+    
+    logs_audit = []
+    if os.path.exists(AUDIT_FILE):
+        try:
+            with open(AUDIT_FILE, "r", encoding="utf-8") as f:
+                logs_audit = json.load(f)
+        except:
+            pass
+            
+    registros_todos = cargar_registros_acumulados()
+    
+    if usuarios_dict_perfil:
+        resumen_uso_dict = {}
+        for email_u, info_u in usuarios_dict_perfil.items():
+            resumen_uso_dict[email_u] = {
+                "Correo": email_u,
+                "Nombre": info_u.get("nombre", "N/A"),
+                "Rol": info_u.get("rol", "N/A"),
+                "Estado": info_u.get("estado", "N/A"),
+                "Ingresos (Logins)": 0,
+                "Último Acceso": "Sin registro",
+                "Bitácoras Generadas": 0,
+                "Registros Guardados": 0
+            }
+            
+        for reg in registros_todos:
+            c_org = reg.get("CORREO_ORGANIZADOR", "")
+            if c_org in resumen_uso_dict:
+                resumen_uso_dict[c_org]["Registros Guardados"] += 1
+                
+        for log in logs_audit:
+            usr_log = log.get("USUARIO", "").strip().lower()
+            acc_log = log.get("ACCION", "")
+            fh_log = log.get("FECHA_HORA", "")
+            
+            if usr_log in resumen_uso_dict:
+                if acc_log == "INICIO DE SESION":
+                    resumen_uso_dict[usr_log]["Ingresos (Logins)"] += 1
+                    resumen_uso_dict[usr_log]["Último Acceso"] = fh_log
+                elif acc_log == "GENERAR BITACORAS":
+                    resumen_uso_dict[usr_log]["Bitácoras Generadas"] += 1
+                    
+        df_uso_red = pd.DataFrame(list(resumen_uso_dict.values()))
+        st.dataframe(df_uso_red, use_container_width=True)
+    else:
+        st.info("No hay usuarios registrados en el sistema.")
+
 elif perfil == "Solicitud de Recurso de Gasolina":
     st.error("⚠️ **[PRUEBA]** - Módulo en Fase de Pruebas Operativas")
     st.subheader("⛽ Solicitud de Recurso de Gasolina para Comisión Oficial")
@@ -944,9 +994,9 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         st.markdown("---")
 
     if rol_actual == "Administrador Nacional":
-        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit, tab_respaldo = st.tabs([
+        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit = st.tabs([
             "➕ Alta de Usuario", "✏️ Editar Usuario", "👥 Control y Estatus", 
-            "📈 Resumen Ejecutivo y Auditoría", "🛡️ Bitácora de Auditoría", "💾 Respaldo de Usuarios"
+            "📈 Resumen Ejecutivo y Auditoría", "🛡️ Bitácora de Auditoría"
         ])
     else:
         tab_resumen_auditoria = st.container()
@@ -1077,24 +1127,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                         guardar_usuarios(usuarios_actuales_tabla)
                         registrar_auditoria("ELIMINAR USUARIO", f"Eliminación permanente de cuenta para {email}")
                         st.rerun()
-
-    def render_respaldo_usuarios():
-        st.subheader("💾 Respaldo y Restauración de Usuarios")
-        usuarios_actuales = cargar_usuarios()
-        json_usuarios = json.dumps(usuarios_actuales, ensure_ascii=False, indent=4)
-        st.download_button("⬇️ Descargar Archivo de Usuarios", data=json_usuarios, file_name="usuarios_respaldo.json", mime="application/json")
-        st.markdown("---")
-        archivo_respaldo = st.file_uploader("Sube el archivo usuarios_respaldo.json", type=["json"])
-        if st.button("📤 Cargar y Restaurar Usuarios"):
-            if archivo_respaldo is not None:
-                try:
-                    usuarios_cargados = json.load(archivo_respaldo)
-                    guardar_usuarios(usuarios_cargados)
-                    registrar_auditoria("RESTAURAR USUARIOS", "Se restauró la base de datos de usuarios")
-                    st.success("✅ ¡Usuarios restaurados con éxito!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error al leer el archivo: {e}")
 
     def render_resumen_auditoria():
         st.subheader("📈 Resumen Ejecutivo y Auditoría (Control Vehicular)")
@@ -1242,6 +1274,5 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         with tab_ctrl_user: render_control_estatus()
         with tab_resumen_auditoria: render_resumen_auditoria()
         with tab_bitacora_audit: render_bitacora_audit()
-        with tab_respaldo: render_respaldo_usuarios()
     else:
         render_resumen_auditoria()
