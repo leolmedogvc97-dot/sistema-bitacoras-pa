@@ -341,7 +341,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("⚠️ Usuario o contraseña incorrectos. Verifica tus datos.")
+                st.error("⚠️ Usuario or contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -630,7 +630,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -775,17 +775,17 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     try:
                         wb = openpyxl.load_workbook(PLANTILLA_EXCEL)
                         
-                        # 1. Poblar BASE_DE_DATOS manteniendo fórmulas
+                        # 1. Limpieza profunda y poblado de BASE_DE_DATOS
                         ws_b = wb["BASE_DE_DATOS"]
-                        max_r_existente = max(33, ws_b.max_row)
+                        max_r_existente = max(100, ws_b.max_row)
                         for r in range(2, max_r_existente + 1):
-                            for col in ['A','B','C','D','E','F','G','H','I','J','L','M','O','P','Q','R','S','T','U','V']:
+                            for col in ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V']:
                                 ws_b[f'{col}{r}'] = None
 
                         for i, reg in enumerate(registros_totales, start=2):
-                            fecha_excel = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
-                            ws_b[f'A{i}'] = fecha_excel
-                            ws_b[f'A{i}'].number_format = "dd/mm/yyyy"
+                            fecha_dt = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
+                            ws_b[f'A{i}'] = fecha_dt
+                            ws_b[f'A{i}'].number_format = "DD/MM/YYYY"
                             ws_b[f'B{i}'] = f'=UPPER(TEXT(A{i}, "MMMM"))'
                             ws_b[f'C{i}'] = reg["MUNICIPIO"]
                             ws_b[f'D{i}'] = reg["POBLADO"]
@@ -803,7 +803,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                             ws_b[f'K{i}'] = 12.0
                             ws_b[f'L{i}'] = reg["Gasolina de Salida"]
                             ws_b[f'M{i}'] = f'=ROUND((H{i}/K{i})*23.99, 2)'
-                            ws_b[f'N{i}'] = reg["Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)"]
+                            ws_b[f'N{i}'] = reg["GASTO COMBUSTI"]
                             ws_b[f'O{i}'] = reg["Oficio Numero"]
                             ws_b[f'P{i}'] = reg["Oficio Fecha"]
                             ws_b[f'Q{i}'] = reg["observaciones"]
@@ -817,9 +817,13 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         ws_b[f'A{row_tot}'] = "TOTALES"
                         ws_b[f'H{row_tot}'] = f'=SUM(H2:H{row_tot-1})'
 
-                        # 2. Sincronizar hoja 2_BITACORA_VERSA
+                        # 2. Sincronizar y limpiar hoja 2_BITACORA_VERSA
                         if "2_BITACORA_VERSA" in wb.sheetnames:
                             ws_v = wb["2_BITACORA_VERSA"]
+                            for r in range(3, 100):
+                                for col in ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W']:
+                                    ws_v[f'{col}{r}'] = None
+
                             for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
                                 r_v = idx + 3
                                 ws_v[f'A{r_v}'] = f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})'
@@ -845,9 +849,13 @@ elif perfil == "Módulo de Captura (Recorrido)":
                                 ws_v[f'V{r_v}'] = f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})'
                                 ws_v[f'W{r_v}'] = f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})'
 
-                        # 3. Sincronizar hoja 3_BITACORAS_INDIVIDUALES
+                        # 3. Sincronizar y limpiar hoja 3_BITACORAS_INDIVIDUALES
                         if "3_BITACORAS_INDIVIDUALES" in wb.sheetnames:
                             ws_i = wb["3_BITACORAS_INDIVIDUALES"]
+                            for r in range(1, 500):
+                                for c in range(1, 10):
+                                    ws_i.cell(row=r, column=c, value=None)
+
                             for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
                                 start_row = 1 + idx * 12
                                 ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & UPPER(TEXT(BASE_DE_DATOS!A{r_db}, "MMMM"))')
@@ -874,7 +882,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         output.seek(0)
                         
                         registrar_auditoria("GENERAR BITACORAS", "Generación nativa completa exitosa")
-                        st.success("✅ ¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente!")
+                        st.success("✅ ¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente sin residuos!")
                         st.download_button(
                             label="⬇️ Descargar Archivo Oficial Definitivo",
                             data=output,
