@@ -673,6 +673,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
     registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
         km_sugerido = float(ultimo_reg.get("KM FINAL / Km de Llegada", 0.0))
