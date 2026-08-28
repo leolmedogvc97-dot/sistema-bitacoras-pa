@@ -68,7 +68,7 @@ LOC_FILE = os.path.join(BASE_DIR, "localidades.xlsx")
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
 # Detección automática y flexible de la plantilla Excel institucional en la raíz
-excel_files = [os.path.join(BASE_DIR, f) for f in os.listdir(BASE_DIR) if f.endswith('.xlsx') and not f.startswith("BITACORAS_OFICIALES") and f not in ["MUNICIPIOS_202606.xlsx", "LOCALIDADES_202606.xlsx", "localidades.xlsx"]]
+excel_files = [os.path.join(BASE_DIR, f) for f in os.listdir(BASE_DIR) if f.endswith('.xlsx') and not f.startswith("BITACORAS") and f not in ["MUNICIPIOS_202606.xlsx", "LOCALIDADES_202606.xlsx", "localidades.xlsx"]]
 PLANTILLA_EXCEL = excel_files[0] if excel_files else os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula (2).xlsx")
 
 CODS_MUNICIPIOS = {
@@ -364,7 +364,7 @@ if perfil == "Mi Perfil / Foto":
 
     st.markdown("---")
     st.subheader("📊 Resumen de Actividad y Uso de la Red (Accesos y Bitácoras)")
-    st.markdown("Auditoría general del sistema: Conoce qué usuarios han ingresado, cuántas veces han accedido, cuántas bitácoras oficiales han generado y cuántos registros acumulan.")
+    st.markdown("Auditoría general del sistema: Conoce qué usuarios han ingresado, cuántas veces han accedido, cuántas bitácoras han generado y cuántos registros acumulan.")
     
     logs_audit = []
     if os.path.exists(AUDIT_FILE):
@@ -438,11 +438,8 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
             funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
         with col_s2:
-            # CAMPO DE MUNICIPIO CON ESCRITURA LIBRE
             municipio_destino = st.text_input(f"Municipio de Destino ({estado_usuario_actual}) - Libre", value="", max_chars=300, placeholder="Escribe el municipio libremente...")
-            # CAMPO DE LOCALIDAD CON ESCRITURA LIBRE
             localidad_destino = st.text_input("Localidad / Poblado de Destino - Libre", value="", max_chars=300, placeholder="Escribe la localidad libremente...")
-            # CAMPO DE VEHÍCULO CON ESCRITURA LIBRE
             vehiculo_asignado = st.text_input("Vehículo Oficial Asignado - Libre", value="", max_chars=300, placeholder="Ej. Nissan Versa, PickUp...")
             placas_vehiculo = st.text_input("Placas del Vehículo", value="", max_chars=300)
             
@@ -529,7 +526,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
 elif perfil == "Reporte de Incidencias en Ruta":
     st.error("⚠️ **[PRUEBA]** - Módulo en Fase de Pruebas Operativas")
     st.subheader("🚨 Reporte y Gestión de Incidencias y Fallas Mecánicas")
-    st.markdown("Módulo para registrar y dar seguimiento a averías, fallas mecánicas o imprevistos durante las comisiones oficiales.")
+    st.markdown("Módulo para registrar y dar seguimiento a averías, fallas mecánicas o imprevistos durante las comisiones.")
     
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
@@ -614,7 +611,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    # CORRECCIÓN DEL ERROR DE SINTAXIS AQUÍ:
     registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
@@ -625,9 +621,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             fecha = st.date_input("Fecha de registro del uso del vehículo")
-            # CAMPO DE MUNICIPIO CON ESCRITURA LIBRE
             municipio = st.text_input(f"Municipio ({estado_usuario_actual}) - Libre", value="", max_chars=300, placeholder="Escribe el municipio libremente...")
-            # CAMPO DE POBLADO / LOCALIDAD CON ESCRITURA LIBRE
             poblado = st.text_input("Poblado / Localidad - Libre", value="", max_chars=300, placeholder="Escribe la localidad libremente...")
             folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
         with col2:
@@ -646,7 +640,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 "RESIDENCIA TENANCINGO"
             ])))
             residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
-            # CAMPO DE TIPO DE VEHÍCULO CON ESCRITURA LIBRE
             vehiculo = st.text_input("Tipo de Vehículo - Libre", value="", max_chars=300, placeholder="Ej. Nissan Versa, PickUp, Estacas...")
             placas = st.text_input("Placas", value="", max_chars=300)
             licencia = st.text_input("No. De Licencia", value="", max_chars=300)
@@ -761,7 +754,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 st.rerun()
         
         with col_acc2:
-            if st.button("🚀 Generar y Descargar 3 Bitácoras Oficiales Definitivas"):
+            if st.button("🚀 Generar y Descargar 3 Bitácoras Definitivas"):
                 if not os.path.exists(PLANTILLA_EXCEL):
                     st.error(f"⚠️ Error crítico: No se encuentra la plantilla oficial. Ruta buscada: {PLANTILLA_EXCEL}")
                 else:
@@ -875,11 +868,11 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         output.seek(0)
                         
                         registrar_auditoria("GENERAR BITACORAS", "Generación nativa completa exitosa")
-                        st.success("✅ ¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente sin residuos!")
+                        st.success("✅ ¡Las 3 bitácoras se generaron y vincularon perfectamente sin residuos!")
                         st.download_button(
-                            label="⬇️ Descargar Archivo Oficial Definitivo",
+                            label="⬇️ Descargar Archivo Definitivo",
                             data=output,
-                            file_name="BITACORAS_OFICIALES_DEFINITIVAS.xlsx",
+                            file_name="BITACORAS_DEFINITIVAS.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
                     except Exception as e:
