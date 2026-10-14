@@ -60,6 +60,7 @@ USUARIOS_FILE = os.path.join(BASE_DIR, "usuarios.json")
 REGISTROS_FILE = os.path.join(BASE_DIR, "registros.json")
 SOLICITUDES_FILE = os.path.join(BASE_DIR, "solicitudes_gasolina.json")
 INCIDENCIAS_FILE = os.path.join(BASE_DIR, "incidencias_mecanicas.json")
+PROGRAMACION_FILE = os.path.join(BASE_DIR, "programacion_combustible.json")
 AUDIT_FILE = os.path.join(BASE_DIR, "audit_log.json")
 FOTOS_DIR = os.path.join(BASE_DIR, "fotos_perfil")
 LOGO_FILE = os.path.join(BASE_DIR, "logo_pa.png")
@@ -68,7 +69,7 @@ LOC_FILE = os.path.join(BASE_DIR, "localidades.xlsx")
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
 # Detección automática y flexible de la plantilla Excel institucional en la raíz
-excel_files = [os.path.join(BASE_DIR, f) for f in os.listdir(BASE_DIR) if f.endswith('.xlsx') and not f.startswith("BITACORAS") and f not in ["MUNICIPIOS_202606.xlsx", "LOCALIDADES_202606.xlsx", "localidades.xlsx"]]
+excel_files = [os.path.join(BASE_DIR, f) for f in os.listdir(BASE_DIR) if f.endswith('.xlsx') and not f.startswith("BITACORAS_OFICIALES") and f not in ["MUNICIPIOS_202606.xlsx", "LOCALIDADES_202606.xlsx", "localidades.xlsx"]]
 PLANTILLA_EXCEL = excel_files[0] if excel_files else os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula (2).xlsx")
 
 CODS_MUNICIPIOS = {
@@ -93,6 +94,35 @@ ESTADOS_REPUBLICA = [
     "Jalisco", "Michoacán", "Morelos", "Nayarit", "Nuevo León", "Oaxaca", 
     "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", 
     "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"
+]
+
+MUNICIPIOS_EDOMEX = [
+    "ACAMBAY DE RUIZ CASTAÑEDA", "ACOLMAN", "ACULCO", "ALMOLOYA DE ALQUISIRAS",
+    "ALMOLOYA DE JUÁREZ", "ALMOLOYA DEL RÍO", "AMANALCO", "AMATEPEC", "AMECAMECA",
+    "APAXCO", "ATENCO", "ATIZAPÁN", "ATIZAPÁN DE ZARAGOZA", "ATLACOMULCO",
+    "ATLAUTLA", "AXAPUSCO", "AYAPANGO", "CALIMAYA", "CAPULHUAC",
+    "COACALCO DE BERRIOZÁBAL", "COATEPEC HARINAS", "COCOTITLÁN", "COYOTEPEC",
+    "CUAUTITLÁN", "CUAUTITLÁN IZCALLI", "CHALCO", "CHAPA DE MOTA", "CHAPULTEPEC",
+    "CHIAUTLA", "CHICOLOAPAN", "CHICONCUAC", "CHIMALHUACÁN", "DONATO GUERRA",
+    "ECATEPEC DE MORELOS", "ECATZINGO", "HUEHUETOCA", "HUEYPOXTLA", "HUIXQUILUCAN",
+    "ISIDRO FABELA", "IXTAPALUCA", "IXTAPAN DE LA SAL", "IXTAPAN DEL ORO",
+    "IXTLAHUACA", "XALATLACO", "JALTENCO", "JILOTEPEC", "JILOTZINGO", "JIQUIPILCO",
+    "JOCOTITLÁN", "JOQUICINGO", "JUCHITEPEC", "LERMA", "MALINALCO", "MELCHOR OCAMPO",
+    "METEPEC", "MEXICALTZINGO", "MORELOS", "NAUCALPAN DE JUÁREZ", "NEXTLALPAN",
+    "NEZAHUALCÓYOTL", "NICOLÁS ROMERO", "NOPALTEPEC", "OCOYOACAC", "OCUILAN",
+    "EL ORO", "OTUMBA", "OTZOLOAPAN", "OTZOLOTEPEC", "OZUMBA", "PAPALOTLA",
+    "LA PAZ", "POLOTITLÁN", "RAYÓN", "SAN ANTONIO LA ISLA", "SAN FELIPE DEL PROGRESO",
+    "SAN MARTÍN DE LAS PIRÁMIDES", "SAN MATEO ATENCO", "SAN SIMÓN DE GUERRERO",
+    "SANTO TOMÁS", "SOYANIQUILPAN DE JUÁREZ", "SULTEPEC", "TECÁMAC", "TEJUPILCO",
+    "TEMAMATLA", "TEMASCALAPA", "TEMASCALCINGO", "TEMASCALTEPEC", "TEMOAYA",
+    "TENANCINGO", "TENANGO DEL AIRE", "TENANGO DEL VALLE", "TEOLOYUCAN",
+    "TEOTIHUACÁN", "TEPETLAOXTOC", "TEPETLIXPA", "TEPOTZOTLÁN", "TEQUIXQUIAC",
+    "TEXCALTITLÁN", "TEXCALYACAC", "TEXCOCO", "TEZOYUCA", "TIANGUISTENCO",
+    "TIMILPAN", "TLALMANALCO", "TLALNEPANTLA DE BAZ", "TLATLAYA", "TOLUCA",
+    "TONATICO", "TULTEPEC", "TULTITLÁN", "VALLE DE BRAVO", "VILLA DE ALLENDE",
+    "VILLA DEL CARBÓN", "VILLA GUERRERO", "VILLA VICTORIA", "XONACATLÁN",
+    "ZACAZONAPAN", "ZACUALPAN", "ZINACANTEPEC", "ZUMPAHUACÁN", "ZUMPANGO",
+    "VALLE DE CHALCO SOLIDARIDAD", "LUVIANOS", "SAN JOSÉ DEL RINCÓN", "TONANITLA"
 ]
 
 JEFATURAS_RESIDENCIA = [
@@ -126,6 +156,40 @@ FRASES_AGRARIAS = [
     "“Sembrar conciencia en el campo es cosechar soberanía y bienestar social.”",
     "“La labor del agrónomo y del servidor agrario es transformar la esperanza en frutos tangibles.”"
 ]
+
+@st.cache_data
+def cargar_catalogos_geograficos():
+    muns_df = pd.read_excel(MUN_FILE) if os.path.exists(MUN_FILE) else pd.DataFrame()
+    locs_df = pd.read_excel(LOC_FILE, sheet_name='Hoja1') if os.path.exists(LOC_FILE) else pd.DataFrame()
+    return muns_df, locs_df
+
+muns_global, locs_global = cargar_catalogos_geograficos()
+
+def obtener_municipios_estado(estado_nombre):
+    if estado_nombre == "Estado de México" and not locs_global.empty and 'NOMBRE DEL MUNICIPIO' in locs_global.columns:
+        muns = locs_global['NOMBRE DEL MUNICIPIO'].dropna().unique().tolist()
+        return sorted(list(set(muns)))
+    if muns_global.empty or estado_nombre not in ESTADOS_REPUBLICA:
+        return MUNICIPIOS_EDOMEX if estado_nombre == "Estado de México" else ["Cabecera Municipal"]
+    efe_key = ESTADOS_REPUBLICA.index(estado_nombre) + 1
+    if 'EFE_KEY' in muns_global.columns:
+        muns = muns_global[muns_global['EFE_KEY'] == efe_key]['MUNICIPIO'].dropna().tolist()
+    elif 'ENTIDAD' in muns_global.columns:
+        muns = muns_global[muns_global['ENTIDAD'].str.upper() == estado_nombre.upper()]['MUNICIPIO'].dropna().tolist()
+    else:
+        muns = muns_global.iloc[:, 1].dropna().tolist()
+    return sorted(list(set(muns))) if muns else ["Cabecera Municipal"]
+
+def obtener_localidades_municipio(estado_nombre, municipio_nombre):
+    if locs_global.empty:
+        return ["Cabecera Municipal"]
+    if 'NOMBRE DEL MUNICIPIO' in locs_global.columns and 'NOMBRE DE LA LOCALIDAD' in locs_global.columns:
+        locs = locs_global[locs_global['NOMBRE DEL MUNICIPIO'].str.upper() == municipio_nombre.upper()]['NOMBRE DE LA LOCALIDAD'].dropna().tolist()
+    else:
+        locs = locs_global.iloc[:, 1].dropna().tolist()
+    if not locs:
+        return ["Cabecera Municipal"]
+    return sorted(list(set(locs)))
 
 def cargar_usuarios():
     usuarios_base = {
@@ -300,11 +364,11 @@ rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)
 
 st.sidebar.title("📌 Menú de Navegación")
 if rol_actual == "Administrador Nacional":
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Panel de Administración y Auditoría"]
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Programación de Combustible y Viáticos", "Panel de Administración y Auditoría"]
 elif rol_actual in ["Administrador Estatal", "Administrador de Vehículos (Estatal)", "Jefe de Residencia", "Analista de Información"]:
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Panel de Supervisión (Estatal/Residencia)"]
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Programación de Combustible y Viáticos", "Panel de Supervisión (Estatal/Residencia)"]
 else:
-    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta"]
+    modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Programación de Combustible y Viáticos"]
 
 perfil = st.sidebar.radio("Selecciona tu módulo:", modulos_disponibles)
 
@@ -329,7 +393,187 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state["current_email"] = ""
     st.rerun()
 
-if perfil == "Mi Perfil / Foto":
+if perfil == "Programación de Combustible y Viáticos":
+    st.subheader("📅 Programación Mensual de Combustible y Viáticos por Residencia")
+    st.markdown("Módulo institucional para la programación, registro, revisión y validación de actividades, combustible y viáticos por Residencia.")
+
+    def cargar_programacion():
+        if os.path.exists(PROGRAMACION_FILE):
+            try:
+                with open(PROGRAMACION_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except:
+                pass
+        return []
+
+    def guardar_programacion(lista_prog):
+        with open(PROGRAMACION_FILE, "w", encoding="utf-8") as f:
+            json.dump(lista_prog, f, ensure_ascii=False, indent=4)
+
+    residencia_usuario_actual = st.session_state.get("current_jefatura", "RESIDENCIA TENANCINGO")
+    estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
+    usuario_actual_nombre = st.session_state.get("current_user", "")
+
+    tab_prog_reg, tab_prog_hist = st.tabs(["📝 Registrar / Cargar Programación", "📋 Historial y Supervisión Directiva"])
+
+    with tab_prog_reg:
+        st.markdown("### 📥 Nueva Programación de Actividades (Combustible y Viáticos)")
+        
+        with st.expander("📁 Importar Programación Masiva desde Excel (Formato Institucional)"):
+            archivo_excel_subido = st.file_uploader("Subir archivo Excel de programación", type=["xlsx", "xls"])
+            if archivo_excel_subido is not None:
+                try:
+                    df_subido = pd.read_excel(archivo_excel_subido)
+                    st.write("Vista previa del archivo cargado:", df_subido.head(5))
+                    if st.button("📥 Procesar e Importar Registros del Excel"):
+                        lista_prog = cargar_programacion()
+                        importados = 0
+                        for idx, row in df_subido.iterrows():
+                            vals = row.values
+                            if len(vals) >= 12 and pd.notna(vals[1]):
+                                nuevo_item = {
+                                    "FECHA": str(vals[1])[:10],
+                                    "RESPONSABLE": str(vals[2]).strip().upper() if pd.notna(vals[2]) else usuario_actual_nombre,
+                                    "CARGO": str(vals[3]).strip() if pd.notna(vals[3]) else "Organizador Agrario",
+                                    "PLACAS": str(vals[4]).strip().upper() if pd.notna(vals[4]) else "SIN PLACA",
+                                    "DESCRIPCION": str(vals[5]).strip() if pd.notna(vals[5]) else "Actividad institucional",
+                                    "MUNICIPIO": str(vals[6]).strip().upper() if pd.notna(vals[6]) else "GENERAL",
+                                    "EJIDO": str(vals[7]).strip() if pd.notna(vals[7]) else "EJIDO",
+                                    "INDICADOR_POA": str(vals[8]).strip() if pd.notna(vals[8]) else "Fortalecimiento agrario",
+                                    "VIATICOS_REQ": str(vals[9]).strip().upper() if pd.notna(vals[9]) else "SÍ",
+                                    "IMPORTE_VIATICOS": float(vals[10]) if pd.notna(vals[10]) and str(vals[10]).replace('.','',1).isdigit() else 495.0,
+                                    "IMPORTE_COMBUSTIBLE": float(vals[11]) if pd.notna(vals[11]) and str(vals[11]).replace('.','',1).isdigit() else 200.0,
+                                    "RESIDENCIA": residencia_usuario_actual,
+                                    "ESTADO": estado_usuario_actual,
+                                    "ESTATUS": "PENDIENTE DE REVISIÓN",
+                                    "CORREO": current_email_key
+                                }
+                                lista_prog.append(nuevo_item)
+                                importados += 1
+                        guardar_programacion(lista_prog)
+                        registrar_auditoria("IMPORTAR PROGRAMACION", f"Importados {importados} registros desde Excel para {residencia_usuario_actual}")
+                        st.success(f"✅ ¡Se importaron {importados} registros exitosamente!")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Error al procesar el archivo Excel: {e}")
+
+        st.markdown("---")
+        st.markdown("### ✍️ Registro Individual de Actividad")
+        with st.form("form_prog_individual"):
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                prog_fecha = st.date_input("Fecha Aproximada de Actividad", value=date.today())
+                prog_resp = st.text_input("Nombre del Responsable", value=usuario_actual_nombre, max_chars=300)
+                prog_cargo = st.selectbox("Cargo del Responsable", ["Organizador Agrario", "Organizadora Agraria", "Jefe de Residencia", "Analista de Información"])
+                prog_placas = st.text_input("Placas del Vehículo a Utilizar", value="", max_chars=50)
+                prog_mun = st.text_input("Municipio", value="", max_chars=300)
+            with col_p2:
+                prog_ejido = st.text_input("Ejido / Comunidad", value="", max_chars=300)
+                prog_poa = st.selectbox("Indicador del POA", [
+                    "Fortalecimiento de la organización agraria",
+                    "Audiencia campesina",
+                    "Proyecto comunitario",
+                    "Actualización de reglamento interno y depuración de padrón",
+                    "Asesoría jurídica y representación legal"
+                ])
+                prog_viaticos_req = st.selectbox("¿Se requieren viáticos?", ["Sí", "No"])
+                prog_imp_viaticos = st.number_input("Importe de Viáticos ($ MXN)", min_value=0.0, value=495.0, step=50.0)
+                prog_imp_comb = st.number_input("Importe de Combustible ($ MXN)", min_value=0.0, value=250.0, step=50.0)
+            
+            prog_desc = st.text_area("Descripción de la Actividad a Realizar")
+            btn_guardar_prog = st.form_submit_button("💾 Guardar Actividad Programada")
+            
+            if btn_guardar_prog:
+                if not prog_placas.strip() or not prog_mun.strip() or not prog_desc.strip():
+                    st.error("⚠️ Debes completar las placas, el municipio y la descripción de la actividad.")
+                else:
+                    lista_prog = cargar_programacion()
+                    nuevo_reg = {
+                        "FECHA": prog_fecha.strftime("%d/%m/%Y"),
+                        "RESPONSABLE": prog_resp.strip().upper(),
+                        "CARGO": prog_cargo,
+                        "PLACAS": prog_placas.strip().upper(),
+                        "DESCRIPCION": prog_desc.strip(),
+                        "MUNICIPIO": prog_mun.strip().upper(),
+                        "EJIDO": prog_ejido.strip().upper() if prog_ejido.strip() else "GENERAL",
+                        "INDICADOR_POA": prog_poa,
+                        "VIATICOS_REQ": prog_viaticos_req.upper(),
+                        "IMPORTE_VIATICOS": prog_imp_viaticos if prog_viaticos_req == "Sí" else 0.0,
+                        "IMPORTE_COMBUSTIBLE": prog_imp_comb,
+                        "RESIDENCIA": residencia_usuario_actual,
+                        "ESTADO": estado_usuario_actual,
+                        "ESTATUS": "PENDIENTE DE REVISIÓN",
+                        "CORREO": current_email_key
+                    }
+                    lista_prog.append(nuevo_reg)
+                    guardar_programacion(lista_prog)
+                    registrar_auditoria("REGISTRO PROGRAMACION", f"Programación guardada para {prog_mun} ({residencia_usuario_actual})")
+                    st.success("✅ ¡Actividad programada registrada con éxito!")
+
+    with tab_prog_hist:
+        st.markdown("### 📋 Historial y Supervisión de Programaciones")
+        lista_prog_hist = cargar_programacion()
+        if lista_prog_hist:
+            df_prog = pd.DataFrame(lista_prog_hist)
+            if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
+                df_prog_filtro = df_prog[df_prog['RESIDENCIA'] == residencia_usuario_actual]
+            elif rol_actual in ["Administrador Estatal", "Analista de Información"]:
+                df_prog_filtro = df_prog[df_prog['ESTADO'] == estado_usuario_actual]
+            elif rol_actual == "Administrador Nacional":
+                df_prog_filtro = df_prog
+            else:
+                df_prog_filtro = df_prog[df_prog['CORREO'] == current_email_key]
+                
+            st.dataframe(df_prog_filtro, use_container_width=True)
+            
+            if not df_prog_filtro.empty:
+                tot_viaticos = df_prog_filtro['IMPORTE_VIATICOS'].sum()
+                tot_combustible = df_prog_filtro['IMPORTE_COMBUSTIBLE'].sum()
+                
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Total Importe Viáticos", f"${tot_viaticos:,.2f} MXN")
+                m2.metric("Total Importe Combustible", f"${tot_combustible:,.2f} MXN")
+                m3.metric("Total Actividades", f"{len(df_prog_filtro)}")
+                
+                st.markdown("---")
+                st.subheader("⚙️ Panel de Revisión y Validación Directiva")
+                for idx, row_item in enumerate(lista_prog_hist):
+                    if row_item.get("ESTATUS") == "PENDIENTE DE REVISIÓN" and (rol_actual in ["Administrador Nacional", "Administrador Estatal", "Jefe de Residencia"] or row_item.get("RESIDENCIA") == residencia_usuario_actual):
+                        col_info, col_ap, col_rec = st.columns([5, 1, 1])
+                        with col_info:
+                            st.write(f"**{row_item['RESPONSABLE']}** | Residencia: {row_item['RESIDENCIA']} | Destino: {row_item['MUNICIPIO']} | Combustible: ${row_item['IMPORTE_COMBUSTIBLE']:,.2f} | Viáticos: ${row_item['IMPORTE_VIATICOS']:,.2f}")
+                        with col_ap:
+                            if st.button("✅ Aprobar", key=f"prog_aprob_{idx}"):
+                                lista_prog_hist[idx]["ESTATUS"] = "APROBADO"
+                                guardar_programacion(lista_prog_hist)
+                                registrar_auditoria("APROBAR PROGRAMACION", f"Aprobada programación de {row_item['RESPONSABLE']} en {row_item['MUNICIPIO']}")
+                                st.rerun()
+                        with col_rec:
+                            if st.button("❌ Rechazar", key=f"prog_rech_{idx}"):
+                                lista_prog_hist[idx]["ESTATUS"] = "RECHAZADO"
+                                guardar_programacion(lista_prog_hist)
+                                registrar_auditoria("RECHAZAR PROGRAMACION", f"Rechazada programación de {row_item['RESPONSABLE']} en {row_item['MUNICIPIO']}")
+                                st.rerun()
+                                
+                st.markdown("---")
+                if st.button("⬇️ Descargar Programación en Excel Institucional"):
+                    try:
+                        output_prog = BytesIO()
+                        with pd.ExcelWriter(output_prog, engine='openpyxl') as writer:
+                            df_prog_filtro.to_excel(writer, index=False, sheet_name='PROGRAMACION')
+                        output_prog.seek(0)
+                        st.download_button(
+                            label="📥 Descargar Archivo Excel de Programación",
+                            data=output_prog,
+                            file_name=f"PROGRAMACION_COMBUSTIBLE_VIATICOS_{residencia_usuario_actual.replace(' ', '_')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    except Exception as e:
+                        st.error(f"Error al generar archivo Excel: {e}")
+        else:
+            st.info("No hay registros de programación de combustible y viáticos en el sistema.")
+
+elif perfil == "Mi Perfil / Foto":
     st.subheader("🖼️ Configuración de Perfil y Adscripción Institucional")
     st.markdown("Actualiza tu fotografía de perfil y verifica tu pertenencia territorial, jefatura y jefe de residencia correspondiente.")
     
@@ -364,7 +608,7 @@ if perfil == "Mi Perfil / Foto":
 
     st.markdown("---")
     st.subheader("📊 Resumen de Actividad y Uso de la Red (Accesos y Bitácoras)")
-    st.markdown("Auditoría general del sistema: Conoce qué usuarios han ingresado, cuántas veces han accedido, cuántas bitácoras han generado y cuántos registros acumulan.")
+    st.markdown("Auditoría general del sistema: Conoce qué usuarios han ingresado, cuántas veces han accedido, cuántas bitácoras oficiales han generado y cuántos registros acumulan.")
     
     logs_audit = []
     if os.path.exists(AUDIT_FILE):
@@ -429,6 +673,10 @@ elif perfil == "Solicitud de Recurso de Gasolina":
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
     solicitante_actual = st.session_state.get("current_user", "")
+    
+    lista_municipios = obtener_municipios_estado(estado_usuario_actual)
+    if not lista_municipios:
+        lista_municipios = MUNICIPIOS_EDOMEX if estado_usuario_actual == "Estado de México" else ["Cabecera Municipal"]
         
     with st.form("form_solicitud_gasolina"):
         col_s1, col_s2 = st.columns(2)
@@ -438,9 +686,12 @@ elif perfil == "Solicitud de Recurso de Gasolina":
             residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
             funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
         with col_s2:
-            municipio_destino = st.text_input(f"Municipio de Destino ({estado_usuario_actual}) - Libre", value="", max_chars=300, placeholder="Escribe el municipio libremente...")
-            localidad_destino = st.text_input("Localidad / Poblado de Destino - Libre", value="", max_chars=300, placeholder="Escribe la localidad libremente...")
-            vehiculo_asignado = st.text_input("Vehículo Oficial Asignado - Libre", value="", max_chars=300, placeholder="Ej. Nissan Versa, PickUp...")
+            municipio_destino = st.selectbox(f"Municipio de Destino ({estado_usuario_actual})", lista_municipios)
+            lista_loc_com = obtener_localidades_municipio(estado_usuario_actual, municipio_destino)
+            if not lista_loc_com:
+                lista_loc_com = ["Cabecera Municipal"]
+            localidad_destino = st.selectbox("Localidad / Poblado de Destino", lista_loc_com)
+            vehiculo_asignado = st.selectbox("Vehículo Oficial Asignado", ["NISSAN VERSA", "PickUp", "Estacas"])
             placas_vehiculo = st.text_input("Placas del Vehículo", value="", max_chars=300)
             
         st.markdown("---")
@@ -470,8 +721,8 @@ elif perfil == "Solicitud de Recurso de Gasolina":
                     "JEFATURA": residencia_adscripcion,
                     "ESTADO": estado_usuario_actual,
                     "FUNCIONARIO": funcionario_comisionado.upper(),
-                    "DESTINO": f"{localidad_destino.strip().upper()}, {municipio_destino.strip().upper()}",
-                    "VEHICULO": vehiculo_asignado.strip().upper(),
+                    "DESTINO": f"{localidad_destino}, {municipio_destino}",
+                    "VEHICULO": vehiculo_asignado,
                     "PLACAS": placas_vehiculo.upper(),
                     "FECHA INICIO": f_inicio_com.strftime("%d/%m/%Y"),
                     "FECHA TERMINO": f_fin_com.strftime("%d/%m/%Y"),
@@ -526,7 +777,7 @@ elif perfil == "Solicitud de Recurso de Gasolina":
 elif perfil == "Reporte de Incidencias en Ruta":
     st.error("⚠️ **[PRUEBA]** - Módulo en Fase de Pruebas Operativas")
     st.subheader("🚨 Reporte y Gestión de Incidencias y Fallas Mecánicas")
-    st.markdown("Módulo para registrar y dar seguimiento a averías, fallas mecánicas o imprevistos durante las comisiones.")
+    st.markdown("Módulo para registrar y dar seguimiento a averías, fallas mecánicas o imprevistos durante las comisiones oficiales.")
     
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     jefatura_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
@@ -616,13 +867,20 @@ elif perfil == "Módulo de Captura (Recorrido)":
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
         km_sugerido = float(ultimo_reg.get("KM FINAL / Km de Llegada", 0.0))
+
+    lista_municipios = obtener_municipios_estado(estado_usuario_actual)
+    if not lista_municipios:
+        lista_municipios = MUNICIPIOS_EDOMEX if estado_usuario_actual == "Estado de México" else ["Cabecera Municipal"]
         
     with st.form("form_captura_dia"):
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             fecha = st.date_input("Fecha de registro del uso del vehículo")
-            municipio = st.text_input(f"Municipio ({estado_usuario_actual}) - Libre", value="", max_chars=300, placeholder="Escribe el municipio libremente...")
-            poblado = st.text_input("Poblado / Localidad - Libre", value="", max_chars=300, placeholder="Escribe la localidad libremente...")
+            municipio = st.selectbox(f"Municipio ({estado_usuario_actual})", lista_municipios)
+            lista_localidades = obtener_localidades_municipio(estado_usuario_actual, municipio)
+            if not lista_localidades:
+                lista_localidades = ["Sin localidades registradas en catálogo"]
+            poblado = st.selectbox("Poblado / Localidad", lista_localidades)
             folio_ciia = st.text_input("Folio CIIA", value="", max_chars=300)
         with col2:
             h_salida = st.text_input("Hora de Salida (Formato 24h, ej. 09:00)", value="09:00", max_chars=300)
@@ -640,9 +898,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 "RESIDENCIA TENANCINGO"
             ])))
             residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
-            vehiculo = st.text_input("Tipo de Vehículo - Libre", value="", max_chars=300, placeholder="Ej. Nissan Versa, PickUp, Estacas...")
-            placas = st.text_input("Placas", value="", max_chars=300)
-            licencia = st.text_input("No. De Licencia", value="", max_chars=300)
+            vehiculo = st.selectbox("Tipo de Vehículo", ["NISSAN VERSA", "PickUp", "Estacas"])
+            placas = st.text_input("Placas (Sin valor predeterminado)", value="", max_chars=300)
+            licencia = st.text_input("No. De Licencia", value=st.session_state["current_licencia"], max_chars=300)
         with col4:
             usuario = st.text_input("Usuario Responsable", value=st.session_state["current_user"], max_chars=300)
             dotacion = st.number_input("Dotación de Gasolina ($)", min_value=0.0, value=200.0, step=1.0)
@@ -662,12 +920,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
         if guardar_dia:
             if not placas.strip():
                 st.error("⚠️ Debes ingresar el número de placas del vehículo (no hay placa predeterminada).")
-            elif not municipio.strip():
-                st.error("⚠️ Debes escribir el municipio.")
-            elif not poblado.strip():
-                st.error("⚠️ Debes escribir la localidad o poblado.")
-            elif not vehiculo.strip():
-                st.error("⚠️ Debes escribir el tipo de vehículo.")
             elif h_salida.strip() == h_llegada.strip():
                 st.error("⚠️ Error: La Hora de Salida y la Hora de Llegada no pueden ser iguales en formato 24 horas.")
             elif km_final < km_inicial:
@@ -675,10 +927,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
             else:
                 fecha_str = fecha.strftime("%d/%m/%Y")
                 placas_upper = placas.strip().upper()
-                mun_upper = municipio.strip().upper()
-                pob_upper = poblado.strip().upper()
-                veh_upper = vehiculo.strip().upper()
-                
                 registros_actuales = cargar_registros_acumulados()
                 
                 conflicto_duplicado = False
@@ -689,7 +937,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     r_km_ini = float(r.get("KM INICIAL / Km de Salida", 0))
                     r_km_fin = float(r.get("KM FINAL / Km de Llegada", 0))
                     if r_fecha == fecha_str and r_placas == placas_upper:
-                        if r_km_ini == km_inicial and r_km_fin == km_final and str(r.get("MUNICIPIO")).upper() == mun_upper:
+                        if r_km_ini == km_inicial and r_km_fin == km_final and str(r.get("MUNICIPIO")) == municipio:
                             conflicto_duplicado = True
                             mensaje_error = "⚠️ Registro duplicado: Ya existe un recorrido guardado con exactamente la misma información."
                             break
@@ -705,8 +953,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     nuevo_reg = {
                         "FECHA COMPLETA": fecha_str,
                         "MES": fecha.strftime("%B").upper(),
-                        "MUNICIPIO": mun_upper,
-                        "POBLADO": pob_upper,
+                        "MUNICIPIO": municipio,
+                        "POBLADO": poblado,
                         "folio CIIA": folio_ciia,
                         "HORA DE SALIDA": h_salida,
                         "KM INICIAL / Km de Salida": km_inicial,
@@ -722,7 +970,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         "observaciones": observaciones if observaciones else None,
                         "Usuario Responsable": usuario,
                         "Áreas de Adscripción": residencia,
-                        "Tipo de Vehículo": veh_upper,
+                        "Tipo de Vehículo": vehiculo,
                         "Placas": placas_upper,
                         "No. De Licencia": licencia,
                         "ESTADO_ADSCRIPCION": estado_usuario_actual,
@@ -732,8 +980,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     }
                     registros_actuales.append(nuevo_reg)
                     guardar_registros_acumulados(registros_actuales)
-                    registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {mun_upper} ({pob_upper})")
-                    st.success(f"✅ ¡Día {fecha_str} en {mun_upper} ({pob_upper}) guardado correctamente!")
+                    registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {municipio} ({poblado})")
+                    st.success(f"✅ ¡Día {fecha_str} en {municipio} ({poblado}) guardado correctamente!")
 
     registros_totales = cargar_registros_acumulados()
     if len(registros_totales) > 0:
@@ -754,7 +1002,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                 st.rerun()
         
         with col_acc2:
-            if st.button("🚀 Generar y Descargar 3 Bitácoras Definitivas"):
+            if st.button("🚀 Generar y Descargar 3 Bitácoras Oficiales Definitivas"):
                 if not os.path.exists(PLANTILLA_EXCEL):
                     st.error(f"⚠️ Error crítico: No se encuentra la plantilla oficial. Ruta buscada: {PLANTILLA_EXCEL}")
                 else:
@@ -868,11 +1116,11 @@ elif perfil == "Módulo de Captura (Recorrido)":
                         output.seek(0)
                         
                         registrar_auditoria("GENERAR BITACORAS", "Generación nativa completa exitosa")
-                        st.success("✅ ¡Las 3 bitácoras se generaron y vincularon perfectamente sin residuos!")
+                        st.success("✅ ¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente sin residuos!")
                         st.download_button(
-                            label="⬇️ Descargar Archivo Definitivo",
+                            label="⬇️ Descargar Archivo Oficial Definitivo",
                             data=output,
-                            file_name="BITACORAS_DEFINITIVAS.xlsx",
+                            file_name="BITACORAS_OFICIALES_DEFINITIVAS.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
                     except Exception as e:
@@ -881,7 +1129,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("📊 Panel de Gestión, Supervisión y Auditoría")
     
-    # --- PANEL EXCLUSIVO DE RESPALDO MAESTRO (SOLO PARA VICTOR OLMEDO) ---
     if st.session_state.get("current_email") == "victor.olmedo@pa.gob.mx":
         st.markdown("""
             <div style="background-color: #fcf5f6; border: 2px solid #6B1D2F; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -897,7 +1144,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 if os.path.exists(script_actual):
                     zip_file.write(script_actual, "app_nacional.py")
                 
-                for json_f in [USUARIOS_FILE, REGISTROS_FILE, SOLICITUDES_FILE, INCIDENCIAS_FILE, AUDIT_FILE]:
+                for json_f in [USUARIOS_FILE, REGISTROS_FILE, SOLICITUDES_FILE, INCIDENCIAS_FILE, PROGRAMACION_FILE, AUDIT_FILE]:
                     if os.path.exists(json_f):
                         zip_file.write(json_f, os.path.basename(json_f))
                 
@@ -1135,10 +1382,9 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     mapa_rows = []
                     for _, r in df_filtrado.iterrows():
                         mun = r["MUNICIPIO"]
-                        mun_key = next((k for k in CODS_MUNICIPIOS if k.upper() in mun.upper()), None)
-                        if mun_key:
+                        if mun in CODS_MUNICIPIOS:
                             mapa_rows.append({
-                                "lat": CODS_MUNICIPIOS[mun_key]["lat"], "lon": CODS_MUNICIPIOS[mun_key]["lon"],
+                                "lat": CODS_MUNICIPIOS[mun]["lat"], "lon": CODS_MUNICIPIOS[mun]["lon"],
                                 "MUNICIPIO": mun, "POBLADO": r["POBLADO"], "FECHA": r["FECHA COMPLETA"],
                                 "USUARIO": r["Usuario Responsable"], "RECORRIDO": r["RECORRIDO"]
                             })
@@ -1176,7 +1422,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     df_res_mun = df_resumen_mun.copy()
                     df_res_mun.to_excel(output_filtrado, index=False, sheet_name="REPORTE_FILTRADO")
                     output_filtrado.seek(0)
-                    st.download_button("⬇️ Descargar Reporte Filtrado in Excel", data=output_filtrado, file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    st.download_button("⬇️ Descargar Reporte Filtrado en Excel", data=output_filtrado, file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 else:
                     st.warning("⚠️ No se encontraron registros con los filtros seleccionados.")
             else:
