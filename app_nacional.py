@@ -54,6 +54,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Diccionarios de meses en español
+MESES_MAP_ES = {
+    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+}
+
+MESES_MAP_UPPER = {
+    1: 'ENERO', 2: 'FEBRERO', 3: 'MARZO', 4: 'ABRIL', 5: 'MAYO', 6: 'JUNIO',
+    7: 'JULIO', 8: 'AGOSTO', 9: 'SEPTIEMBRE', 10: 'OCTUBRE', 11: 'NOVIEMBRE', 12: 'DICIEMBRE'
+}
+
 # Rutas persistentes y carpetas de almacenamiento
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USUARIOS_FILE = os.path.join(BASE_DIR, "usuarios.json")
@@ -670,8 +681,6 @@ elif perfil == "Programación de Combustible y Viáticos":
         st.markdown("---")
         st.markdown("### Registro Individual de Actividad")
         
-        # Botones para seleccionar la residencia (Toluca, Atlacomulco, Naucalpan, Tenancingo, Valle de Bravo, Texcoco)
-        st.markdown("#### Seleccionar Residencia para el Registro:")
         cols_res = st.columns(6)
         lista_res_botones = ["Toluca", "Atlacomulco", "Naucalpan", "Tenancingo", "Valle de Bravo", "Texcoco"]
         
@@ -747,7 +756,7 @@ elif perfil == "Programación de Combustible y Viáticos":
 
             if not df_prog_filtro.empty:
                 df_prog_filtro['FECHA_DT'] = pd.to_datetime(df_prog_filtro['FECHA'], format='%d/%m/%Y', errors='coerce')
-                df_prog_filtro['MES_AÑO_STR'] = df_prog_filtro['FECHA_DT'].dt.strftime('%B %Y').str.capitalize()
+                df_prog_filtro['MES_AÑO_STR'] = df_prog_filtro['FECHA_DT'].dt.month.map(MESES_MAP_ES) + ' ' + df_prog_filtro['FECHA_DT'].dt.year.astype(str)
 
                 meses_disp = ["Todos los meses"] + sorted(df_prog_filtro['MES_AÑO_STR'].dropna().unique().tolist())
                 residencias_disp = ["Todas las residencias"] + sorted(df_prog_filtro['RESIDENCIA'].dropna().unique().tolist())
@@ -768,84 +777,89 @@ elif perfil == "Programación de Combustible y Viáticos":
                 if pers_sel != "Todas las personas":
                     df_prog_filtro = df_prog_filtro[df_prog_filtro['RESPONSABLE'] == pers_sel]
 
-            st.dataframe(df_prog_filtro.drop(columns=['FECHA_DT', 'MES_AÑO_STR'], errors='ignore'), use_container_width=True)
+                # Numeración a partir de 1
+                df_prog_filtro['ORIGINAL_IDX'] = df_prog_filtro.index
+                df_prog_filtro = df_prog_filtro.reset_index(drop=True)
+                df_prog_filtro.index = range(1, len(df_prog_filtro) + 1)
 
-            if not df_prog_filtro.empty:
-                tot_viaticos = df_prog_filtro['IMPORTE_VIATICOS'].sum()
-                tot_combustible = df_prog_filtro['IMPORTE_COMBUSTIBLE'].sum()
+                st.dataframe(df_prog_filtro.drop(columns=['FECHA_DT', 'MES_AÑO_STR', 'ORIGINAL_IDX'], errors='ignore'), use_container_width=True)
 
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Total Importe Viáticos", f"${tot_viaticos:,.2f} MXN")
-                m2.metric("Total Importe Combustible", f"${tot_combustible:,.2f} MXN")
-                m3.metric("Total Actividades", f"{len(df_prog_filtro)}")
+                if not df_prog_filtro.empty:
+                    tot_viaticos = df_prog_filtro['IMPORTE_VIATICOS'].sum()
+                    tot_combustible = df_prog_filtro['IMPORTE_COMBUSTIBLE'].sum()
 
-                st.markdown("---")
-                st.subheader("Resumen Ejecutivo Instantáneo (Filtros Aplicados)")
-                col_res1, col_res2 = st.columns(2)
-                with col_res1:
-                    st.write("**Desglose por Municipio:**")
-                    res_mun = df_prog_filtro.groupby('MUNICIPIO').agg(
-                        Actividades=('DESCRIPCION', 'count'),
-                        Viáticos=('IMPORTE_VIATICOS', 'sum'),
-                        Combustible=('IMPORTE_COMBUSTIBLE', 'sum')
-                    ).reset_index()
-                    st.dataframe(res_mun, use_container_width=True)
-                with col_res2:
-                    st.write("**Desglose por Responsable:**")
-                    res_resp = df_prog_filtro.groupby('RESPONSABLE').agg(
-                        Actividades=('DESCRIPCION', 'count'),
-                        Viáticos=('IMPORTE_VIATICOS', 'sum'),
-                        Combustible=('IMPORTE_COMBUSTIBLE', 'sum')
-                    ).reset_index()
-                    st.dataframe(res_resp, use_container_width=True)
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Total Importe Viáticos", f"${tot_viaticos:,.2f} MXN")
+                    m2.metric("Total Importe Combustible", f"${tot_combustible:,.2f} MXN")
+                    m3.metric("Total Actividades", f"{len(df_prog_filtro)}")
 
-                if rol_actual in ["Administrador Nacional", "Administrador Estatal", "Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
                     st.markdown("---")
-                    st.subheader("Panel de Eliminación Autorizada")
-                    tipo_borrado = st.radio("Selecciona el modo de eliminación", ["Eliminar registro específico", "Borrar todos los registros filtrados de jalón"])
+                    st.subheader("Resumen Ejecutivo Instantáneo (Filtros Aplicados)")
+                    col_res1, col_res2 = st.columns(2)
+                    with col_res1:
+                        st.write("**Desglose por Municipio:**")
+                        res_mun = df_prog_filtro.groupby('MUNICIPIO').agg(
+                            Actividades=('DESCRIPCION', 'count'),
+                            Viáticos=('IMPORTE_VIATICOS', 'sum'),
+                            Combustible=('IMPORTE_COMBUSTIBLE', 'sum')
+                        ).reset_index()
+                        st.dataframe(res_mun, use_container_width=True)
+                    with col_res2:
+                        st.write("**Desglose por Responsable:**")
+                        res_resp = df_prog_filtro.groupby('RESPONSABLE').agg(
+                            Actividades=('DESCRIPCION', 'count'),
+                            Viáticos=('IMPORTE_VIATICOS', 'sum'),
+                            Combustible=('IMPORTE_COMBUSTIBLE', 'sum')
+                        ).reset_index()
+                        st.dataframe(res_resp, use_container_width=True)
 
-                    if tipo_borrado == "Eliminar registro específico":
-                        with st.expander("Eliminar registro individual"):
-                            indices_disp = df_prog_filtro.index.tolist()
-                            idx_a_borrar = st.selectbox("Selecciona el índice del registro a eliminar", indices_disp if indices_disp else [])
+                    if rol_actual in ["Administrador Nacional", "Administrador Estatal", "Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
+                        st.markdown("---")
+                        st.subheader("Panel de Eliminación Autorizada")
+                        tipo_borrado = st.radio("Selecciona el modo de eliminación", ["Eliminar registro específico", "Borrar todos los registros"])
 
-                            if idx_a_borrar is not None and idx_a_borrar in df_prog_filtro.index:
-                                reg_sel = df_prog_filtro.loc[idx_a_borrar]
-                                st.warning(f"**Registro seleccionado:** Fecha: {reg_sel.get('FECHA')} | Responsable: {reg_sel.get('RESPONSABLE')} | Municipio: {reg_sel.get('MUNICIPIO')}")
-                                confirmar_del = st.checkbox("Confirmo que deseo eliminar este registro permanentemente")
-                                if confirmar_del and st.button("Ejecutar Eliminación Individual"):
-                                    lista_prog_hist = [item for i, item in enumerate(lista_prog_hist) if i != idx_a_borrar]
+                        if tipo_borrado == "Eliminar registro específico":
+                            with st.expander("Eliminar registro individual"):
+                                num_a_borrar = st.number_input("Número exacto del registro a eliminar", min_value=1, max_value=max(1, len(df_prog_filtro)), value=1, step=1)
+
+                                if num_a_borrar in df_prog_filtro.index:
+                                    reg_sel = df_prog_filtro.loc[num_a_borrar]
+                                    orig_idx = int(reg_sel['ORIGINAL_IDX'])
+                                    st.warning(f"**Registro seleccionado (#{num_a_borrar}):** Fecha: {reg_sel.get('FECHA')} | Responsable: {reg_sel.get('RESPONSABLE')} | Municipio: {reg_sel.get('MUNICIPIO')}")
+                                    confirmar_del = st.checkbox("Confirmo que deseo eliminar este registro permanentemente")
+                                    if confirmar_del and st.button("Ejecutar Eliminación Individual"):
+                                        lista_prog_hist = [item for i, item in enumerate(lista_prog_hist) if i != orig_idx]
+                                        guardar_programacion(lista_prog_hist)
+                                        registrar_auditoria("ELIMINAR PROGRAMACION", f"Eliminación de registro #{num_a_borrar} por {st.session_state.get('current_email')}")
+                                        st.success("Registro eliminado correctamente.")
+                                        st.rerun()
+                        else:
+                            with st.expander("Borrar todos los registros"):
+                                st.error(f"¡Atención! Estás a punto de eliminar **{len(df_prog_filtro)} registros** correspondientes a los filtros actuales.")
+                                conf_todo = st.checkbox("Confirmo bajo mi responsabilidad la eliminación masiva de todos los registros")
+                                if conf_todo and st.button("Ejecutar Eliminación Masiva"):
+                                    indices_a_eliminar = set(df_prog_filtro['ORIGINAL_IDX'].tolist())
+                                    lista_prog_hist = [item for i, item in enumerate(lista_prog_hist) if i not in indices_a_eliminar]
                                     guardar_programacion(lista_prog_hist)
-                                    registrar_auditoria("ELIMINAR PROGRAMACION", f"Eliminación de registro por {st.session_state.get('current_email')}")
-                                    st.success("Registro eliminado correctamente.")
+                                    registrar_auditoria("ELIMINACION MASIVA", f"Eliminación masiva de {len(indices_a_eliminar)} registros por {st.session_state.get('current_email')}")
+                                    st.success("¡Registros eliminados exitosamente!")
                                     st.rerun()
-                    else:
-                        with st.expander("Borrar todo de jalón (Registros filtrados)"):
-                            st.error(f"¡Atención! Estás a punto de eliminar de jalón **{len(df_prog_filtro)} registros** correspondientes a los filtros actuales.")
-                            conf_todo = st.checkbox("Confirmo bajo mi responsabilidad la eliminación masiva de todos los registros filtrados")
-                            if conf_todo and st.button("Ejecutar Eliminación Masiva de Jalón"):
-                                indices_a_eliminar = set(df_prog_filtro.index.tolist())
-                                lista_prog_hist = [item for i, item in enumerate(lista_prog_hist) if i not in indices_a_eliminar]
-                                guardar_programacion(lista_prog_hist)
-                                registrar_auditoria("ELIMINACION MASIVA", f"Eliminación masiva de {len(indices_a_eliminar)} registros por {st.session_state.get('current_email')}")
-                                st.success("¡Registros eliminados de jalón exitosamente!")
-                                st.rerun()
 
-                st.markdown("---")
-                if st.button("Descargar Programación en Excel Institucional"):
-                    try:
-                        output_prog = BytesIO()
-                        with pd.ExcelWriter(output_prog, engine='openpyxl') as writer:
-                            df_prog_filtro.drop(columns=['FECHA_DT', 'MES_AÑO_STR'], errors='ignore').to_excel(writer, index=False, sheet_name='PROGRAMACION')
-                        output_prog.seek(0)
-                        st.download_button(
-                            label="Descargar Archivo Excel de Programación",
-                            data=output_prog,
-                            file_name=f"PROGRAMACION_COMBUSTIBLE_VIATICOS_{residencia_usuario_actual.replace(' ', '_')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                    except Exception as e:
-                        st.error(f"Error al generar archivo Excel: {e}")
+                    st.markdown("---")
+                    if st.button("Descargar Programación en Excel Institucional"):
+                        try:
+                            output_prog = BytesIO()
+                            with pd.ExcelWriter(output_prog, engine='openpyxl') as writer:
+                                df_prog_filtro.drop(columns=['FECHA_DT', 'MES_AÑO_STR', 'ORIGINAL_IDX'], errors='ignore').to_excel(writer, index=False, sheet_name='PROGRAMACION')
+                            output_prog.seek(0)
+                            st.download_button(
+                                label="Descargar Archivo Excel de Programación",
+                                data=output_prog,
+                                file_name=f"PROGRAMACION_COMBUSTIBLE_VIATICOS_{residencia_usuario_actual.replace(' ', '_')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        except Exception as e:
+                            st.error(f"Error al generar archivo Excel: {e}")
         else:
             st.info("No hay registros de programación de combustible y viáticos en el sistema.")
 
@@ -857,7 +871,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -950,7 +964,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     recorrido = km_final - km_inicial
                     nuevo_reg = {
                         "FECHA COMPLETA": fecha_str,
-                        "MES": fecha.strftime("%B").upper(),
+                        "MES": MESES_MAP_UPPER[fecha.month],
                         "MUNICIPIO": mun_upper,
                         "POBLADO": pob_upper,
                         "folio CIIA": folio_ciia,
@@ -1017,7 +1031,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                             fecha_dt = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
                             ws_b[f'A{i}'] = fecha_dt
                             ws_b[f'A{i}'].number_format = "DD/MM/YYYY"
-                            ws_b[f'B{i}'] = f'=UPPER(TEXT(A{i}, "MMMM"))'
+                            ws_b[f'B{i}'] = MESES_MAP_UPPER[fecha_dt.month]
                             ws_b[f'C{i}'] = reg["MUNICIPIO"]
                             ws_b[f'D{i}'] = reg["POBLADO"]
                             ws_b[f'E{i}'] = reg["folio CIIA"]
@@ -1087,7 +1101,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
 
                             for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
                                 start_row = 1 + idx * 12
-                                ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & UPPER(TEXT(BASE_DE_DATOS!A{r_db}, "MMMM"))')
+                                fecha_reg_dt = datetime.strptime(registros_totales[idx]["FECHA COMPLETA"], "%d/%m/%Y").date()
+                                mes_nombre_upper = MESES_MAP_UPPER[fecha_reg_dt.month]
+                                ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & "{mes_nombre_upper}"')
                                 ws_i.cell(row=start_row+1, column=4, value=f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})')
                                 ws_i.cell(row=start_row+2, column=2, value=f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})')
                                 ws_i.cell(row=start_row+2, column=4, value=f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})')
