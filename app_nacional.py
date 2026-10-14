@@ -534,4 +534,57 @@ elif perfil == "Reporte de Incidencias en Ruta":
     usuario_actual_nombre = st.session_state.get("current_user", "")
     
     with st.form("form_incidencia"):
-        col_i1
+        col_i1, col_i2 = st.columns(2)
+        with col_i1:
+            fecha_inc = st.date_input("Fecha de la Incidencia", value=date.today())
+            placas_inc = st.text_input("Placas del Vehículo Afectado", value="", max_chars=300)
+            tipo_falla = st.selectbox("Tipo de Incidencia / Falla", [
+                "🔴 Falla Mecánica Mayor (Motor/Transmisión)",
+                "🟡 Falla Eléctrica / Batería",
+                "🟠 Pinchadura de Neumático / Llanta",
+                "🔵 Calentamiento / Sistema de Enfriamiento",
+                "⚪ Otro imprevisto en ruta"
+            ])
+        with col_i2:
+            municipio_inc = st.text_input("Municipio / Lugar de la Avería", value="", max_chars=300)
+            gravedad_inc = st.selectbox("Nivel de Urgencia", ["Baja", "Media", "Alta (Requiere Grúa/Auxilio Inmediato)"])
+            
+        descripcion_inc = st.text_area("Descripción detallada de la incidencia mecánica o imprevisto")
+        btn_enviar_inc = st.form_submit_button("🚨 Enviar Reporte de Incidencia")
+        if btn_enviar_inc:
+            if not municipio_inc.strip() or not descripcion_inc.strip() or not placas_inc.strip():
+                st.error("⚠️ Debes completar las placas, el municipio y la descripción de la falla.")
+            else:
+                nueva_inc = {
+                    "FECHA": fecha_inc.strftime("%d/%m/%Y"),
+                    "CONDUCTOR": usuario_actual_nombre,
+                    "CORREO": current_email_key,
+                    "JEFATURA": jefatura_actual,
+                    "ESTADO": estado_usuario_actual,
+                    "PLACAS": placas_inc.strip().upper(),
+                    "TIPO": tipo_falla,
+                    "MUNICIPIO": municipio_inc.upper(),
+                    "URGENCIA": gravedad_inc,
+                    "DESCRIPCION": descripcion_inc,
+                    "ESTATUS": "PENDIENTE DE ATENCIÓN"
+                }
+                lista_incs = cargar_incidencias()
+                lista_incs.append(nueva_inc)
+                guardar_incidencias(lista_incs)
+                registrar_auditoria("REPORTE INCIDENCIA", f"Falla reportada en vehículo {placas_inc} ({tipo_falla})")
+                st.success("✅ Incidencia reportada exitosamente. Se ha notificado al Administrador de Vehículos y Jefatura.")
+
+    todas_incs = cargar_incidencias()
+    if todas_incs:
+        st.markdown("---")
+        st.subheader("📋 Historial de Incidencias en Ruta")
+        df_incs = pd.DataFrame(todas_incs)
+        if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
+            df_incs_filtrado = df_incs[df_incs['ESTADO'] == estado_usuario_actual]
+        elif rol_actual == "Administrador Estatal":
+            df_incs_filtrado = df_incs[df_incs['ESTADO'] == estado_usuario_actual]
+        elif rol_actual == "Administrador Nacional":
+            df_incs_filtrado = df_incs
+        else:
+            df_incs_filtrado = df_incs[df_incs['CORREO'] == current_email_key]
+        st.dataframe(df_incs_filtrado, use_container_
