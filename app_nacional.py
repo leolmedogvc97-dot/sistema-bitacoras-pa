@@ -54,7 +54,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Rutas persistentes y carpetas de almacenamiento
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USUARIOS_FILE = os.path.join(BASE_DIR, "usuarios.json")
 REGISTROS_FILE = os.path.join(BASE_DIR, "registros.json")
@@ -68,7 +67,6 @@ MUN_FILE = os.path.join(BASE_DIR, "MUNICIPIOS_202606.xlsx")
 LOC_FILE = os.path.join(BASE_DIR, "localidades.xlsx")
 os.makedirs(FOTOS_DIR, exist_ok=True)
 
-# Detección automática y flexible de la plantilla Excel institucional en la raíz
 excel_files = [os.path.join(BASE_DIR, f) for f in os.listdir(BASE_DIR) if f.endswith('.xlsx') and not f.startswith("BITACORAS_OFICIALES") and f not in ["MUNICIPIOS_202606.xlsx", "LOCALIDADES_202606.xlsx", "localidades.xlsx"]]
 PLANTILLA_EXCEL = excel_files[0] if excel_files else os.path.join(BASE_DIR, "Bitacora_Actualizada_Formula (2).xlsx")
 
@@ -729,7 +727,20 @@ elif perfil == "Programación de Combustible y Viáticos":
             else:
                 df_prog_filtro = df_prog[df_prog['CORREO'] == current_email_key]
                 
-            st.dataframe(df_prog_filtro, use_container_width=True)
+            # Filtro / Clasificación por Mes
+            if not df_prog_filtro.empty:
+                df_prog_filtro['FECHA_DT'] = pd.to_datetime(df_prog_filtro['FECHA'], format='%d/%m/%Y', errors='coerce')
+                df_prog_filtro['MES_AÑO_STR'] = df_prog_filtro['FECHA_DT'].dt.strftime('%B %Y').str.capitalize()
+                meses_disponibles = ["Todos los meses"] + sorted(df_prog_filtro['MES_AÑO_STR'].dropna().unique().tolist())
+                
+                col_m_f1, col_m_f2 = st.columns([2, 2])
+                with col_m_f1:
+                    mes_seleccionado = st.selectbox("📅 Clasificar / Filtrar por Mes", meses_disponibles)
+                
+                if mes_seleccionado != "Todos los meses":
+                    df_prog_filtro = df_prog_filtro[df_prog_filtro['MES_AÑO_STR'] == mes_seleccionado]
+            
+            st.dataframe(df_prog_filtro.drop(columns=['FECHA_DT', 'MES_AÑO_STR'], errors='ignore'), use_container_width=True)
             
             if not df_prog_filtro.empty:
                 tot_viaticos = df_prog_filtro['IMPORTE_VIATICOS'].sum()
@@ -740,6 +751,27 @@ elif perfil == "Programación de Combustible y Viáticos":
                 m2.metric("Total Importe Combustible", f"${tot_combustible:,.2f} MXN")
                 m3.metric("Total Actividades", f"{len(df_prog_filtro)}")
                 
+                # Panel de Eliminación Autorizada con Confirmación
+                if rol_actual in ["Administrador Nacional", "Administrador Estatal", "Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
+                    st.markdown("---")
+                    st.subheader("🗑️ Panel de Eliminación Autorizada de Registros")
+                    with st.expander("⚙️ Eliminar registro específico o limpiar programación"):
+                        indices_disp = df_prog_filtro.index.tolist()
+                        idx_a_borrar = st.selectbox("Selecciona el índice del registro a eliminar", indices_disp if indices_disp else [])
+                        
+                        if idx_a_borrar is not None:
+                            reg_sel = df_prog_filtro.loc[idx_a_borrar]
+                            st.warning(f"⚠️ **Registro seleccionado para eliminar:** Fecha: {reg_sel.get('FECHA')} | Responsable: {reg_sel.get('RESPONSABLE')} | Municipio: {reg_sel.get('MUNICIPIO')} | Descripción: {reg_sel.get('DESCRIPCION')}")
+                            
+                            confirmar_del = st.checkbox("Confirmo que deseo eliminar este registro de manera permanente (Acción autorizada)")
+                            if confirmar_del:
+                                if st.button("❌ Ejecutar Eliminación del Registro Seleccionado"):
+                                    lista_prog_hist = [item for i, item in enumerate(lista_prog_hist) if i != idx_a_borrar]
+                                    guardar_programacion(lista_prog_hist)
+                                    registrar_auditoria("ELIMINAR PROGRAMACION", f"Eliminación autorizada de registro programado por {st.session_state.get('current_email')}")
+                                    st.success("✅ Registro eliminado correctamente.")
+                                    st.rerun()
+
                 st.markdown("---")
                 st.subheader("📊 Resumen Mensual de Solicitudes")
                 try:
@@ -758,7 +790,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                     try:
                         output_prog = BytesIO()
                         with pd.ExcelWriter(output_prog, engine='openpyxl') as writer:
-                            df_prog_filtro.to_excel(writer, index=False, sheet_name='PROGRAMACION')
+                            df_prog_filtro.drop(columns=['FECHA_DT', 'MES_AÑO_STR', 'MES_AÑO'], errors='ignore').to_excel(writer, index=False, sheet_name='PROGRAMACION')
                         output_prog.seek(0)
                         st.download_button(
                             label="📥 Descargar Archivo Excel de Programación",
