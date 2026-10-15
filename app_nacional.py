@@ -120,7 +120,8 @@ ROLES_SISTEMA = [
     "Organizador Agrario (Operador)", 
     "Analista de Información", 
     "Administrador de Vehículos (Estatal)",
-    "Jefe de Residencia", 
+    "Jefe de Residencia",
+    "Representación",
     "Administrador Estatal", 
     "Administrador Nacional"
 ]
@@ -150,13 +151,14 @@ def cargar_usuarios():
         "esperanza.ramos@pa.gob.mx": {"nombre": "ESPERANZA WENDY RAMOS RODRIGUEZ", "pass": "Wendy", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
         "carlos.javg.96@gmail.com": {"nombre": "CARLOS JAVIER GALVEZ GONZALEZ", "pass": "Carlos", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
         "dehnny.vasquez@pa.gob.mx": {"nombre": "DEHNNY VAZQUEZ FLORES", "pass": "Dehnny", "licencia": "", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "", "foto": "", "activo": True},
-        # --- USUARIOS DE RESIDENCIAS (SIN ARROBA) ---
+        # --- USUARIOS DE RESIDENCIAS Y REPRESENTACIÓN ---
         "toluca.residencia": {"nombre": "OSCAR MENDOZA RUIZ", "pass": "Toluca2026", "licencia": "TOL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "atlacomulco.residencia": {"nombre": "BRENDA LÓPEZ SÁNCHEZ", "pass": "Atlacomulco2026", "licencia": "ATL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA ATLACOMULCO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "naucalpan.residencia": {"nombre": "ADÁN JIMÉNEZ PÉREZ", "pass": "Naucalpan2026", "licencia": "NAU123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "texcoco.residencia": {"nombre": "GUADALUPE RAMÍREZ FLORES", "pass": "Texcoco2026", "licencia": "TEX123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TEXCOCO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "vallebravo.residencia": {"nombre": "ROBERTO GÓMEZ CRUZ", "pass": "Valle2026", "licencia": "VAL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA VALLE DE BRAVO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
-        "tenancingo.residencia": {"nombre": "MARÍA ELENA SOTO VILLA", "pass": "Tenancingo2026", "licencia": "TEN123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TENANCINGO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True}
+        "tenancingo.residencia": {"nombre": "MARÍA ELENA SOTO VILLA", "pass": "Tenancingo2026", "licencia": "TEN123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TENANCINGO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "representacion.residencia": {"nombre": "REPRESENTACIÓN OFICIAL", "pass": "Representacion2026", "licencia": "REP123456", "rol": "Representación", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True}
     }
     if os.path.exists(USUARIOS_FILE):
         try:
@@ -293,7 +295,7 @@ jefatura_sesion_actual = st.session_state.get("current_jefatura", "RESIDENCIA NA
 st.sidebar.title("Menú de Navegación")
 if current_email_key == "victor.olmedo@pa.gob.mx":
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Programación de Combustible y Viáticos", "Panel de Administración y Auditoría"]
-elif rol_actual in ["Administrador Estatal", "Administrador de Vehículos (Estatal)", "Jefe de Residencia", "Analista de Información"]:
+elif rol_actual in ["Administrador Estatal", "Administrador de Vehículos (Estatal)", "Jefe de Residencia", "Representación", "Analista de Información"]:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Programación de Combustible y Viáticos", "Panel de Supervisión (Estatal/Residencia)"]
 else:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Programación de Combustible y Viáticos"]
