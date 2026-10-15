@@ -113,7 +113,8 @@ JEFATURAS_RESIDENCIA = [
     "RESIDENCIA ATLACOMULCO",
     "RESIDENCIA TEXCOCO",
     "RESIDENCIA VALLE DE BRAVO",
-    "RESIDENCIA TENANCINGO"
+    "RESIDENCIA TENANCINGO",
+    "REPRESENTACIÓN"
 ]
 
 ROLES_SISTEMA = [
@@ -158,7 +159,7 @@ def cargar_usuarios():
         "texcoco.residencia": {"nombre": "GUADALUPE RAMÍREZ FLORES", "pass": "Texcoco2026", "licencia": "TEX123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TEXCOCO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "vallebravo.residencia": {"nombre": "ROBERTO GÓMEZ CRUZ", "pass": "Valle2026", "licencia": "VAL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA VALLE DE BRAVO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "tenancingo.residencia": {"nombre": "MARÍA ELENA SOTO VILLA", "pass": "Tenancingo2026", "licencia": "TEN123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TENANCINGO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
-        "representacion.residencia": {"nombre": "REPRESENTACIÓN OFICIAL", "pass": "Representacion2026", "licencia": "REP123456", "rol": "Representación", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True}
+        "representacion.residencia": {"nombre": "REPRESENTACIÓN OFICIAL", "pass": "Representacion2026", "licencia": "REP123456", "rol": "Representación", "estado": "Estado de México", "jefatura": "REPRESENTACIÓN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True}
     }
     if os.path.exists(USUARIOS_FILE):
         try:
@@ -411,8 +412,8 @@ if perfil == "Mi Perfil / Foto":
         st.info("No hay usuarios registrados en el sistema.")
 
 elif perfil == "Programación de Combustible y Viáticos":
-    st.subheader("Programación Mensual de Combustible y Viáticos por Residencia")
-    st.markdown("Selecciona un mes mediante los recuadros para consultar, registrar o editar la programación de actividades.")
+    st.subheader("Programación Mensual de Combustible y Viáticos por Residencia y Representación")
+    st.markdown("Selecciona el **Año**, el **Área (Residencia o Representación)** y el **Mes** para consultar, registrar o editar la programación de actividades.")
 
     def cargar_programacion():
         if os.path.exists(PROGRAMACION_FILE):
@@ -431,14 +432,31 @@ elif perfil == "Programación de Combustible y Viáticos":
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     usuario_actual_nombre = st.session_state.get("current_user", "")
 
-    tab_prog_meses, tab_prog_hist = st.tabs(["Programación por Mes (Tarjetas ENE-DIC)", "Historial y Supervisión"])
+    tab_prog_meses, tab_prog_hist = st.tabs(["Programación por Año, Área y Mes", "Historial y Supervisión"])
 
     with tab_prog_meses:
-        st.markdown("### Selección de Mes Institucional")
-        
+        # --- SELECCIÓN DE AÑO (2026 AL 2028) ---
+        st.markdown("### 1. Selección de Año Institucional")
+        if "anio_activo_prog" not in st.session_state:
+            st.session_state["anio_activo_prog"] = datetime.now().year if datetime.now().year in [2026, 2027, 2028] else 2026
+
+        cols_anios = st.columns(3)
+        anios_disponibles = [2026, 2027, 2028]
+        for idx_a, anio_val in enumerate(anios_disponibles):
+            with cols_anios[idx_a]:
+                if st.button(f"📅 Año {anio_val}", key=f"btn_anio_{anio_val}", use_container_width=True):
+                    st.session_state["anio_activo_prog"] = anio_val
+                    st.rerun()
+
+        anio_activo = st.session_state["anio_activo_prog"]
+        st.info(f"Año seleccionado: **{anio_activo}**")
+        st.markdown("---")
+
+        # --- SELECCIÓN DE RESIDENCIA O REPRESENTACIÓN ---
+        st.markdown("### 2. Selección de Residencia o Representación")
         if current_email_key == "victor.olmedo@pa.gob.mx":
-            cols_res = st.columns(6)
-            lista_res_botones = ["Toluca", "Atlacomulco", "Naucalpan", "Tenancingo", "Valle de Bravo", "Texcoco"]
+            cols_res = st.columns(7)
+            lista_res_botones = ["Toluca", "Atlacomulco", "Naucalpan", "Tenancingo", "Valle de Bravo", "Texcoco", "Representación"]
             if "residencia_seleccionada_prog" not in st.session_state:
                 st.session_state["residencia_seleccionada_prog"] = "Tenancingo"
                 
@@ -447,15 +465,22 @@ elif perfil == "Programación de Combustible y Viáticos":
                     if st.button(res_nombre, key=f"btn_res_m_{res_nombre}", use_container_width=True):
                         st.session_state["residencia_seleccionada_prog"] = res_nombre
             res_asignada = st.session_state['residencia_seleccionada_prog']
-            st.info(f"Residencia seleccionada para el registro: **{res_asignada}**")
+            st.info(f"Área seleccionada para el registro: **{res_asignada}**")
         else:
-            res_asignada = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()
-            st.info(f"Residencia asignada: **{res_asignada}** (Bloqueada a tu adscripción)")
+            if rol_actual == "Representación" or "REPRESENTACION" in residencia_usuario_actual.upper():
+                res_asignada = "Representación"
+            else:
+                res_asignada = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()
+            st.info(f"Adscripción asignada: **{res_asignada}** (Bloqueada a tu perfil)")
 
+        st.markdown("---")
+
+        # --- SELECCIÓN DE MES INSTITUCIONAL ---
+        st.markdown("### 3. Selección de Mes Institucional")
         if "mes_activo_prog" not in st.session_state:
             st.session_state["mes_activo_prog"] = datetime.now().month
 
-        st.markdown("#### Haz clic en un mes para ver y editar su información:")
+        st.markdown(f"#### Haz clic en un mes del año **{anio_activo}** para ver y editar su información ({res_asignada}):")
         cols_meses_1 = st.columns(6)
         cols_meses_2 = st.columns(6)
 
@@ -474,11 +499,10 @@ elif perfil == "Programación de Combustible y Viáticos":
                     st.rerun()
 
         mes_activo = st.session_state["mes_activo_prog"]
-        anio_actual = datetime.now().year
         nombre_mes_largo = MESES_MAP_ES[mes_activo]
 
         st.markdown("---")
-        st.markdown(f"### Actividades programadas para: **{nombre_mes_largo.upper()} {anio_actual}** ({res_asignada})")
+        st.markdown(f"### Actividades programadas para: **{nombre_mes_largo.upper()} {anio_activo}** — *{res_asignada}*")
 
         lista_todos_prog = cargar_programacion()
         registros_mes_actual = []
@@ -488,7 +512,7 @@ elif perfil == "Programación de Combustible y Viáticos":
             if res_asignada.upper() in r_res:
                 try:
                     dt_item = datetime.strptime(r_fecha, "%d/%m/%Y")
-                    if dt_item.month == mes_activo and dt_item.year == anio_actual:
+                    if dt_item.month == mes_activo and dt_item.year == anio_activo:
                         registros_mes_actual.append({
                             "FECHA APROXIMADA DE ACTIVIDAD": r_fecha,
                             "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": item.get("RESPONSABLE", usuario_actual_nombre),
@@ -507,7 +531,7 @@ elif perfil == "Programación de Combustible y Viáticos":
 
         if not registros_mes_actual:
             registros_mes_actual = [{
-                "FECHA APROXIMADA DE ACTIVIDAD": f"01/{str(mes_activo).zfill(2)}/{anio_actual}",
+                "FECHA APROXIMADA DE ACTIVIDAD": f"01/{str(mes_activo).zfill(2)}/{anio_activo}",
                 "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": usuario_actual_nombre,
                 "CARGO DEL RESPONSABLE": "Organizador Agrario",
                 "PLACAS DEL VEHÍCULO A UTILIZAR": "",
@@ -526,7 +550,7 @@ elif perfil == "Programación de Combustible y Viáticos":
             df_mes_editor,
             num_rows="dynamic",
             use_container_width=True,
-            key=f"editor_mes_{mes_activo}",
+            key=f"editor_mes_{anio_activo}_{mes_activo}",
             column_config={
                 "FECHA APROXIMADA DE ACTIVIDAD": st.column_config.TextColumn("FECHA APROXIMADA DE ACTIVIDAD", required=True),
                 "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": st.column_config.TextColumn("NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD", required=True),
@@ -542,7 +566,7 @@ elif perfil == "Programación de Combustible y Viáticos":
             }
         )
 
-        if st.button(f"Guardar Actividades de {nombre_mes_largo.upper()}", use_container_width=True):
+        if st.button(f"Guardar Actividades de {nombre_mes_largo.upper()} {anio_activo}", use_container_width=True):
             lista_nueva = []
             for item in lista_todos_prog:
                 r_res = str(item.get("RESIDENCIA", "")).upper()
@@ -551,7 +575,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                 if res_asignada.upper() in r_res:
                     try:
                         dt_item = datetime.strptime(r_fecha, "%d/%m/%Y")
-                        if dt_item.month == mes_activo and dt_item.year == anio_actual:
+                        if dt_item.month == mes_activo and dt_item.year == anio_activo:
                             es_este_mes = True
                     except:
                         pass
@@ -563,7 +587,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                 placas_val = str(row.get("PLACAS DEL VEHÍCULO A UTILIZAR", "")).strip()
                 mun_val = str(row.get("MUNICIPIO", "")).strip()
                 desc_val = str(row.get("DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR", "")).strip()
-                f_val = str(row.get("FECHA APROXIMADA DE ACTIVIDAD", f"01/{str(mes_activo).zfill(2)}/{anio_actual}")).strip()
+                f_val = str(row.get("FECHA APROXIMADA DE ACTIVIDAD", f"01/{str(mes_activo).zfill(2)}/{anio_activo}")).strip()
 
                 if placas_val and mun_val and desc_val:
                     nuevo_reg = {
@@ -587,8 +611,8 @@ elif perfil == "Programación de Combustible y Viáticos":
                     guardados_count += 1
 
             guardar_programacion(lista_nueva)
-            registrar_auditoria("GUARDAR PROGRAMACION MES", f"Actualización de {guardados_count} registros para {res_asignada} en {nombre_mes_largo}")
-            st.success(f"¡Se ha guardado con éxito la programación del mes de {nombre_mes_largo} ({guardados_count} actividades)! Los datos persisten de forma permanente.")
+            registrar_auditoria("GUARDAR PROGRAMACION MES", f"Actualización de {guardados_count} registros para {res_asignada} en {nombre_mes_largo} {anio_activo}")
+            st.success(f"¡Se ha guardado con éxito la programación de {nombre_mes_largo} {anio_activo} ({guardados_count} actividades) para {res_asignada}!")
             st.rerun()
 
     with tab_prog_hist:
@@ -602,14 +626,14 @@ elif perfil == "Programación de Combustible y Viáticos":
             # --- APARTADO DE DESCARGA GENERAL POR MES (EXCLUSIVO ADMINISTRADOR NACIONAL) ---
             if st.session_state.get("current_rol") == "Administrador Nacional":
                 st.markdown("---")
-                st.subheader("📥 Descarga General por Mes (Todas las Residencias)")
+                st.subheader("📥 Descarga General por Mes (Todas las Residencias y Representación)")
                 df_prog['FECHA_DT_TEMP'] = pd.to_datetime(df_prog['FECHA'], format='%d/%m/%Y', errors='coerce')
                 df_prog['MES_AÑO_STR_TEMP'] = df_prog['FECHA_DT_TEMP'].dt.month.map(MESES_MAP_ES) + ' ' + df_prog['FECHA_DT_TEMP'].dt.year.astype(str)
                 meses_globales_disp = sorted(df_prog['MES_AÑO_STR_TEMP'].dropna().unique().tolist()) if not df_prog.empty else []
                 
                 col_dg1, col_dg2 = st.columns([2, 1])
                 with col_dg1:
-                    mes_descarga_gen = st.selectbox("Seleccionar Mes para Descarga Consolidada (Todas las Residencias)", meses_globales_disp if meses_globales_disp else ["Sin datos"], key="sel_mes_gen_nac")
+                    mes_descarga_gen = st.selectbox("Seleccionar Mes y Año para Descarga Consolidada (Global)", meses_globales_disp if meses_globales_disp else ["Sin datos"], key="sel_mes_gen_nac")
                 with col_dg2:
                     st.write("")
                     st.write("")
@@ -624,14 +648,14 @@ elif perfil == "Programación de Combustible y Viáticos":
                                 st.download_button(
                                     label=f"📥 Descargar Archivo Consolidado ({mes_descarga_gen})",
                                     data=output_gen,
-                                    file_name=f"PROGRAMACION_CONSOLIDADA_TODAS_RESIDENCIAS_{mes_descarga_gen.replace(' ', '_')}.xlsx",
+                                    file_name=f"PROGRAMACION_CONSOLIDADA_GLOBAL_{mes_descarga_gen.replace(' ', '_')}.xlsx",
                                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                     key="btn_dl_gen_excel_nac"
                                 )
                             except Exception as e:
                                 st.error(f"Error al generar archivo Excel consolidado: {e}")
                         else:
-                            st.warning("No hay registros para el mes seleccionado.")
+                            st.warning("No hay registros para el periodo seleccionado.")
                 st.markdown("---")
             # -------------------------------------------------------------------------------------------------
 
@@ -647,26 +671,26 @@ elif perfil == "Programación de Combustible y Viáticos":
 
                 meses_disp = ["Todos los meses"] + sorted(df_prog_filtro['MES_AÑO_STR'].dropna().unique().tolist())
                 if current_email_key == "victor.olmedo@pa.gob.mx":
-                    residencias_disp = ["Todas las residencias"] + sorted(df_prog_filtro['RESIDENCIA'].dropna().unique().tolist())
+                    residencias_disp = ["Todas las áreas"] + sorted(df_prog_filtro['RESIDENCIA'].dropna().unique().tolist())
                 else:
-                    residencias_disp = [residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()]
+                    residencias_disp = [res_asignada]
                 personas_disp = ["Todas las personas"] + sorted(df_prog_filtro['RESPONSABLE'].dropna().unique().tolist())
 
                 col_f1, col_f2, col_f3 = st.columns(3)
                 with col_f1:
-                    mes_sel = st.selectbox("Filtrar por Mes", meses_disp, key="filtro_mes_prog_h")
+                    mes_sel = st.selectbox("Filtrar por Mes y Año", meses_disp, key="filtro_mes_prog_h")
                 with col_f2:
                     if current_email_key == "victor.olmedo@pa.gob.mx":
-                        res_sel = st.selectbox("Filtrar por Residencia", residencias_disp, key="filtro_res_prog_h")
+                        res_sel = st.selectbox("Filtrar por Residencia / Representación", residencias_disp, key="filtro_res_prog_h")
                     else:
-                        res_sel = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()
-                        st.text_input("Filtrar por Residencia", value=res_sel, disabled=True, key="filtro_res_prog_dis_h")
+                        res_sel = res_asignada
+                        st.text_input("Filtrar por Área", value=res_sel, disabled=True, key="filtro_res_prog_dis_h")
                 with col_f3:
                     pers_sel = st.selectbox("Filtrar por Persona (Responsable)", personas_disp, key="filtro_pers_prog_h")
 
                 if mes_sel != "Todos los meses":
                     df_prog_filtro = df_prog_filtro[df_prog_filtro['MES_AÑO_STR'] == mes_sel]
-                if current_email_key == "victor.olmedo@pa.gob.mx" and res_sel != "Todas las residencias":
+                if current_email_key == "victor.olmedo@pa.gob.mx" and res_sel != "Todas las áreas":
                     df_prog_filtro = df_prog_filtro[df_prog_filtro['RESIDENCIA'] == res_sel]
                 if pers_sel != "Todas las personas":
                     df_prog_filtro = df_prog_filtro[df_prog_filtro['RESPONSABLE'] == pers_sel]
@@ -711,7 +735,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                             st.download_button(
                                 label="Descargar Archivo Excel de Programación",
                                 data=output_prog,
-                                file_name=f"PROGRAMACION_COMBUSTIBLE_VIATICOS_{residencia_usuario_actual.replace(' ', '_')}.xlsx",
+                                file_name=f"PROGRAMACION_COMBUSTIBLE_VIATICOS_{res_asignada.replace(' ', '_')}.xlsx",
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             )
                         except Exception as e:
@@ -754,7 +778,8 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     "RESIDENCIA ATLACOMULCO", 
                     "RESIDENCIA TEXCOCO", 
                     "RESIDENCIA VALLE DE BRAVO", 
-                    "RESIDENCIA TENANCINGO"
+                    "RESIDENCIA TENANCINGO",
+                    "REPRESENTACIÓN"
                 ])))
                 residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
             else:
