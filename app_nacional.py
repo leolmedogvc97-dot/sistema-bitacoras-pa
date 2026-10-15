@@ -638,7 +638,7 @@ elif perfil == "Programación de Combustible y Viáticos":
     tab_prog_reg, tab_prog_hist = st.tabs(["Registrar / Cargar Programación", "Historial y Supervisión"])
 
     with tab_prog_reg:
-        st.markdown("### Nueva Programación de Actividades (Combustible y Viáticos)")
+        st.markdown("### Tabla 1. Programación de Combustible y Viáticos")
         
         with st.expander("Importar Programación Masiva desde Excel (Formato Institucional)"):
             archivo_excel_subido = st.file_uploader("Subir archivo Excel de programación", type=["xlsx", "xls"])
@@ -679,13 +679,13 @@ elif perfil == "Programación de Combustible y Viáticos":
                     st.error(f"Error al procesar el archivo Excel: {e}")
 
         st.markdown("---")
-        st.markdown("### Registro Individual de Actividad")
+        st.markdown("### Registro Estilo Excel Institucional")
         
         cols_res = st.columns(6)
         lista_res_botones = ["Toluca", "Atlacomulco", "Naucalpan", "Tenancingo", "Valle de Bravo", "Texcoco"]
         
         if "residencia_seleccionada_prog" not in st.session_state:
-            st.session_state["residencia_seleccionada_prog"] = "Toluca"
+            st.session_state["residencia_seleccionada_prog"] = "Tenancingo"
             
         for idx_r, res_nombre in enumerate(lista_res_botones):
             with cols_res[idx_r]:
@@ -694,51 +694,99 @@ elif perfil == "Programación de Combustible y Viáticos":
                     
         st.info(f"Residencia asignada para este registro: **{st.session_state['residencia_seleccionada_prog']}**")
 
-        with st.form("form_prog_individual"):
-            col_p1, col_p2 = st.columns(2)
-            with col_p1:
-                prog_fecha = st.date_input("Fecha Aproximada de Actividad", value=date.today())
-                prog_resp = st.text_input("Nombre del Responsable", value=usuario_actual_nombre, max_chars=300)
-                prog_cargo = st.selectbox("Cargo del Responsable", ["Organizador Agrario", "Organizadora Agraria", "Jefe de Residencia", "Analista de Información"])
-                prog_placas = st.text_input("Placas del Vehículo a Utilizar", value="", max_chars=50)
-                prog_mun = st.text_input("Municipio", value="", max_chars=300)
-            with col_p2:
-                prog_ejido = st.text_input("Ejido / Comunidad", value="", max_chars=300)
-                prog_poa = st.text_input("Indicador del POA (Libre Escritura)", value="", max_chars=500, placeholder="Escribe el indicador del POA correspondiente...")
-                prog_viaticos_req = st.selectbox("¿Se requieren viáticos?", ["Sí", "No"])
-                prog_imp_viaticos = st.number_input("Importe de Viáticos ($ MXN)", min_value=0.0, value=0.0, step=50.0)
-                prog_imp_comb = st.number_input("Importe de Combustible ($ MXN)", min_value=0.0, value=0.0, step=50.0)
-            
-            prog_desc = st.text_area("Descripción de la Actividad a Realizar")
-            btn_guardar_prog = st.form_submit_button("Guardar Actividad Programada")
-            
-            if btn_guardar_prog:
-                if not prog_placas.strip() or not prog_mun.strip() or not prog_desc.strip():
-                    st.error("Debes completar las placas, el municipio y la descripción de la actividad.")
-                else:
-                    lista_prog = cargar_programacion()
-                    res_asignada = st.session_state.get("residencia_seleccionada_prog", "Toluca")
+        # Tabla editable estilo Excel con los encabezados exactos del formato oficial
+        if "editor_data" not in st.session_state:
+            st.session_state["editor_data"] = pd.DataFrame([{
+                "FECHA APROXIMADA DE ACTIVIDAD": date.today().strftime("%d/%m/%Y"),
+                "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": usuario_actual_nombre,
+                "CARGO DEL RESPONSABLE": "Organizador Agrario",
+                "PLACAS DEL VEHÍCULO A UTILIZAR": "",
+                "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": "",
+                "MUNICIPIO": "",
+                "EJIDO": "",
+                "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": "",
+                "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": "Sí",
+                "IMPORTE DE VIÁTICOS ($)": 0.0,
+                "IMPORTE DE COMBUSTIBLE": 0.0
+            }])
+
+        edited_df = st.data_editor(
+            st.session_state["editor_data"],
+            num_rows="dynamic",
+            use_container_width=True,
+            key="prog_data_editor",
+            column_config={
+                "FECHA APROXIMADA DE ACTIVIDAD": st.column_config.TextColumn("FECHA APROXIMADA DE ACTIVIDAD", required=True),
+                "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": st.column_config.TextColumn("NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD", required=True),
+                "CARGO DEL RESPONSABLE": st.column_config.TextColumn("CARGO DEL RESPONSABLE", required=True),
+                "PLACAS DEL VEHÍCULO A UTILIZAR": st.column_config.TextColumn("PLACAS DEL VEHÍCULO A UTILIZAR", required=True),
+                "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": st.column_config.TextColumn("DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR", required=True),
+                "MUNICIPIO": st.column_config.TextColumn("MUNICIPIO", required=True),
+                "EJIDO": st.column_config.TextColumn("EJIDO"),
+                "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": st.column_config.TextColumn("INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE"),
+                "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": st.column_config.SelectboxColumn("¿SE REQUIEREN VIÁTICOS? (SÍ/NO)", options=["Sí", "No"], required=True),
+                "IMPORTE DE VIÁTICOS ($)": st.column_config.NumberColumn("IMPORTE DE VIÁTICOS ($)", min_value=0.0, step=50.0),
+                "IMPORTE DE COMBUSTIBLE": st.column_config.NumberColumn("IMPORTE DE COMBUSTIBLE", min_value=0.0, step=50.0)
+            }
+        )
+
+        if st.button("Guardar Actividades Capturadas", use_container_width=True):
+            lista_prog = cargar_programacion()
+            res_asignada = st.session_state.get("residencia_seleccionada_prog", "Tenancingo")
+            guardados_count = 0
+            errores = 0
+
+            for idx, row in edited_df.iterrows():
+                placas_val = str(row.get("PLACAS DEL VEHÍCULO A UTILIZAR", "")).strip()
+                mun_val = str(row.get("MUNICIPIO", "")).strip()
+                desc_val = str(row.get("DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR", "")).strip()
+
+                if placas_val and mun_val and desc_val:
                     nuevo_reg = {
-                        "FECHA": prog_fecha.strftime("%d/%m/%Y"),
-                        "RESPONSABLE": prog_resp.strip().upper(),
-                        "CARGO": prog_cargo,
-                        "PLACAS": prog_placas.strip().upper(),
-                        "DESCRIPCION": prog_desc.strip(),
-                        "MUNICIPIO": prog_mun.strip().upper(),
-                        "EJIDO": prog_ejido.strip().upper() if prog_ejido.strip() else "GENERAL",
-                        "INDICADOR_POA": prog_poa.strip(),
-                        "VIATICOS_REQ": prog_viaticos_req.upper(),
-                        "IMPORTE_VIATICOS": prog_imp_viaticos,
-                        "IMPORTE_COMBUSTIBLE": prog_imp_comb,
+                        "FECHA": str(row.get("FECHA APROXIMADA DE ACTIVIDAD", date.today().strftime("%d/%m/%Y"))).strip(),
+                        "RESPONSABLE": str(row.get("NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD", usuario_actual_nombre)).strip().upper(),
+                        "CARGO": str(row.get("CARGO DEL RESPONSABLE", "Organizador Agrario")).strip(),
+                        "PLACAS": placas_val.upper(),
+                        "DESCRIPCION": desc_val,
+                        "MUNICIPIO": mun_val.upper(),
+                        "EJIDO": str(row.get("EJIDO", "GENERAL")).strip().upper() if str(row.get("EJIDO", "")).strip() else "GENERAL",
+                        "INDICADOR_POA": str(row.get("INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE", "")).strip(),
+                        "VIATICOS_REQ": str(row.get("¿SE REQUIEREN VIÁTICOS? (SÍ/NO)", "SÍ")).strip().upper(),
+                        "IMPORTE_VIATICOS": float(row.get("IMPORTE DE VIÁTICOS ($)", 0.0)),
+                        "IMPORTE_COMBUSTIBLE": float(row.get("IMPORTE DE COMBUSTIBLE", 0.0)),
                         "RESIDENCIA": res_asignada,
                         "ESTADO": estado_usuario_actual,
                         "ESTATUS": "REGISTRADO",
                         "CORREO": current_email_key
                     }
                     lista_prog.append(nuevo_reg)
-                    guardar_programacion(lista_prog)
-                    registrar_auditoria("REGISTRO PROGRAMACION", f"Programación guardada para {prog_mun} (Residencia: {res_asignada})")
-                    st.success("¡Actividad programada registrada con éxito!")
+                    guardados_count += 1
+                else:
+                    if placas_val or mun_val or desc_val:
+                        errores += 1
+
+            if guardados_count > 0:
+                guardar_programacion(lista_prog)
+                registrar_auditoria("REGISTRO PROGRAMACION TABLA", f"Guardados {guardados_count} registros desde editor para {res_asignada}")
+                st.success(f"¡Se guardaron {guardados_count} actividades programadas con éxito!")
+                if errores > 0:
+                    st.warning(f"Se omitieron {errores} filas por estar incompletas (requieren Placas, Municipio y Descripción).")
+                st.session_state["editor_data"] = pd.DataFrame([{
+                    "FECHA APROXIMADA DE ACTIVIDAD": date.today().strftime("%d/%m/%Y"),
+                    "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": usuario_actual_nombre,
+                    "CARGO DEL RESPONSABLE": "Organizador Agrario",
+                    "PLACAS DEL VEHÍCULO A UTILIZAR": "",
+                    "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": "",
+                    "MUNICIPIO": "",
+                    "EJIDO": "",
+                    "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": "",
+                    "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": "Sí",
+                    "IMPORTE DE VIÁTICOS ($)": 0.0,
+                    "IMPORTE DE COMBUSTIBLE": 0.0
+                }])
+                st.rerun()
+            else:
+                st.warning("No hay filas válidas para guardar. Asegúrate de llenar al menos Placas, Municipio y Descripción en las filas que deseas registrar.")
 
     with tab_prog_hist:
         st.markdown("### Historial y Supervisión de Programaciones")
