@@ -460,7 +460,6 @@ elif perfil == "Programación de Combustible y Viáticos":
         for m_num in range(1, 7):
             with cols_meses_1[m_num - 1]:
                 m_nombre = MESES_CORTOS[m_num]
-                btn_type = "primary" if st.session_state["mes_activo_prog"] == m_num else "secondary"
                 if st.button(m_nombre, key=f"mes_btn_{m_num}", use_container_width=True):
                     st.session_state["mes_activo_prog"] = m_num
                     st.rerun()
@@ -468,7 +467,6 @@ elif perfil == "Programación de Combustible y Viáticos":
         for m_num in range(7, 13):
             with cols_meses_2[m_num - 7]:
                 m_nombre = MESES_CORTOS[m_num]
-                btn_type = "primary" if st.session_state["mes_activo_prog"] == m_num else "secondary"
                 if st.button(m_nombre, key=f"mes_btn_{m_num}", use_container_width=True):
                     st.session_state["mes_activo_prog"] = m_num
                     st.rerun()
@@ -477,122 +475,119 @@ elif perfil == "Programación de Combustible y Viáticos":
         anio_actual = datetime.now().year
         nombre_mes_largo = MESES_MAP_ES[mes_activo]
 
-        st.markdown(f"---")
+        st.markdown("---")
         st.markdown(f"### Actividades programadas para: **{nombre_mes_largo.upper()} {anio_actual}** ({res_asignada})")
 
-        # Cargar datos existentes para este mes y residencia
-            lista_todos_prog = cargar_programacion()
-            registros_mes_actual = []
+        lista_todos_prog = cargar_programacion()
+        registros_mes_actual = []
+        for item in lista_todos_prog:
+            r_res = str(item.get("RESIDENCIA", "")).upper()
+            r_fecha = str(item.get("FECHA", ""))
+            if res_asignada.upper() in r_res:
+                try:
+                    dt_item = datetime.strptime(r_fecha, "%d/%m/%Y")
+                    if dt_item.month == mes_activo and dt_item.year == anio_actual:
+                        registros_mes_actual.append({
+                            "FECHA APROXIMADA DE ACTIVIDAD": r_fecha,
+                            "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": item.get("RESPONSABLE", usuario_actual_nombre),
+                            "CARGO DEL RESPONSABLE": item.get("CARGO", "Organizador Agrario"),
+                            "PLACAS DEL VEHÍCULO A UTILIZAR": item.get("PLACAS", ""),
+                            "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": item.get("DESCRIPCION", ""),
+                            "MUNICIPIO": item.get("MUNICIPIO", ""),
+                            "EJIDO": item.get("EJIDO", "GENERAL"),
+                            "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": item.get("INDICADOR_POA", ""),
+                            "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": item.get("VIATICOS_REQ", "Sí"),
+                            "IMPORTE DE VIÁTICOS ($)": float(item.get("IMPORTE_VIATICOS", 0.0)),
+                            "IMPORTE DE COMBUSTIBLE": float(item.get("IMPORTE_COMBUSTIBLE", 0.0))
+                        })
+                except:
+                    pass
+
+        if not registros_mes_actual:
+            registros_mes_actual = [{
+                "FECHA APROXIMADA DE ACTIVIDAD": f"01/{str(mes_activo).zfill(2)}/{anio_actual}",
+                "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": usuario_actual_nombre,
+                "CARGO DEL RESPONSABLE": "Organizador Agrario",
+                "PLACAS DEL VEHÍCULO A UTILIZAR": "",
+                "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": "",
+                "MUNICIPIO": "",
+                "EJIDO": "",
+                "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": "",
+                "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": "Sí",
+                "IMPORTE DE VIÁTICOS ($)": 0.0,
+                "IMPORTE DE COMBUSTIBLE": 0.0
+            }]
+
+        df_mes_editor = pd.DataFrame(registros_mes_actual)
+
+        edited_mes_df = st.data_editor(
+            df_mes_editor,
+            num_rows="dynamic",
+            use_container_width=True,
+            key=f"editor_mes_{mes_activo}",
+            column_config={
+                "FECHA APROXIMADA DE ACTIVIDAD": st.column_config.TextColumn("FECHA APROXIMADA DE ACTIVIDAD", required=True),
+                "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": st.column_config.TextColumn("NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD", required=True),
+                "CARGO DEL RESPONSABLE": st.column_config.TextColumn("CARGO DEL RESPONSABLE", required=True),
+                "PLACAS DEL VEHÍCULO A UTILIZAR": st.column_config.TextColumn("PLACAS DEL VEHÍCULO A UTILIZAR", required=True),
+                "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": st.column_config.TextColumn("DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR", required=True),
+                "MUNICIPIO": st.column_config.TextColumn("MUNICIPIO", required=True),
+                "EJIDO": st.column_config.TextColumn("EJIDO"),
+                "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": st.column_config.TextColumn("INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE"),
+                "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": st.column_config.SelectboxColumn("¿SE REQUIEREN VIÁTICOS? (SÍ/NO)", options=["Sí", "No"], required=True),
+                "IMPORTE DE VIÁTICOS ($)": st.column_config.NumberColumn("IMPORTE DE VIÁTICOS ($)", min_value=0.0, step=50.0),
+                "IMPORTE DE COMBUSTIBLE": st.column_config.NumberColumn("IMPORTE DE COMBUSTIBLE", min_value=0.0, step=50.0)
+            }
+        )
+
+        if st.button(f"Guardar Actividades de {nombre_mes_largo.upper()}", use_container_width=True):
+            lista_nueva = []
             for item in lista_todos_prog:
                 r_res = str(item.get("RESIDENCIA", "")).upper()
                 r_fecha = str(item.get("FECHA", ""))
-                # Filtrar por residencia y mes
+                es_este_mes = False
                 if res_asignada.upper() in r_res:
                     try:
                         dt_item = datetime.strptime(r_fecha, "%d/%m/%Y")
                         if dt_item.month == mes_activo and dt_item.year == anio_actual:
-                            registros_mes_actual.append({
-                                "FECHA APROXIMADA DE ACTIVIDAD": r_fecha,
-                                "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": item.get("RESPONSABLE", usuario_actual_nombre),
-                                "CARGO DEL RESPONSABLE": item.get("CARGO", "Organizador Agrario"),
-                                "PLACAS DEL VEHÍCULO A UTILIZAR": item.get("PLACAS", ""),
-                                "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": item.get("DESCRIPCION", ""),
-                                "MUNICIPIO": item.get("MUNICIPIO", ""),
-                                "EJIDO": item.get("EJIDO", "GENERAL"),
-                                "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": item.get("INDICADOR_POA", ""),
-                                "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": item.get("VIATICOS_REQ", "Sí"),
-                                "IMPORTE DE VIÁTICOS ($)": float(item.get("IMPORTE_VIATICOS", 0.0)),
-                                "IMPORTE DE COMBUSTIBLE": float(item.get("IMPORTE_COMBUSTIBLE", 0.0))
-                            })
+                            es_este_mes = True
                     except:
                         pass
+                if not es_este_mes:
+                    lista_nueva.append(item)
 
-            if not registros_mes_actual:
-                registros_mes_actual = [{
-                    "FECHA APROXIMADA DE ACTIVIDAD": f"01/{str(mes_activo).zfill(2)}/{anio_actual}",
-                    "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": usuario_actual_nombre,
-                    "CARGO DEL RESPONSABLE": "Organizador Agrario",
-                    "PLACAS DEL VEHÍCULO A UTILIZAR": "",
-                    "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": "",
-                    "MUNICIPIO": "",
-                    "EJIDO": "",
-                    "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": "",
-                    "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": "Sí",
-                    "IMPORTE DE VIÁTICOS ($)": 0.0,
-                    "IMPORTE DE COMBUSTIBLE": 0.0
-                }]
+            guardados_count = 0
+            for idx, row in edited_mes_df.iterrows():
+                placas_val = str(row.get("PLACAS DEL VEHÍCULO A UTILIZAR", "")).strip()
+                mun_val = str(row.get("MUNICIPIO", "")).strip()
+                desc_val = str(row.get("DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR", "")).strip()
+                f_val = str(row.get("FECHA APROXIMADA DE ACTIVIDAD", f"01/{str(mes_activo).zfill(2)}/{anio_actual}")).strip()
 
-            df_mes_editor = pd.DataFrame(registros_mes_actual)
+                if placas_val and mun_val and desc_val:
+                    nuevo_reg = {
+                        "FECHA": f_val,
+                        "RESPONSABLE": str(row.get("NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD", usuario_actual_nombre)).strip().upper(),
+                        "CARGO": str(row.get("CARGO DEL RESPONSABLE", "Organizador Agrario")).strip(),
+                        "PLACAS": placas_val.upper(),
+                        "DESCRIPCION": desc_val,
+                        "MUNICIPIO": mun_val.upper(),
+                        "EJIDO": str(row.get("EJIDO", "GENERAL")).strip().upper() if str(row.get("EJIDO", "")).strip() else "GENERAL",
+                        "INDICADOR_POA": str(row.get("INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE", "")).strip(),
+                        "VIATICOS_REQ": str(row.get("¿SE REQUIEREN VIÁTICOS? (SÍ/NO)", "SÍ")).strip().upper(),
+                        "IMPORTE_VIATICOS": float(row.get("IMPORTE DE VIÁTICOS ($)", 0.0)),
+                        "IMPORTE_COMBUSTIBLE": float(row.get("IMPORTE DE COMBUSTIBLE", 0.0)),
+                        "RESIDENCIA": res_asignada,
+                        "ESTADO": estado_usuario_actual,
+                        "ESTATUS": "REGISTRADO",
+                        "CORREO": current_email_key
+                    }
+                    lista_nueva.append(nuevo_reg)
+                    guardados_count += 1
 
-            edited_mes_df = st.data_editor(
-                df_mes_editor,
-                num_rows="dynamic",
-                use_container_width=True,
-                key=f"editor_mes_{mes_activo}",
-                column_config={
-                    "FECHA APROXIMADA DE ACTIVIDAD": st.column_config.TextColumn("FECHA APROXIMADA DE ACTIVIDAD", required=True),
-                    "NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD": st.column_config.TextColumn("NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD", required=True),
-                    "CARGO DEL RESPONSABLE": st.column_config.TextColumn("CARGO DEL RESPONSABLE", required=True),
-                    "PLACAS DEL VEHÍCULO A UTILIZAR": st.column_config.TextColumn("PLACAS DEL VEHÍCULO A UTILIZAR", required=True),
-                    "DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR": st.column_config.TextColumn("DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR", required=True),
-                    "MUNICIPIO": st.column_config.TextColumn("MUNICIPIO", required=True),
-                    "EJIDO": st.column_config.TextColumn("EJIDO"),
-                    "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": st.column_config.TextColumn("INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE"),
-                    "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": st.column_config.SelectboxColumn("¿SE REQUIEREN VIÁTICOS? (SÍ/NO)", options=["Sí", "No"], required=True),
-                    "IMPORTE DE VIÁTICOS ($)": st.column_config.NumberColumn("IMPORTE DE VIÁTICOS ($)", min_value=0.0, step=50.0),
-                    "IMPORTE DE COMBUSTIBLE": st.column_config.NumberColumn("IMPORTE DE COMBUSTIBLE", min_value=0.0, step=50.0)
-                }
-            )
-
-            if st.button(f"Guardar Actividades de {nombre_mes_largo.upper()}", use_container_width=True):
-                # Eliminar los registros anteriores de este mes/residencia para reemplazarlos con la edición actual
-                lista_nueva = []
-                for item in lista_todos_prog:
-                    r_res = str(item.get("RESIDENCIA", "")).upper()
-                    r_fecha = str(item.get("FECHA", ""))
-                    es_este_mes = False
-                    if res_asignada.upper() in r_res:
-                        try:
-                            dt_item = datetime.strptime(r_fecha, "%d/%m/%Y")
-                            if dt_item.month == mes_activo and dt_item.year == anio_actual:
-                                es_este_mes = True
-                        except:
-                            pass
-                    if not es_este_mes:
-                        lista_nueva.append(item)
-
-                guardados_count = 0
-                for idx, row in edited_mes_df.iterrows():
-                    placas_val = str(row.get("PLACAS DEL VEHÍCULO A UTILIZAR", "")).strip()
-                    mun_val = str(row.get("MUNICIPIO", "")).strip()
-                    desc_val = str(row.get("DESCRIPCIÓN DE LA ACTIVIDAD A REALIZAR", "")).strip()
-                    f_val = str(row.get("FECHA APROXIMADA DE ACTIVIDAD", f"01/{str(mes_activo).zfill(2)}/{anio_actual}")).strip()
-
-                    if placas_val and mun_val and desc_val:
-                        nuevo_reg = {
-                            "FECHA": f_val,
-                            "RESPONSABLE": str(row.get("NOMBRE DEL RESPONSABLE DE LA ACTIVIDAD", usuario_actual_nombre)).strip().upper(),
-                            "CARGO": str(row.get("CARGO DEL RESPONSABLE", "Organizador Agrario")).strip(),
-                            "PLACAS": placas_val.upper(),
-                            "DESCRIPCION": desc_val,
-                            "MUNICIPIO": mun_val.upper(),
-                            "EJIDO": str(row.get("EJIDO", "GENERAL")).strip().upper() if str(row.get("EJIDO", "")).strip() else "GENERAL",
-                            "INDICADOR_POA": str(row.get("INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE", "")).strip(),
-                            "VIATICOS_REQ": str(row.get("¿SE REQUIEREN VIÁTICOS? (SÍ/NO)", "SÍ")).strip().upper(),
-                            "IMPORTE_VIATICOS": float(row.get("IMPORTE DE VIÁTICOS ($)", 0.0)),
-                            "IMPORTE_COMBUSTIBLE": float(row.get("IMPORTE DE COMBUSTIBLE", 0.0)),
-                            "RESIDENCIA": res_asignada,
-                            "ESTADO": estado_usuario_actual,
-                            "ESTATUS": "REGISTRADO",
-                            "CORREO": current_email_key
-                        }
-                        lista_nueva.append(nuevo_reg)
-                        guardados_count += 1
-
-                guardar_programacion(lista_nueva)
-                registrar_auditoria("GUARDAR PROGRAMACION MES", f"Actualización de {guardados_count} registros para {res_asignada} en {nombre_mes_largo}")
-                st.success(f"¡Se ha guardado con éxito la programación del mes de {nombre_mes_largo} ({guardados_count} actividades)! Los datos persisten de forma permanente.")
-                st.rerun()
+            guardar_programacion(lista_nueva)
+            registrar_auditoria("GUARDAR PROGRAMACION MES", f"Actualización de {guardados_count} registros para {res_asignada} en {nombre_mes_largo}")
+            st.success(f"¡Se ha guardado con éxito la programación del mes de {nombre_mes_largo} ({guardados_count} actividades)! Los datos persisten de forma permanente.")
+            st.rerun()
 
     with tab_prog_hist:
         st.markdown("### Historial, Supervisión y Corrección de Duplicados")
@@ -775,531 +770,4 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     r_placas = str(r.get("Placas", "")).strip().upper()
                     r_km_ini = float(r.get("KM INICIAL / Km de Salida", 0))
                     r_km_fin = float(r.get("KM FINAL / Km de Llegada", 0))
-                    if r_fecha == fecha_str and r_placas == placas_upper:
-                        if r_km_ini == km_inicial and r_km_fin == km_final and str(r.get("MUNICIPIO")).upper() == mun_upper:
-                            conflicto_duplicado = True
-                            mensaje_error = "Registro duplicado: Ya existe un recorrido guardado con exactamente la misma información."
-                            break
-                        elif km_inicial < r_km_fin and km_final > r_km_ini:
-                            conflicto_duplicado = True
-                            mensaje_error = f"Conflicto de Kilometraje: El vehículo {placas_upper} ya registra un recorrido el {fecha_str} de {r_km_ini:,.0f} a {r_km_fin:,.0f} km."
-                            break
-
-                if conflicto_duplicado:
-                    st.error(mensaje_error)
-                else:
-                    recorrido = km_final - km_inicial
-                    nuevo_reg = {
-                        "FECHA COMPLETA": fecha_str,
-                        "MES": MESES_MAP_UPPER[fecha.month],
-                        "MUNICIPIO": mun_upper,
-                        "POBLADO": pob_upper,
-                        "folio CIIA": folio_ciia,
-                        "HORA DE SALIDA": h_salida,
-                        "KM INICIAL / Km de Salida": km_inicial,
-                        "RECORRIDO": recorrido,
-                        "HORA DE LLEGADA": h_llegada,
-                        "KM FINAL / Km de Llegada": km_final,
-                        "GASTO COMBUSTI": dotacion,
-                        "Gasolina de Salida": OPCIONES_GASOLINA[gas_salida_label],
-                        "Gasolina de Llegada": OPCIONES_GASOLINA[gas_llegada_label],
-                        "Dotación de Gasolina(LLENAR GASTO DE COMBUSTIBLE)": dotacion,
-                        "Oficio Numero": oficio_num if oficio_num else None,
-                        "Oficio Fecha": oficio_fecha if oficio_fecha else None,
-                        "observaciones": observaciones if observaciones else None,
-                        "Usuario Responsable": usuario,
-                        "Áreas de Adscripción": residencia,
-                        "Tipo de Vehículo": veh_upper,
-                        "Placas": placas_upper,
-                        "No. De Licencia": licencia,
-                        "ESTADO_ADSCRIPCION": estado_usuario_actual,
-                        "JEFATURA": jefatura_actual,
-                        "JEFE_RESIDENCIA": jefe_actual,
-                        "CORREO_ORGANIZADOR": current_email_key
-                    }
-                    registros_actuales.append(nuevo_reg)
-                    guardar_registros_acumulados(registros_actuales)
-                    registrar_auditoria("CAPTURA RECORRIDO", f"Registro de {recorrido} km en {mun_upper} ({pob_upper})")
-                    st.success(f"¡Día {fecha_str} en {mun_upper} ({pob_upper}) guardado correctamente!")
-
-    registros_totales = cargar_registros_acumulados()
-    if current_email_key == "victor.olmedo@pa.gob.mx":
-        registros_filtrados_vista = registros_totales
-    else:
-        registros_filtrados_vista = [r for r in registros_totales if r.get("JEFATURA") == jefatura_actual]
-
-    if len(registros_totales) > 0:
-        st.markdown("---")
-        st.subheader("Días Guardados (Historial Acumulado Permanente)")
-        busqueda_texto = st.text_input("Buscar en historial (Folio CIIA, Oficio, Poblado o Municipio):").strip().lower()
-        df_acumulado = pd.DataFrame(registros_filtrados_vista)
-        if not df_acumulado.empty and busqueda_texto:
-            mask = df_acumulado.apply(lambda row: row.astype(str).str.lower().str.contains(busqueda_texto).any(), axis=1)
-            df_acumulado = df_acumulado[mask]
-        
-        if not df_acumulado.empty:
-            st.dataframe(df_acumulado, use_container_width=True)
-        else:
-            st.info("No hay registros guardados para tu residencia.")
-        
-        col_acc1, col_acc2 = st.columns(2)
-        with col_acc1:
-            if current_email_key == "victor.olmedo@pa.gob.mx" and st.button("Limpiar historial completo"):
-                guardar_registros_acumulados([])
-                registrar_auditoria("LIMPIAR HISTORIAL", "Se eliminó todo el historial acumulado de recorridos")
-                st.rerun()
-        
-        with col_acc2:
-            if st.button("Generar y Descargar 3 Bitácoras Oficiales Definitivas"):
-                if not os.path.exists(PLANTILLA_EXCEL):
-                    st.error(f"Error crítico: No se encuentra la plantilla oficial. Ruta buscada: {PLANTILLA_EXCEL}")
-                else:
-                    try:
-                        wb = openpyxl.load_workbook(PLANTILLA_EXCEL)
-                        
-                        ws_b = wb["BASE_DE_DATOS"]
-                        max_r_existente = max(100, ws_b.max_row)
-                        for r in range(2, max_r_existente + 1):
-                            for col in ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V']:
-                                ws_b[f'{col}{r}'] = None
-
-                        for i, reg in enumerate(registros_filtrados_vista, start=2):
-                            fecha_dt = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
-                            ws_b[f'A{i}'] = fecha_dt
-                            ws_b[f'A{i}'].number_format = "DD/MM/YYYY"
-                            ws_b[f'B{i}'] = MESES_MAP_UPPER[fecha_dt.month]
-                            ws_b[f'C{i}'] = reg["MUNICIPIO"]
-                            ws_b[f'D{i}'] = reg["POBLADO"]
-                            ws_b[f'E{i}'] = reg["folio CIIA"]
-                            ws_b[f'F{i}'] = reg["HORA DE SALIDA"]
-                            
-                            if i == 2:
-                                ws_b[f'G{i}'] = reg["KM INICIAL / Km de Salida"]
-                            else:
-                                ws_b[f'G{i}'] = f'=J{i-1}'
-                                
-                            ws_b[f'H{i}'] = reg["RECORRIDO"]
-                            ws_b[f'I{i}'] = reg["HORA DE LLEGADA"]
-                            ws_b[f'J{i}'] = f'=G{i}+H{i}'
-                            ws_b[f'K{i}'] = 12.0
-                            ws_b[f'L{i}'] = reg["Gasolina de Salida"]
-                            ws_b[f'M{i}'] = f'=ROUND((H{i}/K{i})*23.99, 2)'
-                            ws_b[f'N{i}'] = reg["GASTO COMBUSTI"]
-                            ws_b[f'O{i}'] = reg["Oficio Numero"]
-                            ws_b[f'P{i}'] = reg["Oficio Fecha"]
-                            ws_b[f'Q{i}'] = reg["observaciones"]
-                            ws_b[f'R{i}'] = reg["Usuario Responsable"]
-                            ws_b[f'S{i}'] = reg["Áreas de Adscripción"]
-                            ws_b[f'T{i}'] = reg["Tipo de Vehículo"]
-                            ws_b[f'U{i}'] = reg["Placas"]
-                            ws_b[f'V{i}'] = reg["No. De Licencia"]
-
-                        row_tot = len(registros_filtrados_vista) + 2
-                        ws_b[f'A{row_tot}'] = "TOTALES"
-                        ws_b[f'H{row_tot}'] = f'=SUM(H2:H{row_tot-1})'
-
-                        if "2_BITACORA_VERSA" in wb.sheetnames:
-                            ws_v = wb["2_BITACORA_VERSA"]
-                            for r in range(3, 100):
-                                for col in ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W']:
-                                    ws_v[f'{col}{r}'] = None
-
-                            for idx, r_db in enumerate(range(2, 2 + len(registros_filtrados_vista))):
-                                r_v = idx + 3
-                                ws_v[f'A{r_v}'] = f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})'
-                                ws_v[f'B{r_v}'] = f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})'
-                                ws_v[f'C{r_v}'] = f'=IF(BASE_DE_DATOS!S{r_db}="","",BASE_DE_DATOS!S{r_db})'
-                                ws_v[f'D{r_v}'] = f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})'
-                                ws_v[f'E{r_v}'] = f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})'
-                                ws_v[f'F{r_v}'] = f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})'
-                                ws_v[f'G{r_v}'] = f'=IF(BASE_DE_DATOS!P{r_db}="","",BASE_DE_DATOS!P{r_db})'
-                                ws_v[f'H{r_v}'] = f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})'
-                                ws_v[f'I{r_v}'] = f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})'
-                                ws_v[f'J{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="v","X","")'
-                                ws_v[f'K{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/4","X","")'
-                                ws_v[f'L{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1/2","X","")'
-                                ws_v[f'M{r_v}'] = f'=IF(BASE_DE_DATOS!L{r_db}="1","X","")'
-                                ws_v[f'N{r_v}'] = f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})'
-                                ws_v[f'O{r_v}'] = f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})'
-                                ws_v[f'P{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="v","X","")'
-                                ws_v[f'Q{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/4","X","")'
-                                ws_v[f'R{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1/2","X","")'
-                                ws_v[f'S{r_v}'] = f'=IF(BASE_DE_DATOS!M{r_db}="1","X","")'
-                                ws_v[f'T{r_v}'] = f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})'
-                                ws_v[f'V{r_v}'] = f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})'
-                                ws_v[f'W{r_v}'] = f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})'
-
-                        if "3_BITACORAS_INDIVIDUALES" in wb.sheetnames:
-                            ws_i = wb["3_BITACORAS_INDIVIDUALES"]
-                            for r in range(1, 500):
-                                for c in range(1, 10):
-                                    ws_i.cell(row=r, column=c, value=None)
-
-                            for idx, r_db in enumerate(range(2, 2 + len(registros_filtrados_vista))):
-                                start_row = 1 + idx * 12
-                                fecha_reg_dt = datetime.strptime(registros_filtrados_vista[idx]["FECHA COMPLETA"], "%d/%m/%Y").date()
-                                mes_nombre_upper = MESES_MAP_UPPER[fecha_reg_dt.month]
-                                ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & "{mes_nombre_upper}"')
-                                ws_i.cell(row=start_row+1, column=4, value=f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})')
-                                ws_i.cell(row=start_row+2, column=2, value=f'=IF(BASE_DE_DATOS!T{r_db}="","",BASE_DE_DATOS!T{r_db})')
-                                ws_i.cell(row=start_row+2, column=4, value=f'=IF(BASE_DE_DATOS!U{r_db}="","",BASE_DE_DATOS!U{r_db})')
-                                ws_i.cell(row=start_row+3, column=2, value=f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})')
-                                ws_i.cell(row=start_row+3, column=4, value=f'=IF(BASE_DE_DATOS!V{r_db}="","",BASE_DE_DATOS!V{r_db})')
-                                ws_i.cell(row=start_row+4, column=2, value=f'=IF(BASE_DE_DATOS!F{r_db}="","",BASE_DE_DATOS!F{r_db})')
-                                ws_i.cell(row=start_row+4, column=4, value=f'=IF(BASE_DE_DATOS!O{r_db}="","",BASE_DE_DATOS!O{r_db})')
-                                ws_i.cell(row=start_row+5, column=4, value=f'=IF(BASE_DE_DATOS!G{r_db}="","",BASE_DE_DATOS!G{r_db})')
-                                ws_i.cell(row=start_row+6, column=2, value=f'=IF(BASE_DE_DATOS!I{r_db}="","",BASE_DE_DATOS!I{r_db})')
-                                ws_i.cell(row=start_row+6, column=4, value=f'=IF(BASE_DE_DATOS!J{r_db}="","",BASE_DE_DATOS!J{r_db})')
-                                ws_i.cell(row=start_row+7, column=3, value=f'=IF(BASE_DE_DATOS!N{r_db}="","",BASE_DE_DATOS!N{r_db})')
-                                ws_i.cell(row=start_row+8, column=2, value=f'=IF(BASE_DE_DATOS!C{r_db}="","",BASE_DE_DATOS!C{r_db})')
-                                ws_i.cell(row=start_row+9, column=2, value=f'=IF(BASE_DE_DATOS!Q{r_db}="","",BASE_DE_DATOS!Q{r_db})')
-
-                        wb.calculation.fullCalcOnLoad = True
-                        wb.calculation.forceFullCalc = True
-                        wb.calculation.calcMode = "auto"
-
-                        output = BytesIO()
-                        wb.save(output)
-                        output.seek(0)
-                        
-                        registrar_auditoria("GENERAR BITACORAS", "Generación nativa completa exitosa")
-                        st.success("¡Las 3 bitácoras oficiales se generaron y vincularon perfectamente sin residuos!")
-                        st.download_button(
-                            label="Descargar Archivo Oficial Definitivo",
-                            data=output,
-                            file_name="BITACORAS_OFICIALES_DEFINITIVAS.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                    except Exception as e:
-                        st.error(f"Error crítico al procesar la plantilla Excel: {e}")
-
-elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
-    st.subheader("Panel de Gestión, Supervisión y Auditoría")
-    
-    if current_email_key == "victor.olmedo@pa.gob.mx":
-        st.markdown("""
-            <div style="background-color: #fcf5f6; border: 2px solid #6B1D2F; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h4 style="color: #6B1D2F; margin-top: 0;">Panel de Respaldo Maestro Exclusivo (Víctor Olmedo)</h4>
-                <p style="font-size: 13px; color: #4a2c33;">Este botón descarga un archivo ZIP con absolutamente todo: el código fuente actual, todas las bases de datos de registros y auditoría, y las fotografías de perfil de todos los usuarios de la red.</p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("Generar y Descargar ZIP Maestro (Sistema + Bases de Datos + Fotos)"):
-            zip_buffer = BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                script_actual = os.path.join(BASE_DIR, "app_nacional.py")
-                if os.path.exists(script_actual):
-                    zip_file.write(script_actual, "app_nacional.py")
-                
-                for json_f in [USUARIOS_FILE, REGISTROS_FILE, PROGRAMACION_FILE, AUDIT_FILE]:
-                    if os.path.exists(json_f):
-                        zip_file.write(json_f, os.path.basename(json_f))
-                
-                if os.path.exists(FOTOS_DIR):
-                    for root, dirs, files in os.walk(FOTOS_DIR):
-                        for file in files:
-                            file_path = os.path.join(root, file)
-                            arcname = os.path.join("fotos_perfil", file)
-                            zip_file.write(file_path, arcname)
-                            
-                for ext_f in [PLANTILLA_EXCEL, MUN_FILE, LOC_FILE]:
-                    if ext_f and os.path.exists(ext_f):
-                        zip_file.write(ext_f, os.path.basename(ext_f))
-                        
-            zip_buffer.seek(0)
-            registrar_auditoria("RESPALDO MAESTRO", "Descarga de ZIP maestro de sistema y bases de datos")
-            st.success("¡Paquete de respaldo maestro generado exitosamente!")
-            st.download_button(
-                label="Descargar Archivo ZIP Maestro Institucional",
-                data=zip_buffer,
-                file_name=f"RESPALDO_MAESTRO_PA_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
-                mime="application/zip"
-            )
-        st.markdown("---")
-
-    if current_email_key == "victor.olmedo@pa.gob.mx":
-        tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit = st.tabs([
-            "Alta de Usuario", "Editar Usuario", "Control y Estatus", 
-            "Resumen Ejecutivo y Auditoría", "Bitácora de Auditoría"
-        ])
-    else:
-        tab_resumen_auditoria = st.container()
-        st.markdown("---")
-        st.subheader(f"Supervisión de Registros de tu Residencia ({jefatura_sesion_actual})")
-        
-    def render_alta_usuario():
-        with st.form("form_nuevo_usuario"):
-            col_u1, col_u2 = st.columns(2)
-            with col_u1:
-                c_email = st.text_input("Correo / Usuario", max_chars=300)
-                c_nombre = st.text_input("Nombre Completo (Mayúsculas)", max_chars=300)
-                c_pass = st.text_input("Contraseña Asignada", type="password", max_chars=300)
-                c_licencia = st.text_input("Número de Licencia de Conducir", max_chars=300)
-            with col_u2:
-                c_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA)
-                c_jefatura = st.selectbox("Jefatura de Residencia", JEFATURAS_RESIDENCIA)
-                c_jefe_res = st.text_input("Nombre del Jefe de Residencia Asignado", value="ING. GABRIEL ESTRADA", max_chars=300)
-                c_rol = st.selectbox("Rol en el Sistema", ROLES_SISTEMA)
-            btn_crear = st.form_submit_button("Registrar Usuario en la Red")
-            if btn_crear:
-                if c_email and c_nombre and c_pass:
-                    usuarios_actuales = cargar_usuarios()
-                    email_limpio = c_email.strip().lower()
-                    usuarios_actuales[email_limpio] = {
-                        "nombre": c_nombre.strip().upper(), "pass": c_pass.strip(), "licencia": c_licencia.strip(),
-                        "estado": c_estado, "jefatura": c_jefatura, "jefe_residencia": c_jefe_res.strip().upper(),
-                        "rol": c_rol, "foto": "", "activo": True
-                    }
-                    guardar_usuarios(usuarios_actuales)
-                    registrar_auditoria("ALTA USUARIO", f"Creación de usuario {email_limpio} con rol {c_rol}")
-                    st.success(f"¡Usuario {c_nombre} ({c_rol}) registrado exitosamente para {c_estado}!")
-                    st.rerun()
-                else:
-                    st.error("Por favor completa los campos obligatorios (Usuario/Correo, Nombre y Contraseña).")
-
-    def render_editar_usuario():
-        usuarios_actuales_edit = cargar_usuarios()
-        lista_emails = list(usuarios_actuales_edit.keys())
-        if lista_emails:
-            email_a_editar = st.selectbox("Selecciona el usuario a modificar", lista_emails)
-            if email_a_editar:
-                u_data = usuarios_actuales_edit[email_a_editar]
-                with st.form("form_editar_usuario"):
-                    col_e1, col_e2 = st.columns(2)
-                    with col_e1:
-                        e_nombre = st.text_input("Nombre Completo (Mayúsculas)", value=u_data.get("nombre", ""), max_chars=300)
-                        e_pass = st.text_input("Contraseña Asignada", value=u_data.get("pass", ""), type="password", max_chars=300)
-                        e_licencia = st.text_input("Número de Licencia de Conducir", value=u_data.get("licencia", ""), max_chars=300)
-                    with col_e2:
-                        estado_actual = u_data.get("estado", "Estado de México")
-                        idx_estado = ESTADOS_REPUBLICA.index(estado_actual) if estado_actual in ESTADOS_REPUBLICA else 0
-                        e_estado = st.selectbox("Estado de Adscripción", ESTADOS_REPUBLICA, index=idx_estado)
-                        jef_actual = u_data.get("jefatura", "RESIDENCIA NAUCALPAN")
-                        idx_jef = JEFATURAS_RESIDENCIA.index(jef_actual) if jef_actual in JEFATURAS_RESIDENCIA else 0
-                        e_jefatura = st.selectbox("Jefatura de Residencia", JEFATURAS_RESIDENCIA, index=idx_jef)
-                        e_jefe_res = st.text_input("Jefe de Residencia Asignado", value=u_data.get("jefe_residencia", ""), max_chars=300)
-                        idx_rol = ROLES_SISTEMA.index(u_data.get("rol", "Organizador Agrario (Operador)")) if u_data.get("rol") in ROLES_SISTEMA else 0
-                        e_rol = st.selectbox("Rol en el Sistema", ROLES_SISTEMA, index=idx_rol)
-                    btn_actualizar = st.form_submit_button("Guardar Cambios")
-                    if btn_actualizar:
-                        usuarios_actuales_edit[email_a_editar]["nombre"] = e_nombre.strip().upper()
-                        usuarios_actuales_edit[email_a_editar]["pass"] = e_pass.strip()
-                        usuarios_actuales_edit[email_a_editar]["licencia"] = e_licencia.strip()
-                        usuarios_actuales_edit[email_a_editar]["estado"] = e_estado
-                        usuarios_actuales_edit[email_a_editar]["jefatura"] = e_jefatura
-                        usuarios_actuales_edit[email_a_editar]["jefe_residencia"] = e_jefe_res.strip().upper()
-                        usuarios_actuales_edit[email_a_editar]["rol"] = e_rol
-                        guardar_usuarios(usuarios_actuales_edit)
-                        registrar_auditoria("EDITAR USUARIO", f"Actualización de datos para {email_a_editar}")
-                        st.success(f"¡Información de {email_a_editar} actualizada exitosamente!")
-                        st.rerun()
-
-    def render_control_estatus():
-        st.subheader("Control, Estatus y Eliminación de Usuarios en la Red Nacional")
-        usuarios_actuales_tabla = cargar_usuarios()
-        filas_html = ""
-        for email, datos in usuarios_actuales_tabla.items():
-            estado_activo = datos.get("activo", True)
-            color_fondo = "#d4edda" if estado_activo else "#e2e3e5"
-            texto_estado = "Activo" if estado_activo else "Desac."
-            filas_html += f"""
-            <div style="background-color: {color_fondo}; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #c0c0c0; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                <span style="flex: 2.0; text-align: left;"><b>{email}</b></span>
-                <span style="flex: 2.5; text-align: left;">{datos.get('nombre')}</span>
-                <span style="flex: 2.0; text-align: left;">{datos.get('rol')}</span>
-                <span style="flex: 1.3; text-align: left;">{datos.get('estado')}</span>
-                <span style="flex: 1.8; text-align: left;">{datos.get('jefatura')}</span>
-                <span style="flex: 0.9; text-align: right;"><b>{texto_estado}</b></span>
-            </div>
-            """
-        st.markdown(f"""
-            <div style="background-color: #6B1D2F; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
-                <span style="flex: 2.0; text-align: left;">USUARIO / CORREO</span>
-                <span style="flex: 2.5; text-align: left;">NOMBRE</span>
-                <span style="flex: 2.0; text-align: left;">ROL</span>
-                <span style="flex: 1.3; text-align: left;">ESTADO</span>
-                <span style="flex: 1.8; text-align: left;">JEFATURA</span>
-                <span style="flex: 0.9; text-align: right;">ESTATUS</span>
-            </div>
-            {filas_html}
-        """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        st.subheader("Botones de Acción por Usuario")
-        for email, datos in usuarios_actuales_tabla.items():
-            col_acc_lbl, col_b1, col_b2, col_b3 = st.columns([3, 1, 1, 1])
-            with col_acc_lbl:
-                st.write(f"**{email}** ({datos.get('nombre')})")
-            with col_b1:
-                if st.button("Encender", key=f"activar_{email}"):
-                    usuarios_actuales_tabla[email]["activo"] = True
-                    guardar_usuarios(usuarios_actuales_tabla)
-                    registrar_auditoria("ACTIVAR USUARIO", f"Activación de cuenta para {email}")
-                    st.rerun()
-            with col_b2:
-                if st.button("Apagar", key=f"desactivar_{email}"):
-                    usuarios_actuales_tabla[email]["activo"] = False
-                    guardar_usuarios(usuarios_actuales_tabla)
-                    registrar_auditoria("DESACTIVAR USUARIO", f"Desactivación de cuenta para {email}")
-                    st.rerun()
-            with col_b3:
-                if st.button("Eliminar", key=f"eliminar_{email}"):
-                    if email == st.session_state["current_email"]:
-                        st.error("No puedes eliminar tu propia cuenta.")
-                    else:
-                        del usuarios_actuales_tabla[email]
-                        guardar_usuarios(usuarios_actuales_tabla)
-                        registrar_auditoria("ELIMINAR USUARIO", f"Eliminación permanente de cuenta para {email}")
-                        st.rerun()
-
-    def render_resumen_auditoria():
-        st.subheader("Resumen Ejecutivo y Auditoría (Control Vehicular)")
-        registros_persisted = cargar_registros_acumulados()
-        if len(registros_persisted) > 0:
-            df_global = pd.DataFrame(registros_persisted)
-            for col in ['JEFATURA', 'ESTADO_ADSCRIPCION', 'JEFE_RESIDENCIA', 'Áreas de Adscripción', 'Usuario Responsable']:
-                if col not in df_global.columns:
-                    df_global[col] = 'N/A'
-            df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y', errors='coerce').dt.date
-            
-            if current_email_key != "victor.olmedo@pa.gob.mx":
-                df_global = df_global[df_global['JEFATURA'] == jefatura_sesion_actual]
-            
-            col_f1, col_f2, col_f3, col_f4, col_f5 = st.columns(5)
-            with col_f1:
-                f_inicio = st.date_input("Fecha Inicial", value=df_global['FECHA_DT'].min() if not df_global.empty else date.today())
-            with col_f2:
-                f_fin = st.date_input("Fecha Final", value=df_global['FECHA_DT'].max() if not df_global.empty else date.today())
-            with col_f3:
-                orgs_disp = ["Todos los organizadores"] + sorted(df_global['Usuario Responsable'].dropna().unique().tolist()) if not df_global.empty else ["Todos"]
-                filtro_usuario = st.selectbox("Organizador Agrario", orgs_disp)
-            with col_f4:
-                if current_email_key == "victor.olmedo@pa.gob.mx":
-                    est_disp = ["Todos los estados"] + sorted(df_global['ESTADO_ADSCRIPCION'].dropna().unique().tolist()) if not df_global.empty else ["Todos"]
-                    filtro_estado = st.selectbox("Estado", est_disp)
-                else:
-                    filtro_estado = estado_usuario_actual
-            with col_f5:
-                if current_email_key == "victor.olmedo@pa.gob.mx":
-                    jef_disp = ["Todas las jefaturas"] + sorted(df_global['JEFATURA'].dropna().unique().tolist()) if not df_global.empty else ["Todas"]
-                    filtro_jefatura = st.selectbox("Jefatura de Residencia", jef_disp)
-                else:
-                    filtro_jefatura = jefatura_sesion_actual
-                
-            if not df_global.empty:
-                df_filtrado = df_global[(df_global['FECHA_DT'] >= f_inicio) & (df_global['FECHA_DT'] <= f_fin)]
-                if filtro_usuario != "Todos los organizadores":
-                    df_filtrado = df_filtrado[df_filtrado['Usuario Responsable'] == filtro_usuario]
-                if current_email_key == "victor.olmedo@pa.gob.mx" and filtro_estado != "Todos los estados":
-                    df_filtrado = df_filtrado[df_filtrado['ESTADO_ADSCRIPCION'] == filtro_estado]
-                if current_email_key == "victor.olmedo@pa.gob.mx" and filtro_jefatura != "Todas las jefaturas":
-                    df_filtrado = df_filtrado[df_filtrado['JEFATURA'] == filtro_jefatura]
-                
-                if not df_filtrado.empty:
-                    st.markdown("---")
-                    total_km = df_filtrado['RECORRIDO'].sum()
-                    total_gas = df_filtrado['GASTO COMBUSTI'].sum()
-                    total_viajes = len(df_filtrado)
-                    
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("KM Totales Recorridos", f"{total_km:,.1f} km")
-                    m2.metric("Gasto Total de Combustible", f"${total_gas:,.2f} MXN")
-                    m3.metric("Comisiones Registradas", f"{total_viajes}")
-                    
-                    st.markdown("---")
-                    st.subheader("Alertas de Mantenimiento Preventivo (Flotilla)")
-                    df_mantenimiento = df_filtrado.groupby("Placas")["RECORRIDO"].sum().reset_index()
-                    for _, row in df_mantenimiento.iterrows():
-                        km_total_veh = row["RECORRIDO"]
-                        placa_v = row["Placas"]
-                        if km_total_veh >= 5000:
-                            st.warning(f"ALERTA DE MANTENIMIENTO: El vehículo **{placa_v}** suma **{km_total_veh:,.1f} km**. Requiere servicio.")
-                        else:
-                            st.info(f"El vehículo **{placa_v}** registra **{km_total_veh:,.1f} km** (En rango operativo normal).")
-                    
-                    st.markdown("---")
-                    col_g1, col_g2 = st.columns(2)
-                    with col_g1:
-                        st.write("**Kilómetros por Municipio**")
-                        st.bar_chart(df_filtrado.groupby("MUNICIPIO")["RECORRIDO"].sum())
-                    with col_g2:
-                        st.write("**Gasto de Combustible por Jefatura**")
-                        st.bar_chart(df_filtrado.groupby("JEFATURA")["GASTO COMBUSTI"].sum())
-                    
-                    st.markdown("---")
-                    st.subheader("Mapa Interactivo de Movimiento y Rutas")
-                    mapa_rows = []
-                    for _, r in df_filtrado.iterrows():
-                        mun = r["MUNICIPIO"]
-                        mun_key = next((k for k in CODS_MUNICIPIOS if k.upper() in mun.upper()), None)
-                        if mun_key:
-                            mapa_rows.append({
-                                "lat": CODS_MUNICIPIOS[mun_key]["lat"], "lon": CODS_MUNICIPIOS[mun_key]["lon"],
-                                "MUNICIPIO": mun, "POBLADO": r["POBLADO"], "FECHA": r["FECHA COMPLETA"],
-                                "USUARIO": r["Usuario Responsable"], "RECORRIDO": r["RECORRIDO"]
-                            })
-                    if mapa_rows:
-                        df_mapa = pd.DataFrame(mapa_rows)
-                        arcos_rows = []
-                        if len(df_mapa) > 1:
-                            for i in range(len(df_mapa) - 1):
-                                arcos_rows.append({
-                                    "start_lon": df_mapa.iloc[i]["lon"], "start_lat": df_mapa.iloc[i]["lat"],
-                                    "end_lon": df_mapa.iloc[i+1]["lon"], "end_lat": df_mapa.iloc[i+1]["lat"]
-                                })
-                        df_arcos = pd.DataFrame(arcos_rows) if arcos_rows else pd.DataFrame()
-                        
-                        capa_puntos = pdk.Layer("ScatterplotLayer", data=df_mapa, get_position='[lon, lat]', get_color='[107, 29, 47, 180]', get_radius=3000, pickable=True, auto_highlight=True)
-                        layers = [capa_puntos]
-                        if not df_arcos.empty:
-                            capa_lineas = pdk.Layer("ArcLayer", data=df_arcos, get_source_position='[start_lon, start_lat]', get_target_position='[end_lon, end_lat]', get_source_color='[107, 29, 47]', get_target_color='[138, 37, 61]', get_width=3)
-                            layers.append(capa_lineas)
-                            
-                        r_deck = pdk.Deck(
-                            layers=layers,
-                            initial_view_state=pdk.ViewState(latitude=df_mapa["lat"].mean(), longitude=df_mapa["lon"].mean(), zoom=8, pitch=30),
-                            tooltip={"html": "<b>Municipio:</b> {MUNICIPIO}<br/><b>Poblado:</b> {POBLADO}<br/><b>Fecha:</b> {FECHA}<br/><b>Responsable:</b> {USUARIO}", "style": {"backgroundColor": "#6B1D2F", "color": "white"}}
-                        )
-                        st.pydeck_chart(r_deck)
-                    
-                    st.markdown("---")
-                    df_resumen_mun = df_filtrado.groupby(['FECHA COMPLETA', 'MUNICIPIO', 'POBLADO', 'Usuario Responsable', 'JEFATURA', 'ESTADO_ADSCRIPCION']).agg({
-                        'RECORRIDO': 'sum', 'GASTO COMBUSTI': 'sum'
-                    }).reset_index().sort_values(by='FECHA COMPLETA')
-                    st.dataframe(df_resumen_mun, use_container_width=True)
-                    
-                    output_filtrado = BytesIO()
-                    df_res_mun = df_resumen_mun.copy()
-                    df_res_mun.to_excel(output_filtrado, index=False, sheet_name="REPORTE_FILTRADO")
-                    output_filtrado.seek(0)
-                    st.download_button("Descargar Reporte Filtrado in Excel", data=output_filtrado, file_name="REPORTE_EJECUTIVO_FILTRADO.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                else:
-                    st.warning("No se encontraron registros con los filtros seleccionados.")
-            else:
-                st.warning("No hay registros disponibles para tu nivel de adscripción.")
-        else:
-            st.info("Aún no hay registros de recorridos acumulados en el sistema.")
-
-    def render_bitacora_audit():
-        st.subheader("Bitácora de Auditoría del Sistema")
-        if os.path.exists(AUDIT_FILE):
-            try:
-                with open(AUDIT_FILE, "r", encoding="utf-8") as f:
-                    logs_data = json.load(f)
-                if logs_data:
-                    st.dataframe(pd.DataFrame(logs_data), use_container_width=True)
-                else:
-                    st.info("No hay registros de auditoría almacenados.")
-            except:
-                st.info("No se pudo leer el archivo de auditoría.")
-        else:
-            st.info("Aún no se han generado eventos de auditoría.")
-
-    if current_email_key == "victor.olmedo@pa.gob.mx":
-        with tab_reg_user: render_alta_usuario()
-        with tab_edit_user: render_editar_usuario()
-        with tab_ctrl_user: render_control_estatus()
-        with tab_resumen_auditoria: render_resumen_auditoria()
-        with tab_bitacora_audit: render_bitacora_audit()
-    else:
-        render_resumen_auditoria()
+                    if r_fecha == fecha_str and r_pl
