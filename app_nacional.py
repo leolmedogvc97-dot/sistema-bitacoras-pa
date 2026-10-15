@@ -597,40 +597,41 @@ elif perfil == "Programación de Combustible y Viáticos":
         if lista_prog_hist:
             df_prog = pd.DataFrame(lista_prog_hist)
             
-            # --- APARTADO DE DESCARGA GENERAL POR MES DE TODAS LAS RESIDENCIAS ---
-            st.markdown("---")
-            st.subheader("📥 Descarga General por Mes (Todas las Residencias)")
-            df_prog['FECHA_DT_TEMP'] = pd.to_datetime(df_prog['FECHA'], format='%d/%m/%Y', errors='coerce')
-            df_prog['MES_AÑO_STR_TEMP'] = df_prog['FECHA_DT_TEMP'].dt.month.map(MESES_MAP_ES) + ' ' + df_prog['FECHA_DT_TEMP'].dt.year.astype(str)
-            meses_globales_disp = sorted(df_prog['MES_AÑO_STR_TEMP'].dropna().unique().tolist()) if not df_prog.empty else []
-            
-            col_dg1, col_dg2 = st.columns([2, 1])
-            with col_dg1:
-                mes_descarga_gen = st.selectbox("Seleccionar Mes para Descarga Consolidada (Todas las Residencias)", meses_globales_disp if meses_globales_disp else ["Sin datos"])
-            with col_dg2:
-                st.write("")
-                st.write("")
-                if st.button("Generar Consolidado Mensual", use_container_width=True) and mes_descarga_gen != "Sin datos":
-                    df_mes_gen = df_prog[df_prog['MES_AÑO_STR_TEMP'] == mes_descarga_gen]
-                    if not df_mes_gen.empty:
-                        try:
-                            output_gen = BytesIO()
-                            with pd.ExcelWriter(output_gen, engine='openpyxl') as writer:
-                                df_mes_gen.drop(columns=['FECHA_DT_TEMP', 'MES_AÑO_STR_TEMP'], errors='ignore').to_excel(writer, index=False, sheet_name='CONSOLIDADO_GENERAL')
-                            output_gen.seek(0)
-                            st.download_button(
-                                label=f"📥 Descargar Archivo Consolidado ({mes_descarga_gen})",
-                                data=output_gen,
-                                file_name=f"PROGRAMACION_CONSOLIDADA_TODAS_RESIDENCIAS_{mes_descarga_gen.replace(' ', '_')}.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key="btn_dl_gen_excel"
-                            )
-                        except Exception as e:
-                            st.error(f"Error al generar archivo Excel consolidado: {e}")
-                    else:
-                        st.warning("No hay registros para el mes seleccionado.")
-            st.markdown("---")
-            # -------------------------------------------------------------------
+            # --- APARTADO DE DESCARGA GENERAL POR MES (EXCLUSIVO ADMINISTRADOR NACIONAL) ---
+            if st.session_state.get("current_rol") == "Administrador Nacional":
+                st.markdown("---")
+                st.subheader("📥 Descarga General por Mes (Todas las Residencias)")
+                df_prog['FECHA_DT_TEMP'] = pd.to_datetime(df_prog['FECHA'], format='%d/%m/%Y', errors='coerce')
+                df_prog['MES_AÑO_STR_TEMP'] = df_prog['FECHA_DT_TEMP'].dt.month.map(MESES_MAP_ES) + ' ' + df_prog['FECHA_DT_TEMP'].dt.year.astype(str)
+                meses_globales_disp = sorted(df_prog['MES_AÑO_STR_TEMP'].dropna().unique().tolist()) if not df_prog.empty else []
+                
+                col_dg1, col_dg2 = st.columns([2, 1])
+                with col_dg1:
+                    mes_descarga_gen = st.selectbox("Seleccionar Mes para Descarga Consolidada (Todas las Residencias)", meses_globales_disp if meses_globales_disp else ["Sin datos"], key="sel_mes_gen_nac")
+                with col_dg2:
+                    st.write("")
+                    st.write("")
+                    if st.button("Generar Consolidado Mensual", use_container_width=True, key="btn_gen_cons_nac") and mes_descarga_gen != "Sin datos":
+                        df_mes_gen = df_prog[df_prog['MES_AÑO_STR_TEMP'] == mes_descarga_gen]
+                        if not df_mes_gen.empty:
+                            try:
+                                output_gen = BytesIO()
+                                with pd.ExcelWriter(output_gen, engine='openpyxl') as writer:
+                                    df_mes_gen.drop(columns=['FECHA_DT_TEMP', 'MES_AÑO_STR_TEMP'], errors='ignore').to_excel(writer, index=False, sheet_name='CONSOLIDADO_GENERAL')
+                                output_gen.seek(0)
+                                st.download_button(
+                                    label=f"📥 Descargar Archivo Consolidado ({mes_descarga_gen})",
+                                    data=output_gen,
+                                    file_name=f"PROGRAMACION_CONSOLIDADA_TODAS_RESIDENCIAS_{mes_descarga_gen.replace(' ', '_')}.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    key="btn_dl_gen_excel_nac"
+                                )
+                            except Exception as e:
+                                st.error(f"Error al generar archivo Excel consolidado: {e}")
+                        else:
+                            st.warning("No hay registros para el mes seleccionado.")
+                st.markdown("---")
+            # -------------------------------------------------------------------------------------------------
 
             if current_email_key == "victor.olmedo@pa.gob.mx":
                 df_prog_filtro = df_prog
@@ -639,8 +640,8 @@ elif perfil == "Programación de Combustible y Viáticos":
                 df_prog_filtro = df_prog[df_prog['RESIDENCIA'].str.upper().str.contains(res_clean, na=False)]
 
             if not df_prog_filtro.empty:
-                df_prog_filtro['FECHA_DT'] = df_prog_filtro['FECHA_DT_TEMP']
-                df_prog_filtro['MES_AÑO_STR'] = df_prog_filtro['MES_AÑO_STR_TEMP']
+                df_prog_filtro['FECHA_DT'] = pd.to_datetime(df_prog_filtro['FECHA'], format='%d/%m/%Y', errors='coerce')
+                df_prog_filtro['MES_AÑO_STR'] = df_prog_filtro['FECHA_DT'].dt.month.map(MESES_MAP_ES) + ' ' + df_prog_filtro['FECHA_DT'].dt.year.astype(str)
 
                 meses_disp = ["Todos los meses"] + sorted(df_prog_filtro['MES_AÑO_STR'].dropna().unique().tolist())
                 if current_email_key == "victor.olmedo@pa.gob.mx":
@@ -724,7 +725,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
