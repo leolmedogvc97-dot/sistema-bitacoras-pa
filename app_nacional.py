@@ -390,7 +390,6 @@ if perfil == "Mi Perfil / Foto":
             pass
             
     registros_todos = cargar_registros_acumulados()
-    # Si no es victor.olmedo, filtramos los registros del usuario a su propia jefatura
     if current_email_key != "victor.olmedo@pa.gob.mx":
         registros_todos = [r for r in registros_todos if r.get("JEFATURA") == jefatura_sesion_actual]
     
@@ -512,8 +511,6 @@ elif perfil == "Solicitud de Recurso de Gasolina":
         st.markdown("---")
         st.subheader("Historial y Gestión de Solicitudes de Gasolina")
         df_sols = pd.DataFrame(solicitudes_historial)
-        
-        # Filtro estricto: solo Víctor ve todo; los demás solo su propia residencia
         if current_email_key == "victor.olmedo@pa.gob.mx":
             df_sols_filtrado = df_sols
         else:
@@ -791,7 +788,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                     "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": "",
                     "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": "Sí",
                     "IMPORTE DE VIÁTICOS ($)": 0.0,
-                    "IMPORTE_COMBUSTIBLE": 0.0
+                    "IMPORTE DE COMBUSTIBLE": 0.0
                 }])
                 st.rerun()
             else:
@@ -802,8 +799,6 @@ elif perfil == "Programación de Combustible y Viáticos":
         lista_prog_hist = cargar_programacion()
         if lista_prog_hist:
             df_prog = pd.DataFrame(lista_prog_hist)
-            
-            # Filtro estricto: solo Víctor ve todo; los demás ven solo su propia residencia
             if current_email_key == "victor.olmedo@pa.gob.mx":
                 df_prog_filtro = df_prog
             else:
@@ -927,7 +922,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -1052,7 +1047,6 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     st.success(f"¡Día {fecha_str} en {mun_upper} ({pob_upper}) guardado correctamente!")
 
     registros_totales = cargar_registros_acumulados()
-    # Filtro estricto para mostrar historial: solo Víctor ve todo; otros ven solo su propia jefatura
     if current_email_key == "victor.olmedo@pa.gob.mx":
         registros_filtrados_vista = registros_totales
     else:
@@ -1392,7 +1386,6 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     df_global[col] = 'N/A'
             df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y', errors='coerce').dt.date
             
-            # FILTRO ESTRICTO DE RESIDENCIA: Solo Víctor ve todo; los demás solo su propia residencia
             if current_email_key != "victor.olmedo@pa.gob.mx":
                 df_global = df_global[df_global['JEFATURA'] == jefatura_sesion_actual]
             
