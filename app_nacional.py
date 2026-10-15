@@ -137,17 +137,17 @@ FRASES_AGRARIAS = [
 
 def cargar_usuarios():
     usuarios_base = {
-        "victor.olmedo": {"nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ", "pass": "Leonardo", "licencia": "0101P3402484l", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "N/A", "foto": "", "activo": True},
-        "marichuy.duarte": {"nombre": "MARICHUY DUARTE SALAMANCA", "pass": "Marichuy2026", "licencia": "12345678", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "N/A", "foto": "", "activo": True},
-        "jcarlos.patino": {"nombre": "JUAN CARLOS PATINO PEREZ", "pass": "Perez", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "NINGUNO", "foto": "", "activo": True},
-        "arosales": {"nombre": "ARISVE LESEIE ESLAVA ROSALES", "pass": "Arosales", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "NINGUNO", "foto": "", "activo": True},
-        "carmen.lara": {"nombre": "CARMEN LARA", "pass": "Carmen", "licencia": "", "rol": "Administrador Nacional", "estado": "Aguascalientes", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
-        "josue.rodriguez": {"nombre": "JOSUE RODRIGUEZ", "pass": "Josue", "licencia": "", "rol": "Administrador Nacional", "estado": "Aguascalientes", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
-        "nsalgado": {"nombre": "NANCY SALGADO ANTUNEZ", "pass": "Nancy", "licencia": "", "rol": "Analista de Información", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
-        "esperanza.ramos": {"nombre": "ESPERANZA WENDY RAMOS RODRIGUEZ", "pass": "Wendy", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
-        "carlos.javg": {"nombre": "CARLOS JAVIER GALVEZ GONZALEZ", "pass": "Carlos", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
-        "dehnny.vasquez": {"nombre": "DEHNNY VAZQUEZ FLORES", "pass": "Dehnny", "licencia": "", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "", "foto": "", "activo": True},
-        # --- USUARIOS OFICIALES POR CADA RESIDENCIA ---
+        "victor.olmedo@pa.gob.mx": {"nombre": "VÍCTOR LEONARDO OLMEDO GONZALEZ", "pass": "Leonardo", "licencia": "0101P3402484l", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "N/A", "foto": "", "activo": True},
+        "marichuy.duarte@pa.gob.mx": {"nombre": "MARICHUY DUARTE SALAMANCA", "pass": "Marichuy2026", "licencia": "12345678", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "N/A", "foto": "", "activo": True},
+        "jcarlos.patino@pa.gob.mx": {"nombre": "JUAN CARLOS PATINO PEREZ", "pass": "Perez", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "NINGUNO", "foto": "", "activo": True},
+        "arosales@pa.gob.mx": {"nombre": "ARISVE LESEIE ESLAVA ROSALES", "pass": "Arosales", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "NINGUNO", "foto": "", "activo": True},
+        "carmen.lara@pa.gob.mx": {"nombre": "CARMEN LARA", "pass": "Carmen", "licencia": "", "rol": "Administrador Nacional", "estado": "Aguascalientes", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "josue.rodriguez@pa.gob.mx": {"nombre": "JOSUE RODRIGUEZ", "pass": "Josue", "licencia": "", "rol": "Administrador Nacional", "estado": "Aguascalientes", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "nsalgado@pa.gob.mx": {"nombre": "NANCY SALGADO ANTUNEZ", "pass": "Nancy", "licencia": "", "rol": "Analista de Información", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "esperanza.ramos@pa.gob.mx": {"nombre": "ESPERANZA WENDY RAMOS RODRIGUEZ", "pass": "Wendy", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
+        "carlos.javg.96@gmail.com": {"nombre": "CARLOS JAVIER GALVEZ GONZALEZ", "pass": "Carlos", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
+        "dehnny.vasquez@pa.gob.mx": {"nombre": "DEHNNY VAZQUEZ FLORES", "pass": "Dehnny", "licencia": "", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "", "foto": "", "activo": True},
+        # --- USUARIOS DE RESIDENCIAS (SIN ARROBA) ---
         "toluca.residencia": {"nombre": "OSCAR MENDOZA RUIZ", "pass": "Toluca2026", "licencia": "TOL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "atlacomulco.residencia": {"nombre": "BRENDA LÓPEZ SÁNCHEZ", "pass": "Atlacomulco2026", "licencia": "ATL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA ATLACOMULCO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "naucalpan.residencia": {"nombre": "ADÁN JIMÉNEZ PÉREZ", "pass": "Naucalpan2026", "licencia": "NAU123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
@@ -269,7 +269,7 @@ if not st.session_state["logged_in"]:
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
     with col_l2:
         st.subheader("Iniciar Sesión")
-        email_input = st.text_input("Usuario (ej. texcoco.residencia)", max_chars=300).strip().lower()
+        email_input = st.text_input("Usuario o Correo Institucional", max_chars=300).strip().lower()
         pass_input = st.text_input("Contraseña", type="password", max_chars=300)
         
         if st.button("🔑 Ingresar al Sistema", use_container_width=True):
@@ -330,7 +330,7 @@ with st.sidebar.expander("Sesión Activa (Ver Datos)", expanded=False):
     else:
         st.info("Sin foto de perfil.")
     st.write(f"**Usuario:** {st.session_state['current_user']}")
-    st.write(f"**Login:** {st.session_state['current_email']}")
+    st.write(f"**Credencial/Correo:** {st.session_state['current_email']}")
     st.write(f"**Rol:** {st.session_state.get('current_rol', 'Organizador')}")
     st.write(f"**Estado:** {st.session_state.get('current_estado', 'N/A')}")
     st.write(f"**Jefatura:** {st.session_state.get('current_jefatura', 'N/A')}")
@@ -394,7 +394,7 @@ if perfil == "Mi Perfil / Foto":
         resumen_uso_dict = {}
         for email_u, info_u in usuarios_dict_perfil.items():
             resumen_uso_dict[email_u] = {
-                "Usuario": email_u,
+                "Usuario / Correo": email_u,
                 "Nombre": info_u.get("nombre", "N/A"),
                 "Rol": info_u.get("rol", "N/A"),
                 "Estado": info_u.get("estado", "N/A"),
@@ -1191,7 +1191,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("Panel de Gestión, Supervisión y Auditoría")
     
-    if st.session_state.get("current_email") == "victor.olmedo":
+    if st.session_state.get("current_email") == "victor.olmedo@pa.gob.mx":
         st.markdown("""
             <div style="background-color: #fcf5f6; border: 2px solid #6B1D2F; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <h4 style="color: #6B1D2F; margin-top: 0;">Panel de Respaldo Maestro Exclusivo (Víctor Olmedo)</h4>
@@ -1246,7 +1246,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         with st.form("form_nuevo_usuario"):
             col_u1, col_u2 = st.columns(2)
             with col_u1:
-                c_email = st.text_input("Usuario (ej. texcoco.residencia)", max_chars=300)
+                c_email = st.text_input("Correo / Usuario", max_chars=300)
                 c_nombre = st.text_input("Nombre Completo (Mayúsculas)", max_chars=300)
                 c_pass = st.text_input("Contraseña Asignada", type="password", max_chars=300)
                 c_licencia = st.text_input("Número de Licencia de Conducir", max_chars=300)
@@ -1270,7 +1270,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     st.success(f"¡Usuario {c_nombre} ({c_rol}) registrado exitosamente para {c_estado}!")
                     st.rerun()
                 else:
-                    st.error("Por favor completa los campos obligatorios (Usuario, Nombre y Contraseña).")
+                    st.error("Por favor completa los campos obligatorios (Usuario/Correo, Nombre y Contraseña).")
 
     def render_editar_usuario():
         usuarios_actuales_edit = cargar_usuarios()
@@ -1329,7 +1329,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             """
         st.markdown(f"""
             <div style="background-color: #6B1D2F; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
-                <span style="flex: 2.0; text-align: left;">USUARIO</span>
+                <span style="flex: 2.0; text-align: left;">USUARIO / CORREO</span>
                 <span style="flex: 2.5; text-align: left;">NOMBRE</span>
                 <span style="flex: 2.0; text-align: left;">ROL</span>
                 <span style="flex: 1.3; text-align: left;">ESTADO</span>
