@@ -311,9 +311,10 @@ if os.path.exists(LOGO_FILE):
 current_email_key = st.session_state['current_email']
 usuarios_actuales_sidebar = cargar_usuarios()
 rol_actual = st.session_state.get("current_rol", "Organizador Agrario (Operador)")
+jefatura_sesion_actual = st.session_state.get("current_jefatura", "RESIDENCIA NAUCALPAN")
 
 st.sidebar.title("Menú de Navegación")
-if rol_actual == "Administrador Nacional":
+if current_email_key == "victor.olmedo@pa.gob.mx":
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Programación de Combustible y Viáticos", "Panel de Administración y Auditoría"]
 elif rol_actual in ["Administrador Estatal", "Administrador de Vehículos (Estatal)", "Jefe de Residencia", "Analista de Información"]:
     modulos_disponibles = ["Módulo de Captura (Recorrido)", "Mi Perfil / Foto", "Solicitud de Recurso de Gasolina", "Reporte de Incidencias en Ruta", "Programación de Combustible y Viáticos", "Panel de Supervisión (Estatal/Residencia)"]
@@ -389,10 +390,15 @@ if perfil == "Mi Perfil / Foto":
             pass
             
     registros_todos = cargar_registros_acumulados()
+    # Si no es victor.olmedo, filtramos los registros del usuario a su propia jefatura
+    if current_email_key != "victor.olmedo@pa.gob.mx":
+        registros_todos = [r for r in registros_todos if r.get("JEFATURA") == jefatura_sesion_actual]
     
     if usuarios_dict_perfil:
         resumen_uso_dict = {}
         for email_u, info_u in usuarios_dict_perfil.items():
+            if current_email_key != "victor.olmedo@pa.gob.mx" and info_u.get("jefatura") != jefatura_sesion_actual:
+                continue
             resumen_uso_dict[email_u] = {
                 "Usuario / Correo": email_u,
                 "Nombre": info_u.get("nombre", "N/A"),
@@ -506,20 +512,21 @@ elif perfil == "Solicitud de Recurso de Gasolina":
         st.markdown("---")
         st.subheader("Historial y Gestión de Solicitudes de Gasolina")
         df_sols = pd.DataFrame(solicitudes_historial)
-        if rol_actual == "Analista de Información":
-            df_sols_filtrado = df_sols[df_sols['ESTADO'] == estado_usuario_actual]
-        elif rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
-            df_sols_filtrado = df_sols[df_sols['JEFATURA'] == jefatura_actual]
-        elif rol_actual in ["Administrador Estatal", "Administrador Nacional"]:
+        
+        # Filtro estricto: solo Víctor ve todo; los demás solo su propia residencia
+        if current_email_key == "victor.olmedo@pa.gob.mx":
             df_sols_filtrado = df_sols
         else:
-            df_sols_filtrado = df_sols[df_sols['CORREO'] == current_email_key]
+            df_sols_filtrado = df_sols[df_sols['JEFATURA'] == jefatura_actual]
+            
         st.dataframe(df_sols_filtrado, use_container_width=True)
         
-        if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)", "Administrador Estatal", "Administrador Nacional"]:
+        if current_email_key == "victor.olmedo@pa.gob.mx" or rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)", "Administrador Estatal"]:
             st.markdown("---")
             st.subheader("Panel de Aprobación de Solicitudes")
             for idx, sol in enumerate(solicitudes_historial):
+                if current_email_key != "victor.olmedo@pa.gob.mx" and sol.get('JEFATURA') != jefatura_actual:
+                    continue
                 if sol.get("ESTATUS") == "PENDIENTE DE APROBACIÓN":
                     col_info_s, col_btn_ap, col_btn_re = st.columns([5, 1, 1])
                     with col_info_s:
@@ -592,20 +599,19 @@ elif perfil == "Reporte de Incidencias en Ruta":
         st.markdown("---")
         st.subheader("Historial de Incidencias en Ruta")
         df_incs = pd.DataFrame(todas_incs)
-        if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
-            df_incs_filtrado = df_incs[df_incs['ESTADO'] == estado_usuario_actual]
-        elif rol_actual == "Administrador Estatal":
-            df_incs_filtrado = df_incs[df_incs['ESTADO'] == estado_usuario_actual]
-        elif rol_actual == "Administrador Nacional":
+        if current_email_key == "victor.olmedo@pa.gob.mx":
             df_incs_filtrado = df_incs
         else:
-            df_incs_filtrado = df_incs[df_incs['CORREO'] == current_email_key]
+            df_incs_filtrado = df_incs[df_incs['JEFATURA'] == jefatura_actual]
+            
         st.dataframe(df_incs_filtrado, use_container_width=True)
         
-        if rol_actual in ["Administrador de Vehículos (Estatal)", "Administrador Estatal", "Administrador Nacional", "Jefe de Residencia"]:
+        if current_email_key == "victor.olmedo@pa.gob.mx" or rol_actual in ["Administrador de Vehículos (Estatal)", "Administrador Estatal", "Jefe de Residencia"]:
             st.markdown("---")
             st.subheader("Panel de Gestión de Mantenimiento Correctivo")
             for idx, inc in enumerate(todas_incs):
+                if current_email_key != "victor.olmedo@pa.gob.mx" and inc.get('JEFATURA') != jefatura_actual:
+                    continue
                 if inc.get("ESTATUS") == "PENDIENTE DE ATENCIÓN":
                     col_inf_inc, col_btn_res = st.columns([5, 2])
                     with col_inf_inc:
@@ -785,7 +791,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                     "INDICADOR DEL POA EN QUE REPERCUTE EL USO DEL COMBUSTIBLE": "",
                     "¿SE REQUIEREN VIÁTICOS? (SÍ/NO)": "Sí",
                     "IMPORTE DE VIÁTICOS ($)": 0.0,
-                    "IMPORTE DE COMBUSTIBLE": 0.0
+                    "IMPORTE_COMBUSTIBLE": 0.0
                 }])
                 st.rerun()
             else:
@@ -796,14 +802,13 @@ elif perfil == "Programación de Combustible y Viáticos":
         lista_prog_hist = cargar_programacion()
         if lista_prog_hist:
             df_prog = pd.DataFrame(lista_prog_hist)
-            if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
-                df_prog_filtro = df_prog[df_prog['RESIDENCIA'].str.upper().str.contains(residencia_usuario_actual.replace("RESIDENCIA", "").strip(), na=False)]
-            elif rol_actual in ["Administrador Estatal", "Analista de Información"]:
-                df_prog_filtro = df_prog[df_prog['ESTADO'] == estado_usuario_actual]
-            elif rol_actual == "Administrador Nacional":
+            
+            # Filtro estricto: solo Víctor ve todo; los demás ven solo su propia residencia
+            if current_email_key == "victor.olmedo@pa.gob.mx":
                 df_prog_filtro = df_prog
             else:
-                df_prog_filtro = df_prog[df_prog['CORREO'] == current_email_key]
+                res_clean = residencia_usuario_actual.replace("RESIDENCIA", "").strip().upper()
+                df_prog_filtro = df_prog[df_prog['RESIDENCIA'].str.upper().str.contains(res_clean, na=False)]
 
             if not df_prog_filtro.empty:
                 df_prog_filtro['FECHA_DT'] = pd.to_datetime(df_prog_filtro['FECHA'], format='%d/%m/%Y', errors='coerce')
@@ -864,7 +869,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                         ).reset_index()
                         st.dataframe(res_resp, use_container_width=True)
 
-                    if rol_actual in ["Administrador Nacional", "Administrador Estatal", "Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
+                    if current_email_key == "victor.olmedo@pa.gob.mx" or rol_actual in ["Administrador Nacional", "Administrador Estatal", "Jefe de Residencia"]:
                         st.markdown("---")
                         st.subheader("Panel de Eliminación Autorizada")
                         tipo_borrado = st.radio("Selecciona el modo de eliminación", ["Eliminar registro específico", "Borrar todos los registros"])
@@ -922,7 +927,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -1047,19 +1052,29 @@ elif perfil == "Módulo de Captura (Recorrido)":
                     st.success(f"¡Día {fecha_str} en {mun_upper} ({pob_upper}) guardado correctamente!")
 
     registros_totales = cargar_registros_acumulados()
+    # Filtro estricto para mostrar historial: solo Víctor ve todo; otros ven solo su propia jefatura
+    if current_email_key == "victor.olmedo@pa.gob.mx":
+        registros_filtrados_vista = registros_totales
+    else:
+        registros_filtrados_vista = [r for r in registros_totales if r.get("JEFATURA") == jefatura_actual]
+
     if len(registros_totales) > 0:
         st.markdown("---")
         st.subheader("Días Guardados (Historial Acumulado Permanente)")
         busqueda_texto = st.text_input("Buscar en historial (Folio CIIA, Oficio, Poblado o Municipio):").strip().lower()
-        df_acumulado = pd.DataFrame(registros_totales)
-        if busqueda_texto:
+        df_acumulado = pd.DataFrame(registros_filtrados_vista)
+        if not df_acumulado.empty and busqueda_texto:
             mask = df_acumulado.apply(lambda row: row.astype(str).str.lower().str.contains(busqueda_texto).any(), axis=1)
             df_acumulado = df_acumulado[mask]
-        st.dataframe(df_acumulado, use_container_width=True)
+        
+        if not df_acumulado.empty:
+            st.dataframe(df_acumulado, use_container_width=True)
+        else:
+            st.info("No hay registros guardados para tu residencia.")
         
         col_acc1, col_acc2 = st.columns(2)
         with col_acc1:
-            if st.button("Limpiar historial completo"):
+            if current_email_key == "victor.olmedo@pa.gob.mx" and st.button("Limpiar historial completo"):
                 guardar_registros_acumulados([])
                 registrar_auditoria("LIMPIAR HISTORIAL", "Se eliminó todo el historial acumulado de recorridos")
                 st.rerun()
@@ -1078,7 +1093,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                             for col in ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V']:
                                 ws_b[f'{col}{r}'] = None
 
-                        for i, reg in enumerate(registros_totales, start=2):
+                        for i, reg in enumerate(registros_filtrados_vista, start=2):
                             fecha_dt = datetime.strptime(reg["FECHA COMPLETA"], "%d/%m/%Y").date()
                             ws_b[f'A{i}'] = fecha_dt
                             ws_b[f'A{i}'].number_format = "DD/MM/YYYY"
@@ -1109,7 +1124,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                             ws_b[f'U{i}'] = reg["Placas"]
                             ws_b[f'V{i}'] = reg["No. De Licencia"]
 
-                        row_tot = len(registros_totales) + 2
+                        row_tot = len(registros_filtrados_vista) + 2
                         ws_b[f'A{row_tot}'] = "TOTALES"
                         ws_b[f'H{row_tot}'] = f'=SUM(H2:H{row_tot-1})'
 
@@ -1119,7 +1134,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
                                 for col in ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W']:
                                     ws_v[f'{col}{r}'] = None
 
-                            for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
+                            for idx, r_db in enumerate(range(2, 2 + len(registros_filtrados_vista))):
                                 r_v = idx + 3
                                 ws_v[f'A{r_v}'] = f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})'
                                 ws_v[f'B{r_v}'] = f'=IF(BASE_DE_DATOS!R{r_db}="","",BASE_DE_DATOS!R{r_db})'
@@ -1150,9 +1165,9 @@ elif perfil == "Módulo de Captura (Recorrido)":
                                 for c in range(1, 10):
                                     ws_i.cell(row=r, column=c, value=None)
 
-                            for idx, r_db in enumerate(range(2, 2 + len(registros_totales))):
+                            for idx, r_db in enumerate(range(2, 2 + len(registros_filtrados_vista))):
                                 start_row = 1 + idx * 12
-                                fecha_reg_dt = datetime.strptime(registros_totales[idx]["FECHA COMPLETA"], "%d/%m/%Y").date()
+                                fecha_reg_dt = datetime.strptime(registros_filtrados_vista[idx]["FECHA COMPLETA"], "%d/%m/%Y").date()
                                 mes_nombre_upper = MESES_MAP_UPPER[fecha_reg_dt.month]
                                 ws_i.cell(row=start_row, column=1, value=f'="BITÁCORA " & "{mes_nombre_upper}"')
                                 ws_i.cell(row=start_row+1, column=4, value=f'=IF(BASE_DE_DATOS!A{r_db}="","",BASE_DE_DATOS!A{r_db})')
@@ -1191,7 +1206,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
 elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión (Estatal/Residencia)"]:
     st.subheader("Panel de Gestión, Supervisión y Auditoría")
     
-    if st.session_state.get("current_email") == "victor.olmedo@pa.gob.mx":
+    if current_email_key == "victor.olmedo@pa.gob.mx":
         st.markdown("""
             <div style="background-color: #fcf5f6; border: 2px solid #6B1D2F; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <h4 style="color: #6B1D2F; margin-top: 0;">Panel de Respaldo Maestro Exclusivo (Víctor Olmedo)</h4>
@@ -1232,7 +1247,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
             )
         st.markdown("---")
 
-    if rol_actual == "Administrador Nacional":
+    if current_email_key == "victor.olmedo@pa.gob.mx":
         tab_reg_user, tab_edit_user, tab_ctrl_user, tab_resumen_auditoria, tab_bitacora_audit = st.tabs([
             "Alta de Usuario", "Editar Usuario", "Control y Estatus", 
             "Resumen Ejecutivo y Auditoría", "Bitácora de Auditoría"
@@ -1240,7 +1255,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
     else:
         tab_resumen_auditoria = st.container()
         st.markdown("---")
-        st.subheader("Supervisión de Registros del Estado / Residencia")
+        st.subheader(f"Supervisión de Registros de tu Residencia ({jefatura_sesion_actual})")
         
     def render_alta_usuario():
         with st.form("form_nuevo_usuario"):
@@ -1377,12 +1392,9 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                     df_global[col] = 'N/A'
             df_global['FECHA_DT'] = pd.to_datetime(df_global['FECHA COMPLETA'], format='%d/%m/%Y', errors='coerce').dt.date
             
-            if rol_actual in ["Jefe de Residencia", "Administrador de Vehículos (Estatal)"]:
-                jefatura_sesion = st.session_state.get("current_jefatura", "")
-                df_global = df_global[df_global['JEFATURA'] == jefatura_sesion]
-            elif rol_actual in ["Administrador Estatal", "Analista de Información"]:
-                estado_sesion = st.session_state.get("current_estado", "")
-                df_global = df_global[df_global['ESTADO_ADSCRIPCION'] == estado_sesion]
+            # FILTRO ESTRICTO DE RESIDENCIA: Solo Víctor ve todo; los demás solo su propia residencia
+            if current_email_key != "victor.olmedo@pa.gob.mx":
+                df_global = df_global[df_global['JEFATURA'] == jefatura_sesion_actual]
             
             col_f1, col_f2, col_f3, col_f4, col_f5 = st.columns(5)
             with col_f1:
@@ -1508,7 +1520,7 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
         else:
             st.info("Aún no se han generado eventos de auditoría.")
 
-    if rol_actual == "Administrador Nacional":
+    if current_email_key == "victor.olmedo@pa.gob.mx":
         with tab_reg_user: render_alta_usuario()
         with tab_edit_user: render_editar_usuario()
         with tab_ctrl_user: render_control_estatus()
