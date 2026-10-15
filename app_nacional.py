@@ -291,7 +291,7 @@ if not st.session_state["logged_in"]:
                     st.success("¡Acceso concedido! Cargando sistema...")
                     st.rerun()
             else:
-                st.error("Usuario o contraseña incorrectos. Verifica tus datos.")
+                st.error("Usuario or contraseña incorrectos. Verifica tus datos.")
     st.stop()
 
 # --- APLICACIÓN PRINCIPAL ---
@@ -454,7 +454,11 @@ elif perfil == "Solicitud de Recurso de Gasolina":
         with col_s1:
             fecha_solicitud = st.date_input("Fecha de Solicitud", value=date.today())
             analista_solicitante = st.text_input("Analista de Información / Solicitante", value=solicitante_actual, max_chars=300)
-            residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
+            if current_email_key == "victor.olmedo@pa.gob.mx":
+                residencia_adscripcion = st.text_input("Jefatura de Residencia", value=jefatura_actual, max_chars=300)
+            else:
+                residencia_adscripcion = jefatura_actual
+                st.text_input("Jefatura de Residencia (Bloqueada a tu adscripción)", value=residencia_adscripcion, disabled=True)
             funcionario_comisionado = st.text_input("Funcionario / Organizador Asignado a Comisión", value="", max_chars=300)
         with col_s2:
             municipio_destino = st.text_input(f"Municipio de Destino ({estado_usuario_actual}) - Libre", value="", max_chars=300, placeholder="Escribe el municipio libremente...")
@@ -655,6 +659,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                     if st.button("Procesar e Importar Registros del Excel"):
                         lista_prog = cargar_programacion()
                         importados = 0
+                        res_destino_import = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title() if current_email_key != "victor.olmedo@pa.gob.mx" else "Tenancingo"
                         for idx, row in df_subido.iterrows():
                             vals = row.values
                             if len(vals) >= 12 and pd.notna(vals[1]):
@@ -670,7 +675,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                                     "VIATICOS_REQ": str(vals[9]).strip().upper() if pd.notna(vals[9]) else "SÍ",
                                     "IMPORTE_VIATICOS": float(vals[10]) if pd.notna(vals[10]) and str(vals[10]).replace('.','',1).isdigit() else 0.0,
                                     "IMPORTE_COMBUSTIBLE": float(vals[11]) if pd.notna(vals[11]) and str(vals[11]).replace('.','',1).isdigit() else 0.0,
-                                    "RESIDENCIA": residencia_usuario_actual,
+                                    "RESIDENCIA": res_destino_import,
                                     "ESTADO": estado_usuario_actual,
                                     "ESTATUS": "REGISTRADO",
                                     "CORREO": current_email_key
@@ -678,7 +683,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                                 lista_prog.append(nuevo_item)
                                 importados += 1
                         guardar_programacion(lista_prog)
-                        registrar_auditoria("IMPORTAR PROGRAMACION", f"Importados {importados} registros desde Excel para {residencia_usuario_actual}")
+                        registrar_auditoria("IMPORTAR PROGRAMACION", f"Importados {importados} registros desde Excel para {res_destino_import}")
                         st.success(f"¡Se importaron {importados} registros exitosamente!")
                         st.rerun()
                 except Exception as e:
@@ -687,18 +692,21 @@ elif perfil == "Programación de Combustible y Viáticos":
         st.markdown("---")
         st.markdown("### Registro Estilo Excel Institucional")
         
-        cols_res = st.columns(6)
-        lista_res_botones = ["Toluca", "Atlacomulco", "Naucalpan", "Tenancingo", "Valle de Bravo", "Texcoco"]
-        
-        if "residencia_seleccionada_prog" not in st.session_state:
-            st.session_state["residencia_seleccionada_prog"] = "Tenancingo"
-            
-        for idx_r, res_nombre in enumerate(lista_res_botones):
-            with cols_res[idx_r]:
-                if st.button(res_nombre, key=f"btn_res_{res_nombre}", use_container_width=True):
-                    st.session_state["residencia_seleccionada_prog"] = res_nombre
-                    
-        st.info(f"Residencia asignada para este registro: **{st.session_state['residencia_seleccionada_prog']}**")
+        if current_email_key == "victor.olmedo@pa.gob.mx":
+            cols_res = st.columns(6)
+            lista_res_botones = ["Toluca", "Atlacomulco", "Naucalpan", "Tenancingo", "Valle de Bravo", "Texcoco"]
+            if "residencia_seleccionada_prog" not in st.session_state:
+                st.session_state["residencia_seleccionada_prog"] = "Tenancingo"
+                
+            for idx_r, res_nombre in enumerate(lista_res_botones):
+                with cols_res[idx_r]:
+                    if st.button(res_nombre, key=f"btn_res_{res_nombre}", use_container_width=True):
+                        st.session_state["residencia_seleccionada_prog"] = res_nombre
+            st.info(f"Residencia seleccionada para este registro: **{st.session_state['residencia_seleccionada_prog']}**")
+        else:
+            res_short = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()
+            st.session_state["residencia_seleccionada_prog"] = res_short
+            st.info(f"Residencia asignada para este registro: **{res_short}** (Bloqueada a tu adscripción)")
 
         # Tabla editable estilo Excel con los encabezados exactos del formato oficial
         if "editor_data" not in st.session_state:
@@ -810,20 +818,27 @@ elif perfil == "Programación de Combustible y Viáticos":
                 df_prog_filtro['MES_AÑO_STR'] = df_prog_filtro['FECHA_DT'].dt.month.map(MESES_MAP_ES) + ' ' + df_prog_filtro['FECHA_DT'].dt.year.astype(str)
 
                 meses_disp = ["Todos los meses"] + sorted(df_prog_filtro['MES_AÑO_STR'].dropna().unique().tolist())
-                residencias_disp = ["Todas las residencias"] + sorted(df_prog_filtro['RESIDENCIA'].dropna().unique().tolist())
+                if current_email_key == "victor.olmedo@pa.gob.mx":
+                    residencias_disp = ["Todas las residencias"] + sorted(df_prog_filtro['RESIDENCIA'].dropna().unique().tolist())
+                else:
+                    residencias_disp = [residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()]
                 personas_disp = ["Todas las personas"] + sorted(df_prog_filtro['RESPONSABLE'].dropna().unique().tolist())
 
                 col_f1, col_f2, col_f3 = st.columns(3)
                 with col_f1:
                     mes_sel = st.selectbox("Filtrar por Mes", meses_disp)
                 with col_f2:
-                    res_sel = st.selectbox("Filtrar por Residencia", residencias_disp)
+                    if current_email_key == "victor.olmedo@pa.gob.mx":
+                        res_sel = st.selectbox("Filtrar por Residencia", residencias_disp)
+                    else:
+                        res_sel = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()
+                        st.text_input("Filtrar por Residencia", value=res_sel, disabled=True)
                 with col_f3:
                     pers_sel = st.selectbox("Filtrar por Persona (Responsable)", personas_disp)
 
                 if mes_sel != "Todos los meses":
                     df_prog_filtro = df_prog_filtro[df_prog_filtro['MES_AÑO_STR'] == mes_sel]
-                if res_sel != "Todas las residencias":
+                if current_email_key == "victor.olmedo@pa.gob.mx" and res_sel != "Todas las residencias":
                     df_prog_filtro = df_prog_filtro[df_prog_filtro['RESIDENCIA'] == res_sel]
                 if pers_sel != "Todas las personas":
                     df_prog_filtro = df_prog_filtro[df_prog_filtro['RESPONSABLE'] == pers_sel]
@@ -941,16 +956,21 @@ elif perfil == "Módulo de Captura (Recorrido)":
             h_llegada = st.text_input("Hora de Llegada (Formato 24h, ej. 17:00)", value="17:00", max_chars=300)
             km_final = st.number_input("KM Final / Llegada", min_value=0.0, value=km_sugerido, step=1.0)
         with col3:
-            lista_adscripciones_unicas = sorted(list(set([
-                jefatura_actual, 
-                "RESIDENCIA NAUCALPAN", 
-                "RESIDENCIA TOLUCA", 
-                "RESIDENCIA ATLACOMULCO", 
-                "RESIDENCIA TEXCOCO", 
-                "RESIDENCIA VALLE DE BRAVO", 
-                "RESIDENCIA TENANCINGO"
-            ])))
-            residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
+            if current_email_key == "victor.olmedo@pa.gob.mx":
+                lista_adscripciones_unicas = sorted(list(set([
+                    jefatura_actual, 
+                    "RESIDENCIA NAUCALPAN", 
+                    "RESIDENCIA TOLUCA", 
+                    "RESIDENCIA ATLACOMULCO", 
+                    "RESIDENCIA TEXCOCO", 
+                    "RESIDENCIA VALLE DE BRAVO", 
+                    "RESIDENCIA TENANCINGO"
+                ])))
+                residencia = st.selectbox("Área de Adscripción", lista_adscripciones_unicas)
+            else:
+                residencia = jefatura_actual
+                st.text_input("Área de Adscripción (Bloqueada)", value=residencia, disabled=True)
+
             vehiculo = st.text_input("Tipo de Vehículo - Libre", value="", max_chars=300, placeholder="Ej. Nissan Versa, PickUp, Estacas...")
             placas = st.text_input("Placas", value="", max_chars=300)
             licencia = st.text_input("No. De Licencia", value="", max_chars=300)
@@ -1398,19 +1418,25 @@ elif perfil in ["Panel de Administración y Auditoría", "Panel de Supervisión 
                 orgs_disp = ["Todos los organizadores"] + sorted(df_global['Usuario Responsable'].dropna().unique().tolist()) if not df_global.empty else ["Todos"]
                 filtro_usuario = st.selectbox("Organizador Agrario", orgs_disp)
             with col_f4:
-                est_disp = ["Todos los estados"] + sorted(df_global['ESTADO_ADSCRIPCION'].dropna().unique().tolist()) if not df_global.empty else ["Todos"]
-                filtro_estado = st.selectbox("Estado", est_disp)
+                if current_email_key == "victor.olmedo@pa.gob.mx":
+                    est_disp = ["Todos los estados"] + sorted(df_global['ESTADO_ADSCRIPCION'].dropna().unique().tolist()) if not df_global.empty else ["Todos"]
+                    filtro_estado = st.selectbox("Estado", est_disp)
+                else:
+                    filtro_estado = estado_usuario_actual
             with col_f5:
-                jef_disp = ["Todas las jefaturas"] + sorted(df_global['JEFATURA'].dropna().unique().tolist()) if not df_global.empty else ["Todas"]
-                filtro_jefatura = st.selectbox("Jefatura de Residencia", jef_disp)
+                if current_email_key == "victor.olmedo@pa.gob.mx":
+                    jef_disp = ["Todas las jefaturas"] + sorted(df_global['JEFATURA'].dropna().unique().tolist()) if not df_global.empty else ["Todas"]
+                    filtro_jefatura = st.selectbox("Jefatura de Residencia", jef_disp)
+                else:
+                    filtro_jefatura = jefatura_sesion_actual
                 
             if not df_global.empty:
                 df_filtrado = df_global[(df_global['FECHA_DT'] >= f_inicio) & (df_global['FECHA_DT'] <= f_fin)]
                 if filtro_usuario != "Todos los organizadores":
                     df_filtrado = df_filtrado[df_filtrado['Usuario Responsable'] == filtro_usuario]
-                if filtro_estado != "Todos los estados":
+                if current_email_key == "victor.olmedo@pa.gob.mx" and filtro_estado != "Todos los estados":
                     df_filtrado = df_filtrado[df_filtrado['ESTADO_ADSCRIPCION'] == filtro_estado]
-                if filtro_jefatura != "Todas las jefaturas":
+                if current_email_key == "victor.olmedo@pa.gob.mx" and filtro_jefatura != "Todas las jefaturas":
                     df_filtrado = df_filtrado[df_filtrado['JEFATURA'] == filtro_jefatura]
                 
                 if not df_filtrado.empty:
