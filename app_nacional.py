@@ -152,14 +152,15 @@ def cargar_usuarios():
         "esperanza.ramos@pa.gob.mx": {"nombre": "ESPERANZA WENDY RAMOS RODRIGUEZ", "pass": "Wendy", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
         "carlos.javg.96@gmail.com": {"nombre": "CARLOS JAVIER GALVEZ GONZALEZ", "pass": "Carlos", "licencia": "", "rol": "Administrador Nacional", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ADAN JIMENEZ", "foto": "", "activo": True},
         "dehnny.vasquez@pa.gob.mx": {"nombre": "DEHNNY VAZQUEZ FLORES", "pass": "Dehnny", "licencia": "", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "", "foto": "", "activo": True},
-        # --- USUARIOS DE RESIDENCIAS Y REPRESENTACIÓN ---
+        # --- USUARIOS DE RESIDENCIAS, REPRESENTACIÓN Y JEFES ---
         "toluca.residencia": {"nombre": "OSCAR MENDOZA RUIZ", "pass": "Toluca2026", "licencia": "TOL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "atlacomulco.residencia": {"nombre": "BRENDA LÓPEZ SÁNCHEZ", "pass": "Atlacomulco2026", "licencia": "ATL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA ATLACOMULCO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "naucalpan.residencia": {"nombre": "ADÁN JIMÉNEZ PÉREZ", "pass": "Naucalpan2026", "licencia": "NAU123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA NAUCALPAN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "texcoco.residencia": {"nombre": "GUADALUPE RAMÍREZ FLORES", "pass": "Texcoco2026", "licencia": "TEX123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TEXCOCO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "vallebravo.residencia": {"nombre": "ROBERTO GÓMEZ CRUZ", "pass": "Valle2026", "licencia": "VAL123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA VALLE DE BRAVO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
         "tenancingo.residencia": {"nombre": "MARÍA ELENA SOTO VILLA", "pass": "Tenancingo2026", "licencia": "TEN123456", "rol": "Organizador Agrario (Operador)", "estado": "Estado de México", "jefatura": "RESIDENCIA TENANCINGO", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
-        "representacion.residencia": {"nombre": "REPRESENTACIÓN OFICIAL", "pass": "Representacion2026", "licencia": "REP123456", "rol": "Representación", "estado": "Estado de México", "jefatura": "REPRESENTACIÓN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True}
+        "representacion.residencia": {"nombre": "REPRESENTACIÓN OFICIAL", "pass": "Representacion2026", "licencia": "REP123456", "rol": "Representación", "estado": "Estado de México", "jefatura": "REPRESENTACIÓN", "jefe_residencia": "ING. GABRIEL ESTRADA", "foto": "", "activo": True},
+        "alejandro.garcia@pa.gob.mx": {"nombre": "LIC. ALEJANDRO GARCÍA LÓPEZ", "pass": "Alejandro2026", "licencia": "ALE123456", "rol": "Jefe de Residencia", "estado": "Estado de México", "jefatura": "RESIDENCIA TOLUCA", "jefe_residencia": "MTRO. GONZALO GABRIEL ESTRADA CERVANTES", "foto": "", "activo": True}
     }
     if os.path.exists(USUARIOS_FILE):
         try:
@@ -474,7 +475,7 @@ elif perfil == "Programación de Combustible y Viáticos":
                 res_asignada = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()
             st.info(f"Adscripción asignada: **Residencia {res_asignada}**")
 
-        # --- SELECCIÓN DE MES INSTITUCHIONAL ---
+        # --- SELECCIÓN DE MES INSTITUCIONAL ---
         st.markdown("### 2. Selección de Mes Institucional" if current_email_key != "victor.olmedo@pa.gob.mx" else "### 3. Selección de Mes Institucional")
         if "mes_activo_prog" not in st.session_state:
             st.session_state["mes_activo_prog"] = datetime.now().month
@@ -750,7 +751,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -884,7 +885,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     if current_email_key == "victor.olmedo@pa.gob.mx":
         registros_filtrados_vista = registros_totales
     else:
-        registros_filtrados_vista = [r for r in registros_totales if r.get("JEFATURA") == jefatura_actual]
+        registros_filtrados_vista = [r for r in registros_totales if r.get("JEFATURA"] == jefatura_actual]
 
     if len(registros_totales) > 0:
         st.markdown("---")
