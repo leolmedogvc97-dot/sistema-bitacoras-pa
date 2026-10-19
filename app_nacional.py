@@ -413,7 +413,7 @@ if perfil == "Mi Perfil / Foto":
 
 elif perfil == "Programación de Combustible y Viáticos":
     st.subheader("Programación Mensual de Combustible y Viáticos por Residencia y Representación")
-    st.markdown("Selecciona el **Año**, el **Área (Residencia o Representación)** y el **Mes** para consultar, registrar o editar la programación de actividades.")
+    st.markdown("Selecciona el **Año** y el **Mes** para consultar, registrar o editar la programación de actividades.")
 
     def cargar_programacion():
         if os.path.exists(PROGRAMACION_FILE):
@@ -432,7 +432,7 @@ elif perfil == "Programación de Combustible y Viáticos":
     estado_usuario_actual = st.session_state.get("current_estado", "Estado de México")
     usuario_actual_nombre = st.session_state.get("current_user", "")
 
-    tab_prog_meses, tab_prog_hist = st.tabs(["Programación por Año, Área y Mes", "Historial y Supervisión"])
+    tab_prog_meses, tab_prog_hist = st.tabs(["Programación por Año y Mes", "Historial y Supervisión"])
 
     with tab_prog_meses:
         # --- SELECCIÓN DE AÑO (2026 AL 2028) ---
@@ -453,8 +453,8 @@ elif perfil == "Programación de Combustible y Viáticos":
         st.markdown("---")
 
         # --- SELECCIÓN DE RESIDENCIA O REPRESENTACIÓN ---
-        st.markdown("### 2. Selección de Residencia o Representación")
         if current_email_key == "victor.olmedo@pa.gob.mx":
+            st.markdown("### 2. Selección de Residencia o Representación")
             cols_res = st.columns(7)
             lista_res_botones = ["Toluca", "Atlacomulco", "Naucalpan", "Tenancingo", "Valle de Bravo", "Texcoco", "Representación"]
             if "residencia_seleccionada_prog" not in st.session_state:
@@ -466,17 +466,16 @@ elif perfil == "Programación de Combustible y Viáticos":
                         st.session_state["residencia_seleccionada_prog"] = res_nombre
             res_asignada = st.session_state['residencia_seleccionada_prog']
             st.info(f"Área seleccionada para el registro: **{res_asignada}**")
+            st.markdown("---")
         else:
             if rol_actual == "Representación" or "REPRESENTACION" in residencia_usuario_actual.upper():
                 res_asignada = "Representación"
             else:
                 res_asignada = residencia_usuario_actual.replace("RESIDENCIA", "").strip().title()
-            st.info(f"Adscripción asignada: **{res_asignada}** (Bloqueada a tu perfil)")
+            st.info(f"Adscripción asignada: **Residencia {res_asignada}**")
 
-        st.markdown("---")
-
-        # --- SELECCIÓN DE MES INSTITUCIONAL ---
-        st.markdown("### 3. Selección de Mes Institucional")
+        # --- SELECCIÓN DE MES INSTITUCHIONAL ---
+        st.markdown("### 2. Selección de Mes Institucional" if current_email_key != "victor.olmedo@pa.gob.mx" else "### 3. Selección de Mes Institucional")
         if "mes_activo_prog" not in st.session_state:
             st.session_state["mes_activo_prog"] = datetime.now().month
 
@@ -662,7 +661,7 @@ elif perfil == "Programación de Combustible y Viáticos":
             if current_email_key == "victor.olmedo@pa.gob.mx":
                 df_prog_filtro = df_prog
             else:
-                res_clean = residencia_usuario_actual.replace("RESIDENCIA", "").strip().upper()
+                res_clean = res_asignada.upper()
                 df_prog_filtro = df_prog[df_prog['RESIDENCIA'].str.upper().str.contains(res_clean, na=False)]
 
             if not df_prog_filtro.empty:
