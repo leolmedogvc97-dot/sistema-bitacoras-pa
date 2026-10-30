@@ -751,7 +751,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     
     st.markdown(f"Ingresa los datos de tu recorrido. Ubicación filtrada para **{estado_usuario_actual}** | Jefatura: **{jefatura_actual}** | Jefe: **{jefe_actual}**.")
     
-    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR"] == current_email_key]
+    registros_previos_user = [r for r in cargar_registros_acumulados() if r.get("CORREO_ORGANIZADOR") == current_email_key]
     km_sugerido = 0.0
     if registros_previos_user:
         ultimo_reg = registros_previos_user[-1]
@@ -885,7 +885,7 @@ elif perfil == "Módulo de Captura (Recorrido)":
     if current_email_key == "victor.olmedo@pa.gob.mx":
         registros_filtrados_vista = registros_totales
     else:
-        registros_filtrados_vista = [r for r in registros_totales if r.get("JEFATURA"] == jefatura_actual]
+        registros_filtrados_vista = [r for r in registros_totales if r.get("JEFATURA") == jefatura_actual]
 
     if len(registros_totales) > 0:
         st.markdown("---")
