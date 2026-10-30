@@ -358,59 +358,60 @@ if perfil == "Mi Perfil / Foto":
             else:
                 st.warning("Selecciona un archivo de imagen válido antes de guardar.")
 
-    st.markdown("---")
-    st.subheader("Resumen de Actividad y Uso de la Red (Accesos y Bitácoras)")
-    st.markdown("Auditoría general del sistema: Conoce qué usuarios han ingresado, cuántas veces han accedido, cuántas bitácoras oficiales han generado y cuántos registros acumulan.")
-    
-    logs_audit = []
-    if os.path.exists(AUDIT_FILE):
-        try:
-            with open(AUDIT_FILE, "r", encoding="utf-8") as f:
-                logs_audit = json.load(f)
-        except:
-            pass
-            
-    registros_todos = cargar_registros_acumulados()
-    if current_email_key != "victor.olmedo@pa.gob.mx":
-        registros_todos = [r for r in registros_todos if r.get("JEFATURA") == jefatura_sesion_actual]
-    
-    if usuarios_dict_perfil:
-        resumen_uso_dict = {}
-        for email_u, info_u in usuarios_dict_perfil.items():
-            if current_email_key != "victor.olmedo@pa.gob.mx" and info_u.get("jefatura") != jefatura_sesion_actual:
-                continue
-            resumen_uso_dict[email_u] = {
-                "Usuario / Correo": email_u,
-                "Nombre": info_u.get("nombre", "N/A"),
-                "Rol": info_u.get("rol", "N/A"),
-                "Estado": info_u.get("estado", "N/A"),
-                "Ingresos (Logins)": 0,
-                "Último Acceso": "Sin registro",
-                "Bitácoras Generadas": 0,
-                "Registros Guardados": 0
-            }
-            
-        for reg in registros_todos:
-            c_org = reg.get("CORREO_ORGANIZADOR", "")
-            if c_org in resumen_uso_dict:
-                resumen_uso_dict[c_org]["Registros Guardados"] += 1
+    if current_email_key in ["victor.olmedo@pa.gob.mx", "alejandro.garcia@pa.gob.mx"]:
+        st.markdown("---")
+        st.subheader("Resumen de Actividad y Uso de la Red (Accesos y Bitácoras)")
+        st.markdown("Auditoría general del sistema: Conoce qué usuarios han ingresado, cuántas veces han accedido, cuántas bitácoras oficiales han generado y cuántos registros acumulan.")
+        
+        logs_audit = []
+        if os.path.exists(AUDIT_FILE):
+            try:
+                with open(AUDIT_FILE, "r", encoding="utf-8") as f:
+                    logs_audit = json.load(f)
+            except:
+                pass
                 
-        for log in logs_audit:
-            usr_log = log.get("USUARIO", "").strip().lower()
-            acc_log = log.get("ACCION", "")
-            fh_log = log.get("FECHA_HORA", "")
-            
-            if usr_log in resumen_uso_dict:
-                if acc_log == "INICIO DE SESION":
-                    resumen_uso_dict[usr_log]["Ingresos (Logins)"] += 1
-                    resumen_uso_dict[usr_log]["Último Acceso"] = fh_log
-                elif acc_log == "GENERAR BITACORAS":
-                    resumen_uso_dict[usr_log]["Bitácoras Generadas"] += 1
+        registros_todos = cargar_registros_acumulados()
+        if current_email_key != "victor.olmedo@pa.gob.mx":
+            registros_todos = [r for r in registros_todos if r.get("JEFATURA") == jefatura_sesion_actual]
+        
+        if usuarios_dict_perfil:
+            resumen_uso_dict = {}
+            for email_u, info_u in usuarios_dict_perfil.items():
+                if current_email_key != "victor.olmedo@pa.gob.mx" and info_u.get("jefatura") != jefatura_sesion_actual:
+                    continue
+                resumen_uso_dict[email_u] = {
+                    "Usuario / Correo": email_u,
+                    "Nombre": info_u.get("nombre", "N/A"),
+                    "Rol": info_u.get("rol", "N/A"),
+                    "Estado": info_u.get("estado", "N/A"),
+                    "Ingresos (Logins)": 0,
+                    "Último Acceso": "Sin registro",
+                    "Bitácoras Generadas": 0,
+                    "Registros Guardados": 0
+                }
+                
+            for reg in registros_todos:
+                c_org = reg.get("CORREO_ORGANIZADOR", "")
+                if c_org in resumen_uso_dict:
+                    resumen_uso_dict[c_org]["Registros Guardados"] += 1
                     
-        df_uso_red = pd.DataFrame(list(resumen_uso_dict.values()))
-        st.dataframe(df_uso_red, use_container_width=True)
-    else:
-        st.info("No hay usuarios registrados en el sistema.")
+            for log in logs_audit:
+                usr_log = log.get("USUARIO", "").strip().lower()
+                acc_log = log.get("ACCION", "")
+                fh_log = log.get("FECHA_HORA", "")
+                
+                if usr_log in resumen_uso_dict:
+                    if acc_log == "INICIO DE SESION":
+                        resumen_uso_dict[usr_log]["Ingresos (Logins)"] += 1
+                        resumen_uso_dict[usr_log]["Último Acceso"] = fh_log
+                    elif acc_log == "GENERAR BITACORAS":
+                        resumen_uso_dict[usr_log]["Bitácoras Generadas"] += 1
+                        
+            df_uso_red = pd.DataFrame(list(resumen_uso_dict.values()))
+            st.dataframe(df_uso_red, use_container_width=True)
+        else:
+            st.info("No hay usuarios registrados en el sistema.")
 
 elif perfil == "Programación de Combustible y Viáticos":
     st.subheader("Programación Mensual de Combustible y Viáticos por Residencia y Representación")
